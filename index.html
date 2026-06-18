@@ -1682,6 +1682,19 @@ function App(){
             const m=rec.dateFrom?rec.dateFrom.substring(0,7):"";
             const dup=m&&next.some(function(r2){return r2.name===rec.name&&r2.dateFrom&&r2.dateFrom.substring(0,7)===m;});
             if(!dup){next.push(rec);added++;}else{skipped++;}
+            // Auto-create student profile anchor if one doesn't exist yet
+            var hasProfile=next.some(function(r2){return r2.name===rec.name&&r2.isStudentProfile;});
+            if(!hasProfile){
+              next.push(Object.assign({},defaultEntry,{
+                id:uid(),name:rec.name,class:rec.class,
+                dateFrom:rec.dateFrom||"",dateTo:rec.dateFrom||"",
+                totalFullSides:"0",plusLines:"0",absences:"0",paraDorMornings:"0",
+                totalDaysOfSabaq:"0",targetGiven:13,upcomingTarget:13,behaviour:5,
+                weakSabaqInstances:"N/A",weakDorInstances:"N/A",
+                eveningPossibleDays:"0",eveningAbsences:"0",
+                isStudentProfile:true,
+              }));
+            }
           });
           lsSave(next);
           var msg="\u2705 Import complete\n\n"
