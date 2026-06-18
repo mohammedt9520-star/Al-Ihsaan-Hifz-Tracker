@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -41,7 +41,7 @@ const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",do
 
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
-// ── SUPABASE LAYER ─────────────────────────────────────────────
+// â”€â”€ SUPABASE LAYER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function sbFetch(path,method,body){
   const h={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+(await sbGetToken()),"Content-Type":"application/json"};
   if(method==="POST"||method==="PATCH")h["Prefer"]="resolution=merge-duplicates";
@@ -61,7 +61,7 @@ async function sbUpsert(table,rows){
   for(let i=0;i<rows.length;i+=500){await sbFetch(table+"?on_conflict=id","POST",rows.slice(i,i+500));}
 }
 async function sbFetchAll(q){
-  // Max 100 pages (100k rows) — sufficient for 5+ years of register data
+  // Max 100 pages (100k rows) â€” sufficient for 5+ years of register data
   let all=[],offset=0,maxPages=100;
   while(maxPages-->0){
     const sep=q.includes("?")?"&":"?";
@@ -96,8 +96,8 @@ const BEHAVIOUR_LABELS={1:"Very Poor",2:"Poor",3:"Average",4:"Good",5:"Very Good
 const BEHAVIOUR_COLORS={1:RED,2:ORANGE,3:"#f1c40f",4:GREEN,5:"#1abc9c"};
 
 const DOR_COLOR_MAP={
-  green:{bg:GREEN,label:"Good (0.5 – 1.5)"},
-  orange:{bg:ORANGE,label:"Needs Work (2 – 3)"},
+  green:{bg:GREEN,label:"Good (0.5 â€“ 1.5)"},
+  orange:{bg:ORANGE,label:"Needs Work (2 â€“ 3)"},
   red:{bg:RED,label:"Weak (3.5+)"},
   grey:{bg:"#555566",label:"Record Missing"},
 };
@@ -129,14 +129,14 @@ function getDorColor(mistakes,repeated){
   s.onerror=function(){console.warn("SheetJS CDN load failed");};
   document.head.appendChild(s);
 })();
-const XLSX_TEMPLATE_B64="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";
+const XLSX_TEMPLATE_B64="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";
 
-// ══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // TOAST + MODAL SYSTEM
 // Replaces all alert() / confirm() / prompt() browser dialogs
-// ══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ── Global toast state (imperative API via module-level ref) ──
+// â”€â”€ Global toast state (imperative API via module-level ref) â”€â”€
 var _toastQueue=[];
 var _toastSetState=null;
 
@@ -159,10 +159,10 @@ function Toast(){
   _toastSetState=setToasts;
   if(!toasts.length)return null;
   var STYLES={
-    success:{bg:"#16a34a",icon:"✅"},
-    error:{bg:"#dc2626",icon:"❌"},
-    warning:{bg:"#d97706",icon:"⚠️"},
-    info:{bg:"#1a3a3a",icon:"ℹ️"},
+    success:{bg:"#16a34a",icon:"âœ…"},
+    error:{bg:"#dc2626",icon:"âŒ"},
+    warning:{bg:"#d97706",icon:"âš ï¸"},
+    info:{bg:"#1a3a3a",icon:"â„¹ï¸"},
   };
   return React.createElement("div",{
     style:{position:"fixed",bottom:"calc(env(safe-area-inset-bottom,0px) + 88px)",
@@ -185,7 +185,7 @@ function Toast(){
   );
 }
 
-// ── ConfirmModal ──────────────────────────────────────────────
+// â”€â”€ ConfirmModal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var _confirmResolve=null;
 var _confirmSetState=null;
 
@@ -235,7 +235,7 @@ function ConfirmModal(){
   );
 }
 
-// ── InputModal (replaces prompt()) ───────────────────────────
+// â”€â”€ InputModal (replaces prompt()) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 var _inputResolve=null;
 var _inputSetState=null;
 
@@ -409,10 +409,10 @@ function DorHeatmapView({heatmap}){
 }
 
 
-function fmt(n,dec=2){if(!isFinite(n)||isNaN(n))return"—";return n.toFixed(dec);}
+function fmt(n,dec=2){if(!isFinite(n)||isNaN(n))return"â€”";return n.toFixed(dec);}
 function getAvgColor(avg){if(avg>=11)return GREEN;if(avg>=10)return ORANGE;return RED;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
-// ── SHA-256 password hashing (crypto.subtle) ──────────────────
+// â”€â”€ SHA-256 password hashing (crypto.subtle) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Replaces btoa() encoding. Async; callers that need sync result
 // use the cached stored value only for comparison.
 async function _hashPwdAsync(p){
@@ -436,13 +436,13 @@ async function checkAdminPassword(p){
   const stored=getAdminPassword();
   if(!stored)return false;
   const h=await _hashPwdAsync(p);
-  // Hash-only — legacy plaintext fallback removed
+  // Hash-only â€” legacy plaintext fallback removed
   return stored===h;
 }
 // Migration: if stored value is old btoa format (not 64-char hex),
-// it will never match SHA-256 output → user must reset password once.
-// This is intentional — the old format was not secure.
-// ── LOCAL STORAGE ──────────────────────────────────────────────
+// it will never match SHA-256 output â†’ user must reset password once.
+// This is intentional â€” the old format was not secure.
+// â”€â”€ LOCAL STORAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function lsGet(){try{return(JSON.parse(localStorage.getItem("sabaqData")||"[]")).map(sanitiseRecord).filter(Boolean);}catch(e){return[];}}
 function lsSave(r){try{localStorage.setItem("sabaqData",JSON.stringify(r));}catch(e){console.warn("lsSave",e);}}
 function lsGetDor(){try{return(JSON.parse(localStorage.getItem("dorData")||"[]")).map(sanitiseDor).filter(Boolean);}catch(e){return[];}}
@@ -473,12 +473,12 @@ const defaultEntry={
   eveningPossibleDays:"",eveningAbsences:"",
 };
 
-// ── DATA SANITISATION ─────────────────────────────────────────
+// â”€â”€ DATA SANITISATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Called after loading from localStorage or Supabase to fix any corrupt values
 function sanitiseRecord(r){
   if(!r||typeof r!=="object")return null;
   if(!r.id||!r.name)return null;
-  // V7: blank/invalid class → default to first class
+  // V7: blank/invalid class â†’ default to first class
   const _safeClass=CLASSES.includes(r.class)?r.class:CLASSES[0];
   var out={
     ...r,
@@ -487,7 +487,7 @@ function sanitiseRecord(r){
     totalFullSides: String(Math.max(0,Math.min(9999,parseFloat(r.totalFullSides)||0))),
     // plusLines cap 0-12
     plusLines:       String(Math.max(0,Math.min(12,parseInt(r.plusLines)||0))),
-    // V2/V3/V4: absences, paraDorMornings, totalDaysOfSabaq — all capped 0-31
+    // V2/V3/V4: absences, paraDorMornings, totalDaysOfSabaq â€” all capped 0-31
     absences:        String(Math.max(0,Math.min(31,parseInt(r.absences)||0))),
     paraDorMornings: String(Math.max(0,Math.min(31,parseInt(r.paraDorMornings)||0))),
     totalDaysOfSabaq:String(Math.max(0,Math.min(31,parseInt(r.totalDaysOfSabaq)||0))),
@@ -502,7 +502,7 @@ function sanitiseRecord(r){
     weakSabaqInstances: r.weakSabaqInstances||"N/A",
     weakDorInstances:   r.weakDorInstances||"N/A",
   };
-  // V8: cross-field — absences+paraDorMornings must not exceed totalDaysOfSabaq
+  // V8: cross-field â€” absences+paraDorMornings must not exceed totalDaysOfSabaq
   var _tds=parseInt(out.totalDaysOfSabaq)||0;
   var _abs=parseInt(out.absences)||0;
   var _pdm=parseInt(out.paraDorMornings)||0;
@@ -553,8 +553,8 @@ function sanitiseDaily(r){
     dorScrape: !!r.dorScrape,
   };
 }
-// ── END SANITISATION ────────────────────────────────────────────
-// HTML escape — every user value written into HTML strings must use this
+// â”€â”€ END SANITISATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// HTML escape â€” every user value written into HTML strings must use this
 function esc(v){
   if(v===null||v===undefined)return"";
   return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;")
@@ -579,19 +579,19 @@ function calcEntry(s){
   const totalAvgPages=I>0?I/13:0;
   let monthName="";
   if(s.dateFrom){try{const d=new Date(s.dateFrom);if(!isNaN(d.getTime()))monthName=d.toLocaleString("default",{month:"long",year:"numeric"});}catch(e){}}
-  // ── Sabaq Champion fields (spec v2.4) ──────────────────
+  // â”€â”€ Sabaq Champion fields (spec v2.4) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Step 1: totalLines = I (already computed above)
   // Step 2: sabaqDays
   const sabaqDays = J; // = max(0, N - H - G)
   // Step 3: average lines per sabaq day
   const average = sabaqDays > 0 ? I / sabaqDays : 0;
-  // Step 4: trueAverage — absences hurt, Para Dor does NOT
+  // Step 4: trueAverage â€” absences hurt, Para Dor does NOT
   const trueAverage = (N - H) > 0 ? I / (N - H) : 0;
-  // Step 5: adjustedLines — credit Para Dor at student's own trueAverage
+  // Step 5: adjustedLines â€” credit Para Dor at student's own trueAverage
   const adjustedLines = I + (trueAverage * H);
   // Step 6: championTotalSides
   const championTotalSides = adjustedLines / 13;
-  // Step 7: championDailyAverage — divide by ALL days (Para Dor already credited)
+  // Step 7: championDailyAverage â€” divide by ALL days (Para Dor already credited)
   const championDailyAverage = N > 0 ? championTotalSides / N : 0;
   return{I,J,K,P,R,S:S_val,T,U,O,Q,G,H,N,totalAttended,attendancePct,totalAvgPages,monthName,
     sabaqDays,average,trueAverage,adjustedLines,championTotalSides,championDailyAverage};
@@ -661,7 +661,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
       (!entry.dateTo||d.date<=entry.dateTo);
   });
 
-  // ── Dor Heatmap builder ──────────────────────────────────
+  // â”€â”€ Dor Heatmap builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function hmDot(color){
     var c=color==="green"?"#22c55e":color==="orange"?"#f59e0b":color==="red"?"#ef4444":"#c0c0c0";
     return '<div style="width:10px;height:10px;border-radius:50%;background:'+c+';display:inline-block;margin:1px;flex-shrink:0;"></div>';
@@ -720,7 +720,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   const llCt=parseInt(entry.sabaqLessLinesCount)||0;
   const hasQuality=avgSpM>0||spScrCt>0||spKacCt>0||sp2Ct>0||wkSabCt>0||llCt>0;
 
-  // ── SVG donut for attendance % ──────────────────────────────
+  // â”€â”€ SVG donut for attendance % â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function svgDonut(pct,color){
     const r=30,cx=36,cy=36,stroke=6;
     const circ=2*Math.PI*r;
@@ -729,7 +729,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   }
   function attPctColor(p){return p>=90?"#27ae60":p>=75?"#e67e22":"#e74c3c";}
 
-  // ── CSS ─────────────────────────────────────────────────────
+  // â”€â”€ CSS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   var h="";
   h+='<!DOCTYPE html><html><head><meta charset="UTF-8"/>';
   h+='<style>';
@@ -786,18 +786,18 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='.sec-num{background:#fff3;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;}';
   h+='</style></head><body>';
 
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // PAGE 1
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-  // ── Header ────────────────────────────────────────────────
+  // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   h+='<div class="rpt-header">';
   h+='<img src="'+window.LOGO_SRC+'" class="rpt-logo"/>';
   h+='<div><div class="rpt-title">Monthly Hifz Report</div>';
   h+='<div class="rpt-title-sub">Al-Ihsaan Academy</div></div>';
   h+='</div>';
 
-  // ── Meta box ─────────────────────────────────────────────
+  // â”€â”€ Meta box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   h+='<div class="meta-box">';
   h+='<div class="meta-row">';
   h+='<div class="meta-lbl">Student\'s Name:</div>';
@@ -813,7 +813,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='</div>';
   h+='</div>';
 
-  // ── 1. Attendance Overview ────────────────────────────────
+  // â”€â”€ 1. Attendance Overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const amPossible=calc.N+calc.G;
   const amAttended=calc.N;
   const amAbsences=calc.G;
@@ -840,7 +840,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
     h+=attBlock("Attendance Overview",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue");
   }
 
-  // ── 2. Sabaq Target Given ─────────────────────────────────
+  // â”€â”€ 2. Sabaq Target Given â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Sabaq Target Given</div>';
   h+='<div class="sec-body sec-body-teal"><table class="dtbl"><tr>';
   h+='<td><div class="lbl">Total Sabaq Days</div><div class="val">'+calc.N+'</div></td>';
@@ -852,14 +852,14 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='<td colspan="2" style="text-align:center;"><div class="lbl">Total Lines Target</div><div class="val" style="font-size:20px;">'+calc.P+'</div></td>';
   h+='</tr></table></div></div>';
 
-  // ── 3. Sabaq Completed This Month ────────────────────────
+  // â”€â”€ 3. Sabaq Completed This Month â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   h+='<div class="sec"><div class="sec-hdr sec-hdr-green"><span class="sec-num">3</span> Sabaq Completed This Month</div>';
   h+='<div class="sec-body sec-body-green"><table class="dtbl"><tr>';
   h+='<td><div class="lbl">Page Numbers</div><div class="val">'+esc(entry.fromPage)+' \u2013 '+esc(entry.toPage)+'</div></td>';
   h+='<td><div class="lbl">Total Lines</div><div class="val">'+fmt(calc.I,0)+'</div></td>';
   h+='<td><div class="lbl">Sabaq Para Total</div><div class="val">'+fmt(calc.totalAvgPages,2)+'</div></td>';
   h+='</tr><tr>';
-  // Average Lines Completed — legend goes BELOW inside this cell
+  // Average Lines Completed â€” legend goes BELOW inside this cell
   const mkC=avgCircleColor==="green"?"#27ae60":avgCircleColor==="orange"?"#e67e22":"#e74c3c";
   h+='<td colspan="2" style="text-align:center;">';
   h+='<div class="lbl">Average Lines Completed</div>';
@@ -879,7 +879,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='</td>';
   h+='</tr></table></div></div>';
 
-  // ── 4. Target for Next Month ──────────────────────────────
+  // â”€â”€ 4. Target for Next Month â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   h+='<div class="sec"><div class="sec-hdr sec-hdr-purple"><span class="sec-num">4</span> Target for Next Month</div>';
   h+='<div class="sec-body"><table class="dtbl"><tr>';
   h+='<td style="text-align:left;"><div class="lbl">Sabaq Lines Per Day</div></td>';
@@ -889,12 +889,12 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   // Page 1 number
   h+='<div class="pg-num"><div class="pg-num-line"></div>Page 1<div class="pg-num-line"></div></div>';
 
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // PAGE 2
-  // ═══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   h+='<div class="pgbreak"></div>';
 
-  // ── 5. Dor (Revision) Record — CSS Grid Heatmap ──────────
+  // â”€â”€ 5. Dor (Revision) Record â€” CSS Grid Heatmap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   h+='<div style="background:#fff;border-radius:10px;overflow:hidden;border:1.5px solid #dde;margin-bottom:14px;">';
   h+='<div style="background:#CF5B0C;display:flex;align-items:center;gap:10px;padding:9px 16px;">';
   h+='<div style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;">5</div>';
@@ -903,7 +903,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   if(juzList.length>0){
     h+='<div style="max-height:400px;overflow-y:auto;">'+hmHTML+'</div>';
     h+='<div style="display:flex;justify-content:space-evenly;align-items:center;padding:10px 8px;border-top:1.5px solid #e5e7eb;">';
-    [["#22c55e","Good (0–1.5)"],["#f59e0b","Needs Work (2–3)"],["#ef4444","Weak (3.5+)"],["#c0c0c0","Record Missing"]].forEach(function(item){
+    [["#22c55e","Good (0â€“1.5)"],["#f59e0b","Needs Work (2â€“3)"],["#ef4444","Weak (3.5+)"],["#c0c0c0","Record Missing"]].forEach(function(item){
       h+='<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;"><div style="width:10px;height:10px;border-radius:50%;background:'+item[0]+';"></div><span style="color:'+item[0]+'">'+item[1]+'</span></div>';
     });
     h+='</div>';
@@ -915,7 +915,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   }
   h+='</div>';
 
-  // ── Daily Sabaq Analysis (if data exists) ─────────────────
+  // â”€â”€ Daily Sabaq Analysis (if data exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if(hasQuality){
     h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">6</span> Daily Sabaq Analysis</div>';
     h+='<div class="sec-body sec-body-teal"><table class="dtbl"><tr>';
@@ -938,7 +938,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   const bhvNum=hasQuality?7:6;
   const cmtNum=bhvNum+1;
 
-  // ── Behaviour ─────────────────────────────────────────────
+  // â”€â”€ Behaviour â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   h+='<div class="sec"><div class="sec-hdr sec-hdr-blue"><span class="sec-num">'+bhvNum+'</span> Behaviour</div>';
   h+='<div class="sec-body"><table class="dtbl"><tr>';
   h+='<td style="padding:14px;text-align:center;">';
@@ -947,11 +947,11 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='<div style="font-size:11px;color:#888;margin-top:4px;">1 = Very Poor &nbsp;|&nbsp; 2 = Poor &nbsp;|&nbsp; 3 = Average &nbsp;|&nbsp; 4 = Good &nbsp;|&nbsp; 5 = Very Good</div>';
   h+='</td></tr></table></div></div>';
 
-  // ── Teacher Comments ──────────────────────────────────────
+  // â”€â”€ Teacher Comments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   h+='<div class="sec"><div class="sec-hdr sec-hdr-navy"><span class="sec-num">'+cmtNum+'</span> Teacher\'s Comments</div>';
   h+='<div class="sec-body"><div class="comments">'+esc(entry.teacherComments||"No comments recorded.")+'</div></div></div>';
 
-  // ── Footer ────────────────────────────────────────────────
+  // â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   h+='<div class="footer">';
   h+='<strong>Please review your report with your child and address any concerns.<br/>';
   h+='If the Madrasah is concerned regarding your child\u2019s performance, we will arrange a meeting soon <em>Insha\u2019Allah</em>.</strong><br/><br/>';
@@ -1354,7 +1354,7 @@ function calcDorChampions(dorRecords, records, dateFrom, dateTo){
 }
 
 function getAvailablePeriods(records){
-  // Group by dateFrom month+year only — ignore exact day and dateTo differences
+  // Group by dateFrom month+year only â€” ignore exact day and dateTo differences
   // This ensures all students from the same monthly import batch appear as one period
   const seen={};
   (Array.isArray(records)?records:[]).filter(r=>!r.isStudentProfile).forEach(r=>{
@@ -1381,7 +1381,7 @@ function recordMatchesPeriod(r,period){
 }
 
 
-// ── Login Screen ──────────────────────────────────────────────
+// â”€â”€ Login Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Rendered in place of the whole app when not signed in.
 // Staff sign in with the shared Supabase email/password account.
 
@@ -1548,7 +1548,7 @@ function App(){
     // Fall back to raw placeholder record only when no real records exist yet.
     const calcedForStudent=calced.filter(r=>r.name===profileName).sort((a,b)=>(a.dateFrom||"").localeCompare(b.dateFrom||""));
     if(calcedForStudent.length>0)return calcedForStudent;
-    // New student — no real entries yet; show placeholder so profile is visible
+    // New student â€” no real entries yet; show placeholder so profile is visible
     return records.filter(r=>r.name===profileName&&r.isStudentProfile).sort((a,b)=>(a.dateFrom||"").localeCompare(b.dateFrom||""));
   },[calced,records,profileName]);
   const htFiltered=React.useMemo(()=>latestPerStudent.filter(s=>{
@@ -1568,12 +1568,12 @@ function App(){
   }).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||"")),[calced,historyClass,historyStudent,historyDateFrom,historyDateTo]);
 
   function emailHeadteacher(filteredStudents){
-    const lines=filteredStudents.map(s=>"• "+s.name+" ("+s.class+") — avg: "+fmt(s.K,2)+", absences: "+(s.absences||0));
+    const lines=filteredStudents.map(s=>"â€¢ "+s.name+" ("+s.class+") â€” avg: "+fmt(s.K,2)+", absences: "+(s.absences||0));
     const body=encodeURIComponent("Hifz Student Summary\n\n"+lines.join("\n"));
-    const subj=encodeURIComponent("Al-Ihsaan Hifz — Student Report "+getTodayStr());
+    const subj=encodeURIComponent("Al-Ihsaan Hifz â€” Student Report "+getTodayStr());
     window.open("mailto:"+htEmail+"?subject="+subj+"&body="+body);
   }
-  // ── XLSX import via SheetJS ───────────────────────────────
+  // â”€â”€ XLSX import via SheetJS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function importXLSX(e){
     const file=e.target&&e.target.files&&e.target.files[0];
     if(!file)return;
@@ -1584,7 +1584,7 @@ function App(){
     reader.onload=function(ev){
       try{
         if(typeof XLSX==="undefined"){
-          showToast("XLSX library not loaded yet — please wait a moment and try again.","warning");
+          showToast("XLSX library not loaded yet â€” please wait a moment and try again.","warning");
           return;
         }
         const data=new Uint8Array(ev.target.result);
@@ -1592,14 +1592,12 @@ function App(){
         const ws=wb.Sheets[wb.SheetNames[0]];
         const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
         if(rows.length<2){showToast("Workbook appears empty. Please check the file contains data rows.","error");return;}
-        // I1: Detect wrong column layout — check if data rows have names in expected col (B=index 1)
-        var _dataRows=rows.slice(1).filter(function(r){return String(r[1]||"").trim()||String(r[0]||"").trim();});
-        if(_dataRows.length>0){
-          var _missingName=_dataRows.filter(function(r){return!String(r[1]||"").trim();}).length;
-          if(_missingName/_dataRows.length>0.6){
-            showToast("⚠️ Column layout issue: Name must be in column B. Use 'Download XLSX Template' to get the correct format.","warning");
-            return;
-          }
+        // I1: Detect wrong column layout â€” a row is only a data row if col B (Name) has content.
+        // Rows with only col A content (pre-numbered placeholders) are not data rows.
+        var _dataRows=rows.slice(1).filter(function(r){return String(r[1]||"").trim();});
+        if(_dataRows.length===0){
+          showToast("âš ï¸ No names found in column B. Use 'Download XLSX Template' to get the correct format.","warning");
+          return;
         }
 
         function cleanNum(v){const n=parseFloat(String(v||"").replace(/[^0-9.\-]/g,""));return isNaN(n)?"":String(n);}
@@ -1614,30 +1612,30 @@ function App(){
           if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)){const p=s.split("/");return p[2]+"-"+p[1].padStart(2,"0")+"-"+p[0].padStart(2,"0");}
           return s;
         }
-        // ── Column map matches XLSX template exactly (0-based) ──────
+        // â”€â”€ Column map matches XLSX template exactly (0-based) â”€â”€â”€â”€â”€â”€
         // A=0(#) B=1(Name) C=2(From Page) D=3(To Page) E=4(Total Full Sides)
         // F=5(Additional Lines) G=6(Absences) H=7(Para Dor Mornings)
         // I=8(Total Lines-CALC) J=9(Sabaq Days-CALC) K=10(Average-CALC)
-        // L=11(Class) M=12(Date) N=13(Total Days Of Sabaq) O=14(Target Given)
-        // P=15(Total Lines Target-CALC) Q=16(Upcoming Target)
-        // R=17(True Avg-CALC) S=18(Adjusted Lines-CALC)
-        // T=19(Champion Total Sides-CALC) U=20(Champion Daily Avg-CALC)
-        // V=21(Behaviour) W=22(Teacher Comments)
-        // Calculated columns (I,J,K,P,R,S,T,U) are SKIPPED — app recalculates
+        // L=11(Class) M=12(Report Start Date) N=13(Report End Date) O=14(Total Days Of Sabaq) P=15(Target Given)
+        // Q=16(Total Lines Target-CALC) R=17(Upcoming Target)
+        // S=18(True Avg-CALC) T=19(Adjusted Lines-CALC)
+        // U=20(Champion Total Sides-CALC) V=21(Champion Daily Avg-CALC)
+        // W=22(Behaviour) X=23(Teacher Comments)
+        // Calculated columns (I,J,K,Q,S,T,U,V) are SKIPPED â€” app recalculates
         const C={
           name:1, fromPage:2, toPage:3, totalFullSides:4, plusLines:5,
           absences:6, paraDorMornings:7,
-          // I(8)=Total Lines CALC — skip
-          // J(9)=Sabaq Days CALC — skip
-          // K(10)=Average CALC — skip
-          class:11, dateFrom:12, totalDaysOfSabaq:13, targetGiven:14,
-          // P(15)=Total Lines Target CALC — skip
-          upcomingTarget:16,
-          // R(17)=True Average CALC — skip
-          // S(18)=Adjusted Lines CALC — skip
-          // T(19)=Champion Total Sides CALC — skip
-          // U(20)=Champion Daily Avg CALC — skip
-          behaviour:21, teacherComments:22
+          // I(8)=Total Lines CALC â€” skip
+          // J(9)=Sabaq Days CALC â€” skip
+          // K(10)=Average CALC â€” skip
+          class:11, dateFrom:12, dateTo:13, totalDaysOfSabaq:14, targetGiven:15,
+          // Q(16)=Total Lines Target CALC â€” skip
+          upcomingTarget:17,
+          // S(18)=True Average CALC â€” skip
+          // T(19)=Adjusted Lines CALC â€” skip
+          // U(20)=Champion Total Sides CALC â€” skip
+          // V(21)=Champion Daily Avg CALC â€” skip
+          behaviour:22, teacherComments:23
         };
         const newRecs=[];
         for(let ri=0;ri<rows.length;ri++){
@@ -1655,11 +1653,8 @@ function App(){
           rec.class=String(r[C.class]||"").trim()||"HIFZ CLASS A";
           if(!CLASSES.includes(rec.class))rec.class=CLASSES[0];
           rec.dateFrom=cleanDate(r[C.dateFrom]);
-          // dateTo = last day of dateFrom month (or same as dateFrom if date unparseable)
-          if(rec.dateFrom&&/^\d{4}-\d{2}-\d{2}$/.test(rec.dateFrom)){
-            var _p=rec.dateFrom.split("-");var _lastDay=new Date(parseInt(_p[0]),parseInt(_p[1]),0).getDate();
-            rec.dateTo=_p[0]+"-"+_p[1]+"-"+String(_lastDay).padStart(2,"0");
-          } else {rec.dateTo=rec.dateFrom;}
+          rec.dateTo=cleanDate(r[C.dateTo]);
+          if(!rec.dateTo)rec.dateTo=rec.dateFrom;
           rec.totalDaysOfSabaq=cleanNum(r[C.totalDaysOfSabaq]);
           rec.targetGiven=cleanNum(r[C.targetGiven])||"13";
           rec.upcomingTarget=cleanNum(r[C.upcomingTarget])||"13";
@@ -1672,7 +1667,7 @@ function App(){
             if(_san)newRecs.push(_san);
           }
         }
-        if(!newRecs.length){showToast("❌ No valid records found. Check Name column (B) is filled and file matches the XLSX template.","error");return;}
+        if(!newRecs.length){showToast("âŒ No valid records found. Check Name column (B) is filled and file matches the XLSX template.","error");return;}
         // I3: within-batch dedup by name+month before pushing to store
         var _batchSeen={};
         var _batchUnique=newRecs.filter(function(rec){
@@ -1744,7 +1739,7 @@ function App(){
               var p=rec[f].split("/");rec[f]=p[2]+"-"+p[1].padStart(2,"0")+"-"+p[0].padStart(2,"0");
             }
           });
-          // Validate class — default to first valid class if unknown
+          // Validate class â€” default to first valid class if unknown
           if(rec.class&&!CLASSES.includes(rec.class)){
             rec.class=CLASSES[0];
           }
@@ -1801,15 +1796,15 @@ function App(){
     const emails=[record.parentEmail1,record.parentEmail2].filter(Boolean);
     if(emails.length>0){
       const monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString('default',{month:'long',year:'numeric'}):'';
-      const subject=encodeURIComponent('Al-Ihsaan Academy — Hifz Report: '+esc(record.name)+(monthStr?' ('+monthStr+')':''));
+      const subject=encodeURIComponent('Al-Ihsaan Academy â€” Hifz Report: '+esc(record.name)+(monthStr?' ('+monthStr+')':''));
       const body=encodeURIComponent(
-        'السلام عليكم ورحمة الله وبركاته\n\n'+
+        'Ø§Ù„Ø³Ù„Ø§Ù… Ø¹Ù„ÙŠÙƒÙ… ÙˆØ±Ø­Ù…Ø© Ø§Ù„Ù„Ù‡ ÙˆØ¨Ø±ÙƒØ§ØªÙ‡\n\n'+
         'Dear Parent,\n\n'+
         'Please find attached the Hifz monthly report for '+record.name+'.\n\n'+
         (monthStr?'Month: '+monthStr+'\n\n':'')+
-        'The Hifz report is now open in a new tab.\n\nTo attach as PDF: tap the browser menu → Share → Print → Save as PDF, then attach to this email.\n\n'+
+        'The Hifz report is now open in a new tab.\n\nTo attach as PDF: tap the browser menu â†’ Share â†’ Print â†’ Save as PDF, then attach to this email.\n\n'+
         'JazakAllahu Khayran\n'+
-        'Al-Ihsaan Academy — Hifz Department'
+        'Al-Ihsaan Academy â€” Hifz Department'
       );
       // Small delay so the report tab opens first
       setTimeout(()=>{ window.location.href='mailto:'+emails.join(',')+'?subject='+subject+'&body='+body; },400);
@@ -1817,14 +1812,14 @@ function App(){
   }
   async function saveEntry(){
     if(!form.name.trim()){showToast("Please enter a student name.","error");return;}
-    if(form.name.trim().length>80){showToast("Student name too long — max 80 characters.","error");return;}
+    if(form.name.trim().length>80){showToast("Student name too long â€” max 80 characters.","error");return;}
     if(!form.dateFrom){showToast("Please enter a Date From.","error");return;}
     if(!form.dateTo){showToast("Please enter a Date To.","error");return;}
     const _dfRe=/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/;
-    if(!_dfRe.test(form.dateFrom)){showToast("Invalid Date From — use YYYY-MM-DD format.","error");return;}
-    if(!_dfRe.test(form.dateTo)){showToast("Invalid Date To — use YYYY-MM-DD format.","error");return;}
+    if(!_dfRe.test(form.dateFrom)){showToast("Invalid Date From â€” use YYYY-MM-DD format.","error");return;}
+    if(!_dfRe.test(form.dateTo)){showToast("Invalid Date To â€” use YYYY-MM-DD format.","error");return;}
     if(form.dateFrom>form.dateTo){showToast("Date From must be before Date To.","error");return;}
-    // ── Sanitise all numeric fields before saving ──
+    // â”€â”€ Sanitise all numeric fields before saving â”€â”€
     function clampInt(v,min,max){var n=parseInt(v)||0;return String(Math.max(min,Math.min(max,n)));}
     function clampFloat(v,min,max){var n=parseFloat(v)||0;return String(Math.max(min,Math.min(max,n)));}
     let savedForm={...form,
@@ -1842,7 +1837,7 @@ function App(){
     // Page order validation
     const fp=parseInt(savedForm.fromPage)||0;
     const tp=parseInt(savedForm.toPage)||0;
-    if(fp>0&&tp===0){showToast("Please enter the To Page — required when From Page is set.","error");return;}
+    if(fp>0&&tp===0){showToast("Please enter the To Page â€” required when From Page is set.","error");return;}
     if(fp>0&&tp>0&&fp>tp){showToast("From Page ("+fp+") cannot be greater than To Page ("+tp+").","error");return;}
     // Cross-field validation
     const tds=parseInt(savedForm.totalDaysOfSabaq)||0;
@@ -1862,7 +1857,7 @@ function App(){
     }
     if(editingId){
       const exists=records.some(r=>r.id===editingId);
-      if(!exists){showToast("This record no longer exists — it may have been deleted on another device.","error");return;}
+      if(!exists){showToast("This record no longer exists â€” it may have been deleted on another device.","error");return;}
       setRecords(prev=>prev.map(r=>r.id===editingId?{...savedForm,id:editingId}:r));
     }
     else{
@@ -1876,7 +1871,7 @@ function App(){
   }
   async function clearAllData(){
     if(!await checkAdminPassword(clearPwd)){showToast("Incorrect password.","error");return;}
-    const _cdok=await showConfirm("This will permanently delete ALL records. This cannot be undone.","⚠️ Delete All Data");if(!_cdok)return;
+    const _cdok=await showConfirm("This will permanently delete ALL records. This cannot be undone.","âš ï¸ Delete All Data");if(!_cdok)return;
     // Cancel any pending sync to prevent re-upsert after delete
     if(syncTimer.current){clearTimeout(syncTimer.current);syncTimer.current=null;}
     pendingSync.current=false;
@@ -1921,7 +1916,7 @@ function App(){
       }
     }
   }
-  // ── STUDENT MANAGEMENT ─────────────────────────────────────────
+  // â”€â”€ STUDENT MANAGEMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function deleteStudent(name, cls){
     const _pds=await showConfirm("Permanently delete "+name+" and ALL their records?\n\nThis includes all monthly records, Dor entries, daily entries and register entries. This cannot be undone.","Delete Student");if(!_pds)return;
     setRecords(prev=>{const next=prev.filter(r=>!(r.name===name&&r.class===cls));lsSave(next);return next;});
@@ -1948,7 +1943,7 @@ function App(){
 
   function openEdit(id){
     const raw=records.find(r=>r.id===id);
-    if(!raw){showToast("Record not found — it may have been deleted.","error");return;}
+    if(!raw){showToast("Record not found â€” it may have been deleted.","error");return;}
     const r=sanitiseRecord(raw)||raw;
     setForm({...r});
     setEditingId(id);
@@ -1963,13 +1958,13 @@ function App(){
     setSyncStatus("saving");
     try{
       const planRows=yearPlan.map(p=>({id:p.id||(p.class+"_"+p.session),class:p.class,session:p.session,dates:p.dates,updated_at:new Date().toISOString()}));
-      // Sync all sabaq records (max ~30k over 40 years — manageable)
+      // Sync all sabaq records (max ~30k over 40 years â€” manageable)
       // For high-volume tables, only sync recent data to stay within Supabase limits
       await Promise.all([sbUpsert("sabaq_records",records.map(sbMapSabaqOut)),sbUpsert("dor_records",dorRecords.map(sbMapDorOut)),sbUpsert("daily_sabaq",dailySabaqEntries.map(sbMapDailyOut)),sbUpsert("register_data",registerData.map(sbMapRegisterOut)),sbUpsert("year_plan",planRows),sbUpsert("app_settings",[
         {key:"adminPassword",value:getAdminPassword(),updated_at:new Date().toISOString()},
         {key:"htEmail",value:htEmail||"",updated_at:new Date().toISOString()}
       ])]);
-      // lsSave already called by useEffect on state change — no duplicate needed
+      // lsSave already called by useEffect on state change â€” no duplicate needed
       setSyncStatus("live");
     }catch(e){
       console.error("syncNow",e);
@@ -2009,21 +2004,21 @@ function App(){
 
   const NAV_ITEMS=[
     {icon:"\u2600\uFE0F",label:"Take Register (AM)",view:"takeRegister",session:"morning"},
-    {icon:"📝",label:"Morning Record Entry",view:"sabaqEntry"},
+    {icon:"ðŸ“",label:"Morning Record Entry",view:"sabaqEntry"},
     {icon:"\uD83C\uDF19",label:"Take Register (PM)",view:"takeRegister",session:"evening"},
-    {icon:"📖",label:"Evening Record Entry",view:"dor"},
-    {icon:"👤",label:"Profiles",view:"profile"},
-    {icon:"📋",label:"View Register (AM)",view:"viewRegister",session:"morning"},
+    {icon:"ðŸ“–",label:"Evening Record Entry",view:"dor"},
+    {icon:"ðŸ‘¤",label:"Profiles",view:"profile"},
+    {icon:"ðŸ“‹",label:"View Register (AM)",view:"viewRegister",session:"morning"},
     {icon:"\uD83C\uDF19",label:"View Register (PM)",view:"viewRegister",session:"evening"},
-    {icon:"⚠️",label:"Absences",view:"absences"},
-    {icon:"🏫",label:"Classes",view:"classes"},
-    {icon:"📅",label:"Year Planner",view:"yearPlanner"},
-    {icon:"➕",label:"Add Monthly Entry",view:"addEntry"},
-    {icon:"📄",label:"Reports",view:"reports"},
-    {icon:"📅",label:"History",view:"history"},
-    {icon:"🏆",label:"Sabaq Champ",view:"poster"},
-    {icon:"🔖",label:"Dor Champ",view:"dorchamp"},
-    {icon:"🎓",label:"Head Admin Portal",view:"headteacher",danger:true},
+    {icon:"âš ï¸",label:"Absences",view:"absences"},
+    {icon:"ðŸ«",label:"Classes",view:"classes"},
+    {icon:"ðŸ“…",label:"Year Planner",view:"yearPlanner"},
+    {icon:"âž•",label:"Add Monthly Entry",view:"addEntry"},
+    {icon:"ðŸ“„",label:"Reports",view:"reports"},
+    {icon:"ðŸ“…",label:"History",view:"history"},
+    {icon:"ðŸ†",label:"Sabaq Champ",view:"poster"},
+    {icon:"ðŸ”–",label:"Dor Champ",view:"dorchamp"},
+    {icon:"ðŸŽ“",label:"Head Admin Portal",view:"headteacher",danger:true},
   ];
 
   const showSidebar=view!=="menu";
@@ -2031,7 +2026,7 @@ function App(){
   return React.createElement(React.Fragment,null,
   React.createElement('div',{style:{minHeight:"100vh",background:DARK,display:"flex",flexDirection:"column",fontFamily:"'Inter','Segoe UI',Georgia,sans-serif"}},
 
-    /* ── TOP BAR ── */
+    /* â”€â”€ TOP BAR â”€â”€ */
     React.createElement('div',{style:{background:"linear-gradient(90deg,#1a3a3a 0%,#1f4040 100%)",height:58,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",flexShrink:0,position:"sticky",top:0,zIndex:200,boxShadow:"0 2px 12px rgba(0,0,0,0.2)"}},
       React.createElement('div',{style:{display:"flex",alignItems:"center",gap:12}},
         view!=="menu"&&React.createElement('button',{
@@ -2050,7 +2045,7 @@ function App(){
           React.createElement('span',{style:{display:"block",width:sidebarOpen?12:18,height:2,background:sidebarOpen?"#fff":SIDEBAR_TEXT,borderRadius:2,transition:"all 0.2s"}}),
           React.createElement('span',{style:{display:"block",width:18,height:2,background:sidebarOpen?"#fff":SIDEBAR_TEXT,borderRadius:2,transition:"all 0.2s"}})
         ),
-        view!=="menu"&&React.createElement('button',{onClick:()=>{setSidebarOpen(false);setView("menu");},style:{background:"transparent",border:"none",color:SIDEBAR_MUTED,cursor:"pointer",fontSize:18,lineHeight:1,padding:"4px 6px",borderRadius:4}},"⌂"),
+        view!=="menu"&&React.createElement('button',{onClick:()=>{setSidebarOpen(false);setView("menu");},style:{background:"transparent",border:"none",color:SIDEBAR_MUTED,cursor:"pointer",fontSize:18,lineHeight:1,padding:"4px 6px",borderRadius:4}},"âŒ‚"),
         React.createElement('div',{style:{borderLeft:showSidebar?"1px solid rgba(255,255,255,0.1)":"none",paddingLeft:showSidebar?12:0,marginLeft:showSidebar?4:0}},
           React.createElement('div',{style:{color:"#ffffff",fontSize:14,fontWeight:"700",letterSpacing:"0.3px",lineHeight:1.2}},"Al-Ihsaan Academy"),
           React.createElement('div',{style:{color:"rgba(255,255,255,0.45)",fontSize:10,letterSpacing:"1.8px",marginTop:1,textTransform:"uppercase"}},"Hifz Management")
@@ -2067,16 +2062,16 @@ function App(){
       )
     ),
 
-    /* ── BODY ── */
+    /* â”€â”€ BODY â”€â”€ */
     React.createElement('div',{style:{display:"flex",flex:1,minHeight:0,position:"relative"}},
 
-      /* ── SIDEBAR OVERLAY (mobile/collapsed behaviour) ── */
+      /* â”€â”€ SIDEBAR OVERLAY (mobile/collapsed behaviour) â”€â”€ */
       showSidebar&&sidebarOpen&&React.createElement('div',{
         onClick:()=>setSidebarOpen(false),
         style:{position:"fixed",inset:0,top:56,background:"rgba(0,0,0,0.35)",zIndex:150,backdropFilter:"blur(2px)"}
       }),
 
-      /* ── SIDEBAR PANEL ── */
+      /* â”€â”€ SIDEBAR PANEL â”€â”€ */
       showSidebar&&React.createElement('div',{style:{
         position:"fixed",left:0,top:56,bottom:0,
         width:240,
@@ -2123,13 +2118,13 @@ function App(){
         )
       ),
 
-      /* ── MAIN CONTENT ── */
+      /* â”€â”€ MAIN CONTENT â”€â”€ */
       React.createElement('div',{style:{flex:1,overflowY:"auto",minWidth:0,background:"#F7F8FA"}},
 
     /* HOME MENU */
       view==="menu"&&(React.createElement('div',{style:{minHeight:"100vh",background:"#F7F8FA",display:"flex",flexDirection:"column"}},
 
-  /* ── HERO HEADER ── */
+  /* â”€â”€ HERO HEADER â”€â”€ */
   React.createElement('div',{style:{
     background:"linear-gradient(160deg,#0f2027 0%,#1a3a3a 50%,#203a43 100%)",
     padding:"44px 24px 36px",display:"flex",flexDirection:"column",
@@ -2170,16 +2165,16 @@ function App(){
         boxShadow:syncStatus==="live"?"0 0 6px #22c55e44":syncStatus==="saving"||syncStatus==="loading"?"0 0 6px #f59e0b44":"0 0 6px #ef444444"
       }}),
       React.createElement('span',{style:{color:"rgba(255,255,255,0.65)",fontSize:12}},
-        syncStatus==="live"?"Connected — data up to date"
+        syncStatus==="live"?"Connected â€” data up to date"
         :syncStatus==="saving"?"Saving to cloud..."
         :syncStatus==="loading"?"Loading data..."
-        :syncStatus==="offline"?"Offline — working locally"
+        :syncStatus==="offline"?"Offline â€” working locally"
         :"Connecting..."
       )
     )
   ),
 
-  /* ── MENU GROUPS ── */
+  /* â”€â”€ MENU GROUPS â”€â”€ */
   React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"20px 16px 40px",background:"#F7F8FA"}},
 
     React.createElement(HomeSearch,{studentNames:studentNames,onSelect:n=>{setProfileName(n);setView("profile");}}),
@@ -2188,29 +2183,29 @@ function App(){
       const GROUPS=[
         {label:"Daily Entry",items:[
           {icon:"\u2600\uFE0F",label:"Take Register (AM)",sub:"Morning attendance",view:"takeRegister",session:"morning",accent:"#16a34a"},
-          {icon:"📝",label:"Morning Record Entry",sub:"Sabaq Para \u00b7 Sabaq",view:"sabaqEntry",accent:"#B8934A"},
+          {icon:"ðŸ“",label:"Morning Record Entry",sub:"Sabaq Para \u00b7 Sabaq",view:"sabaqEntry",accent:"#B8934A"},
           {icon:"\uD83C\uDF19",label:"Take Register (PM)",sub:"Evening attendance",view:"takeRegister",session:"evening",accent:"#0EA5E9"},
-          {icon:"📖",label:"Evening Record Entry",sub:"Dor 1 \u00b7 Dor 2 \u00b7 Para Test",view:"dor",accent:"#4F46E5"},
+          {icon:"ðŸ“–",label:"Evening Record Entry",sub:"Dor 1 \u00b7 Dor 2 \u00b7 Para Test",view:"dor",accent:"#4F46E5"},
         ]},
         {label:"Students & Registers",items:[
-          {icon:"👤",label:"Profiles",sub:"Individual student profiles",view:"profile",accent:"#7C3AED"},
-          {icon:"📋",label:"View Register (AM)",sub:"Morning attendance history",view:"viewRegister",session:"morning",accent:"#0EA5E9"},
+          {icon:"ðŸ‘¤",label:"Profiles",sub:"Individual student profiles",view:"profile",accent:"#7C3AED"},
+          {icon:"ðŸ“‹",label:"View Register (AM)",sub:"Morning attendance history",view:"viewRegister",session:"morning",accent:"#0EA5E9"},
           {icon:"\uD83C\uDF19",label:"View Register (PM)",sub:"Evening attendance history",view:"viewRegister",session:"evening",accent:"#4F46E5"},
-          {icon:"⚠️",label:"Absences",sub:"Review & resolve absences",view:"absences",accent:"#DC2626"},
-          {icon:"🏫",label:"Classes",sub:"Manage students & classes",view:"classes",accent:"#2563EB"},
-          {icon:"📅",label:"Year Planner",sub:"Manage class calendar",view:"yearPlanner",accent:"#059669"},
+          {icon:"âš ï¸",label:"Absences",sub:"Review & resolve absences",view:"absences",accent:"#DC2626"},
+          {icon:"ðŸ«",label:"Classes",sub:"Manage students & classes",view:"classes",accent:"#2563EB"},
+          {icon:"ðŸ“…",label:"Year Planner",sub:"Manage class calendar",view:"yearPlanner",accent:"#059669"},
         ]},
         {label:"Records & Reports",items:[
-          {icon:"➕",label:"Add Monthly Entry",sub:"Collate & save monthly record",view:"addEntry",accent:"#B8934A"},
-          {icon:"📄",label:"Reports",sub:"Email reports to parents",view:"reports",accent:"#059669"},
-          {icon:"📅",label:"History",sub:"Browse all monthly records",view:"history",accent:"#6B7280"},
+          {icon:"âž•",label:"Add Monthly Entry",sub:"Collate & save monthly record",view:"addEntry",accent:"#B8934A"},
+          {icon:"ðŸ“„",label:"Reports",sub:"Email reports to parents",view:"reports",accent:"#059669"},
+          {icon:"ðŸ“…",label:"History",sub:"Browse all monthly records",view:"history",accent:"#6B7280"},
         ]},
         {label:"Champions",items:[
-          {icon:"🏆",label:"Sabaq Champion",sub:"Class sabaq rankings",view:"poster",accent:"#D97706"},
-          {icon:"🔖",label:"Dor Champion",sub:"Class Dor rankings",view:"dorchamp",accent:"#4F46E5"},
+          {icon:"ðŸ†",label:"Sabaq Champion",sub:"Class sabaq rankings",view:"poster",accent:"#D97706"},
+          {icon:"ðŸ”–",label:"Dor Champion",sub:"Class Dor rankings",view:"dorchamp",accent:"#4F46E5"},
         ]},
         {label:"Admin",items:[
-          {icon:"🎓",label:"Head Admin Portal",sub:"Data, exports & settings",view:"headteacher",accent:"#DC2626",danger:true},
+          {icon:"ðŸŽ“",label:"Head Admin Portal",sub:"Data, exports & settings",view:"headteacher",accent:"#DC2626",danger:true},
         ]},
       ];
 
@@ -2269,7 +2264,7 @@ function App(){
             React.createElement('div',{style:{
               color:"rgba(0,0,0,0.2)",fontSize:16,fontWeight:"300",
               flexShrink:0
-            }},"›")
+            }},"â€º")
           ))
         )
       ));
@@ -2280,7 +2275,7 @@ function App(){
     /* BELOW TARGET */
       , view==="menu"&&belowTarget.length>0&&(
         React.createElement('div', { style: {background:RED+"11",border:"1px solid "+(RED)+"44",borderRadius:12,padding:"16px 20px",marginBottom:20},}
-          , React.createElement('div', { style: {color:RED,fontWeight:"bold",marginBottom:12,fontSize:15},}, "⚠️ Below Target (avg < 11)"     )
+          , React.createElement('div', { style: {color:RED,fontWeight:"bold",marginBottom:12,fontSize:15},}, "âš ï¸ Below Target (avg < 11)"     )
           , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"1fr 1fr",gap:6},}
             , belowTarget.map(s=>(
               React.createElement('div', { key: s.id, onClick: ()=>{setProfileName(s.name);setView("profile");}, style: {background:RED+"15",borderRadius:8,padding:"8px 12px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"},}
@@ -2316,12 +2311,12 @@ function App(){
     React.createElement('div', { style: {maxWidth:740,margin:"28px auto",padding:"0 20px 40px"},}
       , React.createElement('div', { style: {background:CARD,borderRadius:20,padding:28,border:"1px solid rgba(0,0,0,0.07)",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"},}
         , React.createElement('div', { style: {display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24,flexWrap:"wrap",gap:12},}
-          , React.createElement('h2', { style: {color:GOLD},}, editingId?"✏️ Edit Record":"➕ Add Monthly Entry")
+          , React.createElement('h2', { style: {color:GOLD},}, editingId?"âœï¸ Edit Record":"âž• Add Monthly Entry")
           , !editingId&&React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8}},
             React.createElement('button',{
               onClick:()=>setShowCollation(s=>!s),
               style:{background:showCollation?"#1e2d3d":"transparent",color:showCollation?"#fff":"#1e2d3d",border:"2px solid #1e2d3d",borderRadius:9,padding:"7px 14px",cursor:"pointer",fontWeight:"600",fontSize:12,display:"flex",alignItems:"center",gap:6}
-            },"📊 Build Report from Daily Entries")
+            },"ðŸ“Š Build Report from Daily Entries")
           )
           , React.createElement('div', { style: {display:"flex",gap:10,flexWrap:"wrap"},}
             , React.createElement('button', { onClick: ()=>{
@@ -2335,8 +2330,8 @@ function App(){
                 a.href=url;a.download="Hifz_Monthly_Template.xlsx";a.click();
                 setTimeout(function(){URL.revokeObjectURL(url);},5000);
               }catch(ex){showToast("Download error: "+ex.message,"error");}
-            }, style: {background:ACCENT,color:GOLD,border:"1px solid "+(GOLD)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:"bold"}},  "⬇ Download XLSX Template")
-            , React.createElement('label', { style: {background:ACCENT,color:TEXT,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13},}, "📂 Import XLSX"
+            }, style: {background:ACCENT,color:GOLD,border:"1px solid "+(GOLD)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:"bold"}},  "â¬‡ Download XLSX Template")
+            , React.createElement('label', { style: {background:ACCENT,color:TEXT,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13},}, "ðŸ“‚ Import XLSX"
 
               , React.createElement('input', { type: "file", accept: ".xlsx,.xls,.csv", onChange: importXLSX, style: {display:"none"},})
             )
@@ -2347,17 +2342,17 @@ function App(){
         , !editingId&&(
           React.createElement('div', { onClick: ()=>{setAddNewStudent(p=>!p);fc("name","");fc("class","HIFZ CLASS A");}, style: {display:"flex",alignItems:"center",gap:10,padding:"12px 16px",marginBottom:20,background:addNewStudent?GOLD+"22":DARK,border:"1px solid "+(addNewStudent?GOLD:MUTED+"33"),borderRadius:10,cursor:"pointer"},}
             , React.createElement('div', { style: {width:20,height:20,borderRadius:4,border:"2px solid "+(GOLD),background:addNewStudent?GOLD:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0},}
-              , addNewStudent&&React.createElement('span', { style: {color:DARK,fontSize:13,fontWeight:"bold"},}, "✓")
+              , addNewStudent&&React.createElement('span', { style: {color:DARK,fontSize:13,fontWeight:"bold"},}, "âœ“")
             )
             , React.createElement('span', { style: {color:GOLD,fontWeight:"bold",fontSize:14},}, "Add New Student"  )
-            , !addNewStudent&&React.createElement('span', { style: {color:MUTED,fontSize:12,marginLeft:4},}, "— or select existing student below"     )
+            , !addNewStudent&&React.createElement('span', { style: {color:MUTED,fontSize:12,marginLeft:4},}, "â€” or select existing student below"     )
           )
         )
 
         , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:16},}
           /* COLLATION PANEL */
           , showCollation&&!editingId&&React.createElement('div',{style:{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:12,padding:20,marginBottom:20}},
-            React.createElement('div',{style:{color:"#1D4ED8",fontWeight:"700",fontSize:14,marginBottom:12}},"📊 Auto-fill from Daily Sabaq Entries"),
+            React.createElement('div',{style:{color:"#1D4ED8",fontWeight:"700",fontSize:14,marginBottom:12}},"ðŸ“Š Auto-fill from Daily Sabaq Entries"),
             React.createElement('div',{style:{background:"#dbeafe",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#1e40af"}},
               "Select a student and month to preview collated data from daily sabaq entries. Then tap Apply to pre-fill the form."
             ),
@@ -2371,7 +2366,7 @@ function App(){
               React.createElement('div',null,
                 React.createElement('label',{style:{color:"#374151",fontSize:11,fontWeight:"600",display:"block",marginBottom:5}},"STUDENT"),
                 React.createElement('select',{value:form.name,onChange:e=>setForm(f=>({...f,name:e.target.value})),style:{border:"1px solid #BFDBFE",borderRadius:8,padding:"7px 10px",fontSize:13,width:"100%",outline:"none",background:"#fff"}},
-                  React.createElement('option',{value:""},"— Select —"),
+                  React.createElement('option',{value:""},"â€” Select â€”"),
                   [...new Set((dailySabaqEntries||[]).filter(e=>e.class===form.class&&e.date).map(e=>e.studentName))].sort().map(n=>React.createElement('option',{key:n,value:n},n))
                 )
               )
@@ -2392,7 +2387,7 @@ function App(){
                   }
                 },
                 style:{border:"1px solid #BFDBFE",borderRadius:8,padding:"7px 10px",fontSize:13,width:"100%",outline:"none",background:"#fff",marginBottom:10}},
-                React.createElement('option',{value:""},"— Pick a month to auto-fill dates —"),
+                React.createElement('option',{value:""},"â€” Pick a month to auto-fill dates â€”"),
                 getCollationMonths(form.name,form.class,dailySabaqEntries).map(m=>{
                   const parts=m.split("-");
                   const lbl=new Date(parseInt(parts[0]),parseInt(parts[1])-1,1).toLocaleString("default",{month:"long",year:"numeric"});
@@ -2419,7 +2414,7 @@ function App(){
               const preview=collateMonthlyRecord(form.name,form.class,collationMonth||"",dailySabaqEntries,registerData,records,collationDateFrom,collationDateTo);
               if(!preview){
                 return React.createElement('div',{style:{padding:"10px 14px",borderRadius:8,background:"#FEF3C7",border:"1px solid #FCD34D",color:"#92400E",fontSize:13}},
-                  "⚠️ No daily entries found for "+collationDateFrom+" to "+collationDateTo+". Please ensure entries have been saved for this period.");
+                  "âš ï¸ No daily entries found for "+collationDateFrom+" to "+collationDateTo+". Please ensure entries have been saved for this period.");
               }
               return React.createElement('div',null,
                 React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}},
@@ -2446,7 +2441,7 @@ function App(){
                   &&React.createElement('div',{
                     style:{padding:"8px 12px",borderRadius:8,marginBottom:8,
                       background:"#FEF3C7",border:"1px solid #FCD34D",color:"#92400E",fontSize:12}
-                  },"⚠️ No daily entries for: "+preview._missingDates.join(", ")),
+                  },"âš ï¸ No daily entries for: "+preview._missingDates.join(", ")),
                 React.createElement('div',{style:{display:"flex",gap:8}},
                   React.createElement('button',{
                     onClick:function(){
@@ -2481,7 +2476,7 @@ function App(){
                       setCollationDateTo("");
                     },
                     style:{background:"#1D4ED8",color:"#fff",border:"none",borderRadius:9,padding:"10px 20px",cursor:"pointer",fontWeight:"700",fontSize:13,flex:1}
-                  },"✅ Apply to Form — Teacher fills comments & toPage")
+                  },"âœ… Apply to Form â€” Teacher fills comments & toPage")
                 )
               );
             })()
@@ -2509,7 +2504,7 @@ function App(){
                   fc("class",latest.class);
                 }
               }, style: inputStyle,}
-                , React.createElement('option', { value: "",}, "— Select existing student —"    )
+                , React.createElement('option', { value: "",}, "â€” Select existing student â€”"    )
                 , studentNames.map(n=>React.createElement('option', { key: n, value: n,}, n))
               )
             )
@@ -2567,7 +2562,7 @@ function App(){
 
           , React.createElement(FormRow, { label: "Behaviour (1-5)" ,}
             , React.createElement('select', { value: form.behaviour, onChange: e=>fc("behaviour",parseInt(e.target.value)), style: {...inputStyle,color:BEHAVIOUR_COLORS[form.behaviour]},}
-              , [1,2,3,4,5].map(n=>React.createElement('option', { key: n, value: n,}, n, " — "  , BEHAVIOUR_LABELS[n]))
+              , [1,2,3,4,5].map(n=>React.createElement('option', { key: n, value: n,}, n, " â€” "  , BEHAVIOUR_LABELS[n]))
             )
           )
           , React.createElement('div', null)
@@ -2584,7 +2579,7 @@ function App(){
           return !latest||(!(latest.parentEmail1||latest.parentEmail2));
         })())&&form.name&&(
           React.createElement('div', { style: {marginTop:16,background:DARK,borderRadius:10,padding:16,border:"1px solid "+(GOLD)+"22"},}
-            , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:13,marginBottom:12},}, "📧 Parent Emails "   , (!addNewStudent&&!editingId)&&React.createElement('span', { style: {color:MUTED,fontWeight:"normal",fontSize:11},}, "(no emails saved for this student)"     ))
+            , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:13,marginBottom:12},}, "ðŸ“§ Parent Emails "   , (!addNewStudent&&!editingId)&&React.createElement('span', { style: {color:MUTED,fontWeight:"normal",fontSize:11},}, "(no emails saved for this student)"     ))
             , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"1fr 1fr",gap:12},}
               , React.createElement(FormRow, { label: "Father's Email" ,}
                 , React.createElement(Input, { type: "email", value: form.parentEmail1, onChange: v=>fc("parentEmail1",v), placeholder: "father@email.com",})
@@ -2599,7 +2594,7 @@ function App(){
         /* LIVE PREVIEW */
         , form.totalFullSides!==""&&(
           React.createElement('div', { style: {background:ACCENT+"44",borderRadius:8,padding:16,marginTop:16,border:"1px solid "+(GOLD)+"33"},}
-            , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:12,fontSize:14},}, "📊 Live Preview"  )
+            , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:12,fontSize:14},}, "ðŸ“Š Live Preview"  )
             , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8},}
               , [["Total Lines",fmt(previewCalc.I,0)],["Sabaq Days",fmt(previewCalc.J,0)],["Average",fmt(previewCalc.K,2)],["True Avg",fmt(previewCalc.R,2)],["Champ Avg",fmt(previewCalc.championDailyAverage,3)],["Attendance",fmt(previewCalc.attendancePct,2)+"%"]].map(([l,v])=>(
                 React.createElement('div', { key: l, style: {background:DARK+"88",borderRadius:6,padding:"8px 10px"},}
@@ -2612,7 +2607,7 @@ function App(){
         )
 
         , React.createElement('div', { style: {display:"flex",gap:12,marginTop:24},}
-          , React.createElement('button', { onClick: saveEntry, style: {flex:1,background:"linear-gradient(135deg,#C8A55A 0%,#B8934A 100%)",color:"#fff",border:"none",borderRadius:12,padding:"14px",cursor:"pointer",fontWeight:"700",fontSize:15,boxShadow:"0 2px 8px rgba(184,147,74,0.35)"},}, editingId?"💾 Save Changes":"✅ Save Entry")
+          , React.createElement('button', { onClick: saveEntry, style: {flex:1,background:"linear-gradient(135deg,#C8A55A 0%,#B8934A 100%)",color:"#fff",border:"none",borderRadius:12,padding:"14px",cursor:"pointer",fontWeight:"700",fontSize:15,boxShadow:"0 2px 8px rgba(184,147,74,0.35)"},}, editingId?"ðŸ’¾ Save Changes":"âœ… Save Entry")
           , React.createElement('button', { onClick: ()=>{setView("menu");setEditingId(null);setForm(defaultEntry);setAddNewStudent(false);}, style: {flex:1,background:"transparent",color:TEXT,border:"1px solid "+(MUTED),borderRadius:8,padding:"13px",cursor:"pointer",fontSize:15},}, "Cancel")
         )
       )
@@ -2623,7 +2618,7 @@ function App(){
     , view==="history"&&(
     React.createElement('div', { style: {padding:24},}
       , React.createElement('div', { style: {background:CARD,borderRadius:10,padding:18,marginBottom:20,border:"1px solid "+(GOLD)+"33"},}
-        , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:14},}, "🔍 Filter Records"  )
+        , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:14},}, "ðŸ” Filter Records"  )
         , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12},}
           , React.createElement('div', null, React.createElement('label', { style: {color:MUTED,fontSize:12,display:"block",marginBottom:4},}, "Class"), React.createElement('select', { value: historyClass, onChange: e=>setHistoryClass(e.target.value), style: inputStyle,}, React.createElement('option', { value: "",}, "All Classes" ), CLASSES.map(c=>React.createElement('option', { key: c, value: c,}, c))))
           , React.createElement('div', null, React.createElement('label', { style: {color:MUTED,fontSize:12,display:"block",marginBottom:4},}, "Student"), React.createElement('select', { value: historyStudent, onChange: e=>setHistoryStudent(e.target.value), style: inputStyle,}, React.createElement('option', { value: "",}, "All Students" ), studentNames.map(n=>React.createElement('option', { key: n, value: n,}, n))))
@@ -2637,15 +2632,15 @@ function App(){
         React.createElement('div', { style: {display:"grid",gap:12},}
           , historyFiltered.map(r=>(
             React.createElement('div', { key: r.id, style: {background:CARD,borderRadius:14,padding:"14px 20px",border:"1px solid rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"},}
-              , React.createElement('div', { style: {flex:1,minWidth:160},}, React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:15},}, r.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, r.class, " · "  , r.monthName))
+              , React.createElement('div', { style: {flex:1,minWidth:160},}, React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:15},}, r.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, r.class, " Â· "  , r.monthName))
               , React.createElement('div', { style: {display:"flex",gap:20,fontSize:14,flexWrap:"wrap"},}
                 , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:getAvgColor(r.K),fontWeight:"bold"},}, fmt(r.K,2)))
                 , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Attend: " ), React.createElement('span', { style: {color:TEXT},}, fmt(r.attendancePct,2), "%"))
               )
               , React.createElement('div', { style: {display:"flex",gap:8},}
-                , React.createElement('button', { onClick: ()=>sendReport(r), style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧 Email" )
+                , React.createElement('button', { onClick: ()=>sendReport(r), style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "ðŸ“§ Email" )
                 , React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12},}, "Edit")
-                , React.createElement('button', { onClick: ()=>deleteRecord(r.id), style: {background:"#c0392b22",color:RED,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "✕")
+                , React.createElement('button', { onClick: ()=>deleteRecord(r.id), style: {background:"#c0392b22",color:RED,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "âœ•")
               )
             )
           ))
@@ -2662,15 +2657,15 @@ function App(){
         const existingClasses=[...new Set(records.map(r=>r.class).filter(Boolean))];
         void classListVer;const allClasses=[...new Set([...CLASSES,...existingClasses])].sort();
 
-        /* ── ADD STUDENT FORM ── */
+        /* â”€â”€ ADD STUDENT FORM â”€â”€ */
         if(classesView==="addStudent") return(
           React.createElement('div', null
             , React.createElement('div', { style: {display:"flex",alignItems:"center",gap:12,marginBottom:24},}
-              , React.createElement('button', { onClick:()=>{setClassesView("list");setNewStudent({name:"",class:"HIFZ CLASS A",startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});setNewStudentMsg("");}, style:{background:"transparent",border:"1px solid "+BORDER,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:13,color:MUTED}}, "← Back" )
+              , React.createElement('button', { onClick:()=>{setClassesView("list");setNewStudent({name:"",class:"HIFZ CLASS A",startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});setNewStudentMsg("");}, style:{background:"transparent",border:"1px solid "+BORDER,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:13,color:MUTED}}, "â† Back" )
               , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "Add New Student" )
             )
             , React.createElement('div', { style: {background:CARD,borderRadius:14,border:"1px solid "+BORDER,padding:24,maxWidth:520,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}},
-              newStudentMsg&&React.createElement('div',{style:{padding:"10px 14px",borderRadius:8,marginBottom:16,background:String(newStudentMsg).startsWith("✅")?"rgba(22,163,74,0.08)":"rgba(220,38,38,0.08)",color:String(newStudentMsg).startsWith("✅")?GREEN:RED,fontSize:13,fontWeight:"500"}},newStudentMsg),
+              newStudentMsg&&React.createElement('div',{style:{padding:"10px 14px",borderRadius:8,marginBottom:16,background:String(newStudentMsg).startsWith("âœ…")?"rgba(22,163,74,0.08)":"rgba(220,38,38,0.08)",color:String(newStudentMsg).startsWith("âœ…")?GREEN:RED,fontSize:13,fontWeight:"500"}},newStudentMsg),
               React.createElement(FormRow,{label:"Full Name"},
                 React.createElement('input',{type:"text",value:newStudent.name,onChange:e=>setNewStudent(s=>({...s,name:e.target.value})),placeholder:"Student's full name",style:inputStyle})
               ),
@@ -2698,11 +2693,11 @@ function App(){
               ),
               React.createElement('button',{
                 onClick:()=>{
-                  if(!newStudent.name.trim()){setNewStudentMsg("❌ Full name is required.");return;}
-                  if(newStudent.name.trim().length>80){setNewStudentMsg("❌ Name too long (max 80 characters).");return;}
-                  if(!newStudent.class){setNewStudentMsg("❌ Please select a class.");return;}
+                  if(!newStudent.name.trim()){setNewStudentMsg("âŒ Full name is required.");return;}
+                  if(newStudent.name.trim().length>80){setNewStudentMsg("âŒ Name too long (max 80 characters).");return;}
+                  if(!newStudent.class){setNewStudentMsg("âŒ Please select a class.");return;}
                   const nameExists=records.some(r=>r.name.trim().toLowerCase()===newStudent.name.trim().toLowerCase()&&r.class===newStudent.class);
-                  if(nameExists){setNewStudentMsg("❌ "+newStudent.name.trim()+" already exists in "+newStudent.class+".");return;}
+                  if(nameExists){setNewStudentMsg("âŒ "+newStudent.name.trim()+" already exists in "+newStudent.class+".");return;}
                   // Add a placeholder record for this student so they appear in the system
                   const today2=getTodayStr();
                   const studentRecord={
@@ -2718,9 +2713,9 @@ function App(){
                     isStudentProfile:true,
                   };
                   setRecords(prev=>{const next=[...prev,studentRecord];lsSave(next);return next;});
-                  setNewStudentMsg("✅ "+newStudent.name.trim()+" added! Syncing...");
+                  setNewStudentMsg("âœ… "+newStudent.name.trim()+" added! Syncing...");
                   // Sync immediately after adding student
-                  syncNow().then(()=>setNewStudentMsg("✅ "+newStudent.name.trim()+" added & synced!")).catch(()=>{});
+                  syncNow().then(()=>setNewStudentMsg("âœ… "+newStudent.name.trim()+" added & synced!")).catch(()=>{});
                   setNewStudent({name:"",class:newStudent.class,startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});
                   setTimeout(()=>{setClassesView("list");setNewStudentMsg("");},2000);
                 },
@@ -2730,10 +2725,10 @@ function App(){
           )
         );
 
-        /* ── CLASS LIST VIEW ── */
+        /* â”€â”€ CLASS LIST VIEW â”€â”€ */
         return React.createElement('div', null
           , React.createElement('div', { style: {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24},}
-            , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "🏫 Classes" )
+            , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "ðŸ« Classes" )
             , React.createElement('button', {
                 onClick:()=>setClassesView("addStudent"),
                 style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"10px 20px",cursor:"pointer",fontWeight:"600",fontSize:13}
@@ -2782,7 +2777,7 @@ function App(){
                     React.createElement('div',{style:{color:MUTED,fontSize:10,marginBottom:2}},"Avg Abs"),
                     React.createElement('div',{style:{color:TEXT,fontWeight:"600",fontSize:15}},fmt(avgAbs,1))
                   ),
-                  React.createElement('span',{style:{color:MUTED,fontSize:18,transition:"transform 0.2s",transform:isOpen?"rotate(180deg)":"rotate(0)"}}, "⌄")
+                  React.createElement('span',{style:{color:MUTED,fontSize:18,transition:"transform 0.2s",transform:isOpen?"rotate(180deg)":"rotate(0)"}}, "âŒ„")
                 )
               ),
               /* Expanded student list */
@@ -2817,11 +2812,11 @@ function App(){
                                 if(newCls)moveStudentClass(name,cls,newCls);
                               },
                               style:{background:"transparent",border:"1px solid #2563eb44",color:"#2563eb",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,flexShrink:0}
-                            },"⇄"),
+                            },"â‡„"),
                             React.createElement('button',{
                               onClick:e=>{e.stopPropagation();deleteStudent(name,cls);},
                               style:{background:"transparent",border:"1px solid "+RED+"44",color:RED,borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,flexShrink:0}
-                            },"🗑")
+                            },"ðŸ—‘")
                           )
                         );
                       })
@@ -2844,7 +2839,7 @@ function App(){
     React.createElement('div', { style: {padding:24},}
       , React.createElement('div', { style: {background:CARD,borderRadius:10,padding:18,marginBottom:20,border:"1px solid "+(GOLD)+"33"},}
         , React.createElement('div', { style: {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14},}
-          , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "👤 Student Profile" )
+          , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "ðŸ‘¤ Student Profile" )
           , profileName&&React.createElement('button', {
               onClick:()=>{
                 if(!editingProfile){
@@ -2865,9 +2860,9 @@ function App(){
               },
               style:{background:editingProfile?GOLD:"transparent",color:editingProfile?"#fff":MUTED,border:"1px solid "+(editingProfile?GOLD:BORDER),borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:4}
             },
-            editingProfile?"✓ Done":"✏️"
+            editingProfile?"âœ“ Done":"âœï¸"
           ),
-          // Move Class — only visible when a student is selected and not editing
+          // Move Class â€” only visible when a student is selected and not editing
           !editingProfile&&profileName&&React.createElement('button',{
             onClick:async ()=>{
               const curRec=records.filter(r=>r.name===profileName).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
@@ -2878,20 +2873,20 @@ function App(){
               if(newCls)moveStudentClass(profileName,curClass,newCls);
             },
             style:{background:"transparent",color:"#2563eb",border:"1px solid #2563eb44",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:13,fontWeight:"500"}
-          },"⇄ Move Class"),
+          },"â‡„ Move Class"),
           !editingProfile&&profileName&&React.createElement('button',{
             onClick:()=>{
               const curRec=records.filter(r=>r.name===profileName).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
               deleteStudent(profileName,curRec?curRec.class:profileClass);
             },
             style:{background:"transparent",color:RED,border:"1px solid "+RED+"44",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:13,fontWeight:"500"}
-          },"🗑 Delete")
+          },"ðŸ—‘ Delete")
         )
         , React.createElement('div', { style: {display:"flex",gap:8,marginBottom:14},}
           , CLASSES.map(c=>React.createElement('button', {key:c,onClick:()=>{setProfileClass(c);setProfileName("");},style:{background:profileClass===c?GOLD:DARK,color:profileClass===c?DARK:TEXT,border:"1px solid "+(GOLD)+"44",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontWeight:"bold",fontSize:13}},c))
         )
         , React.createElement('select', { value: profileName, onChange: e=>setProfileName(e.target.value), style: {...inputStyle,maxWidth:320},}
-          , React.createElement('option', { value: "",}, "— Select student —"  )
+          , React.createElement('option', { value: "",}, "â€” Select student â€”"  )
           , studentNames.filter(n=>calced.some(r=>r.name===n&&r.class===profileClass)||records.some(r=>r.name===n&&r.class===profileClass)).map(n=>React.createElement('option', { key: n, value: n,}, n))
         )
       )
@@ -2916,7 +2911,7 @@ function App(){
               , React.createElement(StatBox, { label: "Attendance", value: fmt(pl.attendancePct,2)+"%",})
               , React.createElement(StatBox, { label: "Total Months" , value: profileRecords.length,})
               , React.createElement(StatBox, { label: "Class", value: pl.class, color: TEXT,})
-              , React.createElement(StatBox, { label: "Behaviour", value: (pl.behaviour||5)+"/5 — "+(BEHAVIOUR_LABELS[pl.behaviour]||"Good"), color: BEHAVIOUR_COLORS[pl.behaviour]||GREEN,})
+              , React.createElement(StatBox, { label: "Behaviour", value: (pl.behaviour||5)+"/5 â€” "+(BEHAVIOUR_LABELS[pl.behaviour]||"Good"), color: BEHAVIOUR_COLORS[pl.behaviour]||GREEN,})
               , React.createElement(StatBox, { label: "Best Average" , value: fmt(bestK,2), color: GREEN,})
             )
 
@@ -3003,7 +2998,7 @@ function App(){
                         background:GOLD+"18",color:GOLD,
                         borderRadius:20,padding:"3px 12px",
                         fontSize:12,fontWeight:"600"
-                      }},pl.class||"—")
+                      }},pl.class||"â€”")
                 )
               ),
 
@@ -3018,7 +3013,7 @@ function App(){
                     width:28,height:28,borderRadius:"50%",
                     background:"rgba(37,99,235,0.1)",
                     display:"flex",alignItems:"center",justifyContent:"center",fontSize:14
-                  }},"♂"),
+                  }},"â™‚"),
                   React.createElement('div',{style:{color:TEXT,fontWeight:"600",fontSize:13}},"Father")
                 ),
                 React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
@@ -3050,7 +3045,7 @@ function App(){
                     width:28,height:28,borderRadius:"50%",
                     background:"rgba(124,58,237,0.1)",
                     display:"flex",alignItems:"center",justifyContent:"center",fontSize:14
-                  }},"♀"),
+                  }},"â™€"),
                   React.createElement('div',{style:{color:TEXT,fontWeight:"600",fontSize:13}},"Mother")
                 ),
                 React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
@@ -3076,7 +3071,7 @@ function App(){
             /* LINE CHART */
             , React.createElement('div', { style: {background:CARD,borderRadius:12,padding:20,marginBottom:20,border:"1px solid "+(GOLD)+"33"},}
               , React.createElement('div', { style: {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16},}
-                , React.createElement('div', { style: {color:GOLD,fontWeight:"bold"},}, "📈 Average Progress Over Time"    )
+                , React.createElement('div', { style: {color:GOLD,fontWeight:"bold"},}, "ðŸ“ˆ Average Progress Over Time"    )
                 , React.createElement('button', { onClick: ()=>{
                     const svgEl=document.querySelector(".profile-chart svg");
                     const studentRec=profileRecords[0];
@@ -3092,7 +3087,7 @@ function App(){
                     <div style="font-size:13px;color:#666;">${esc(pl.class)}</div>
                     </div>
                     <div style="margin-bottom:24px;">
-                    <div style="font-size:15px;font-weight:bold;color:#1a3a6b;margin-bottom:16px;letter-spacing:1px;">AVERAGE LINES PER DAY — PROGRESS OVER TIME</div>
+                    <div style="font-size:15px;font-weight:bold;color:#1a3a6b;margin-bottom:16px;letter-spacing:1px;">AVERAGE LINES PER DAY â€” PROGRESS OVER TIME</div>
                     <div style="background:#f8f8f8;border:1px solid #ddd;border-radius:8px;padding:16px;">
                     <svg viewBox="0 0 500 200" style="width:100%;display:block;">
                     <line x1="40" y1="160" x2="460" y2="160" stroke="#ccc" stroke-width="1"/>
@@ -3108,7 +3103,7 @@ function App(){
                     <div style="text-align:center;color:#aaa;font-size:11px;margin-top:32px;border-top:1px solid #eee;padding-top:16px;">Generated by Al-Ihsaan Academy Sabaq Tracker</div>
                     </div></body></html>`;
                     const w=window.open("","_blank");if(w){w.document.write(chartHTML);w.document.close();setTimeout(()=>w.print(),500);}
-                  }, style: {background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📄 Print Progress Report"  )
+                  }, style: {background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "ðŸ“„ Print Progress Report"  )
               )
               , React.createElement('div', { className: "profile-chart"},
                 React.createElement(LineChart, { data: chartData, color: GOLD,})
@@ -3118,7 +3113,7 @@ function App(){
             /* DOR HEATMAP */
             , hasHeatmap&&(
               React.createElement('div', { style: {background:CARD,borderRadius:12,padding:20,marginBottom:20,border:"1px solid "+(GOLD)+"33"},}
-                , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:12},}, "📖 Dor Heatmap — "    , pl.monthName)
+                , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:12},}, "ðŸ“– Dor Heatmap â€” "    , pl.monthName)
                 , React.createElement(DorHeatmapView, { heatmap: heatmap,})
                 , (heatTotals.completeJuz>0||heatTotals.remainingQ>0)&&(
                   React.createElement('div', { style: {marginTop:12,color:TEXT,fontWeight:"bold",fontSize:14},}, "Total Dor: "
@@ -3130,13 +3125,13 @@ function App(){
 
             /* ALL RECORDS */
             , React.createElement('div', { style: {background:CARD,borderRadius:14,padding:20,border:"1px solid "+GOLD+"22",boxShadow:"0 4px 16px #00000044"},}
-              , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:16},}, "📋 All Monthly Records"   )
+              , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:16},}, "ðŸ“‹ All Monthly Records"   )
               , React.createElement('div', { style: {display:"grid",gap:10},}
                 , profileRecords.map(r=>(
                   React.createElement('div', { key: r.id, style: {background:DARK,borderRadius:8,padding:"12px 16px",border:"1px solid "+(GOLD)+"22",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"},}
                     , React.createElement('div', { style: {flex:1},}
-                      , React.createElement('div', { style: {color:TEXT,fontWeight:"bold"},}, r.monthName||r.dateFrom)
-                      , React.createElement('div', { style: {color:MUTED,fontSize:12},}, "Pages " , r.fromPage, "–", r.toPage)
+                      , React.createElement('div', { style: {color:TEXT,fontWeight:"bold"},}, r.monthName||(r.dateFrom&&r.dateTo?formatDateDMY(r.dateFrom)+" â€“ "+formatDateDMY(r.dateTo):formatDateDMY(r.dateFrom)))
+                      , React.createElement('div', { style: {color:MUTED,fontSize:12},}, "Pages " , r.fromPage, "â€“", r.toPage)
                     )
                     , React.createElement('div', { style: {display:"flex",gap:16,fontSize:13,flexWrap:"wrap"},}
                       , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:getAvgColor(r.K),fontWeight:"bold"},}, fmt(r.K,2)))
@@ -3145,7 +3140,7 @@ function App(){
                       , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:BEHAVIOUR_COLORS[r.behaviour]||GREEN},}, r.behaviour, "/5"))
                     )
                     , React.createElement('div', { style: {display:"flex",gap:8},}
-                      , React.createElement('button', { onClick: ()=>sendReport(r), style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧")
+                      , React.createElement('button', { onClick: ()=>sendReport(r), style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "ðŸ“§")
                       , React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "Edit")
                     )
                   )
@@ -3163,8 +3158,8 @@ function App(){
     , view==="reports"&&(
     React.createElement('div', { style: {padding:24},}
       , React.createElement('div', { style: {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12},}
-        , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:16},}, "📄 Send Reports"  )
-        , selectedStudents.length>0&&React.createElement('button', { onClick: sendSelected, style: {background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:"bold",fontSize:13},}, "📧 Send "  , selectedStudents.length, " Selected" )
+        , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:16},}, "ðŸ“„ Send Reports"  )
+        , selectedStudents.length>0&&React.createElement('button', { onClick: sendSelected, style: {background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:"bold",fontSize:13},}, "ðŸ“§ Send "  , selectedStudents.length, " Selected" )
       )
       , [...CLASSES].map(cls=>{
         const clsRecords=latestPerStudent.filter(s=>s.class===cls);
@@ -3187,10 +3182,10 @@ function App(){
                       , React.createElement('div', null, React.createElement('div', { style: {color:isSel?GOLD:TEXT,fontWeight:"bold"},}, s.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, s.monthName))
                     )
                     , React.createElement('div', { style: {fontSize:12,color:MUTED,marginBottom:12},}
-                      , React.createElement('div', null, "📊 Avg: "  , React.createElement('span', { style: {color:getAvgColor(s.K),fontWeight:"bold"},}, fmt(s.K,2)))
-                      , (s.parentEmail1||s.parentEmail2)&&React.createElement('div', { style: {marginTop:4},}, "📧 " , [s.parentEmail1,s.parentEmail2].filter(Boolean).join(", "))
+                      , React.createElement('div', null, "ðŸ“Š Avg: "  , React.createElement('span', { style: {color:getAvgColor(s.K),fontWeight:"bold"},}, fmt(s.K,2)))
+                      , (s.parentEmail1||s.parentEmail2)&&React.createElement('div', { style: {marginTop:4},}, "ðŸ“§ " , [s.parentEmail1,s.parentEmail2].filter(Boolean).join(", "))
                     )
-                    , React.createElement('button', { onClick: ()=>sendReport(s), style: {width:"100%",background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"9px",cursor:"pointer",fontWeight:"bold",fontSize:13},}, "📧 Email Report"  )
+                    , React.createElement('button', { onClick: ()=>sendReport(s), style: {width:"100%",background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"9px",cursor:"pointer",fontWeight:"bold",fontSize:13},}, "ðŸ“§ Email Report"  )
                   )
                 );
               })
@@ -3207,7 +3202,7 @@ function App(){
     React.createElement('div', { style: {padding:24},}
       , React.createElement('div', { style: {background:CARD,borderRadius:12,padding:20,marginBottom:20,border:"2px solid "+(RED)+"44"},}
         , React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
-          React.createElement('div',{style:{color:RED,fontWeight:"bold",fontSize:16}},"🎓 Head Admin Portal"),
+          React.createElement('div',{style:{color:RED,fontWeight:"bold",fontSize:16}},"ðŸŽ“ Head Admin Portal"),
           React.createElement('button',{
             onClick:async function(){
               const _ok=await showConfirm("Sign out of Al-Ihsaan Hifz Tracker?","Sign Out");
@@ -3215,13 +3210,13 @@ function App(){
             },
             style:{background:"transparent",border:"1px solid "+RED+"44",color:RED,
               borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"600"}
-          },"Sign Out ↗")
+          },"Sign Out â†—")
         )
         , React.createElement(FormRow, { label: "Head Teacher Email"  ,}, React.createElement(Input, { type: "email", value: htEmail, onChange: setHtEmail, placeholder: "headteacher@school.com",}))
         , React.createElement('div', { style: {color:MUTED,fontSize:12},}, "Saved automatically." )
       )
       , React.createElement('div', { style: {background:CARD,borderRadius:10,padding:18,marginBottom:20,border:"1px solid "+(RED)+"33"},}
-        , React.createElement('div', { style: {color:RED,fontWeight:"bold",marginBottom:14},}, "🔍 Filter" )
+        , React.createElement('div', { style: {color:RED,fontWeight:"bold",marginBottom:14},}, "ðŸ” Filter" )
         , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:12},}
           , React.createElement('div', null, React.createElement('label', { style: {color:MUTED,fontSize:12,display:"block",marginBottom:4},}, "Class"), React.createElement('select', { value: htClass, onChange: e=>setHtClass(e.target.value), style: inputStyle,}, React.createElement('option', { value: "",}, "All Classes" ), CLASSES.map(c=>React.createElement('option', { key: c, value: c,}, c))))
           , React.createElement('div', null, React.createElement('label', { style: {color:MUTED,fontSize:12,display:"block",marginBottom:4},}, "Student"), React.createElement('select', { value: htStudent, onChange: e=>setHtStudent(e.target.value), style: inputStyle,}, React.createElement('option', { value: "",}, "All Students" ), studentNames.map(n=>React.createElement('option', { key: n, value: n,}, n))))
@@ -3231,16 +3226,16 @@ function App(){
       )
       , React.createElement('div', { style: {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:10},}
         , React.createElement('div', { style: {color:MUTED,fontSize:13},}, htFiltered.length, " student" , htFiltered.length!==1?"s":"", " requiring attention"  )
-        , htFiltered.length>0&&React.createElement('button', { onClick: ()=>emailHeadteacher(htFiltered), style: {background:RED,color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:"bold",fontSize:13},}, "📧 Email Report to Head Teacher"     )
+        , htFiltered.length>0&&React.createElement('button', { onClick: ()=>emailHeadteacher(htFiltered), style: {background:RED,color:"#fff",border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:"bold",fontSize:13},}, "ðŸ“§ Email Report to Head Teacher"     )
       )
-      , htFiltered.length===0?React.createElement('div', { style: {textAlign:"center",padding:60,color:MUTED},}, "No students below threshold. 🎉"    ):(
+      , htFiltered.length===0?React.createElement('div', { style: {textAlign:"center",padding:60,color:MUTED},}, "No students below threshold. ðŸŽ‰"    ):(
         React.createElement('div', { style: {display:"grid",gap:12},}
           , htFiltered.map(r=>(
             React.createElement('div', { key: r.id, style: {background:CARD,borderRadius:10,padding:"14px 18px",border:"1px solid "+(RED)+"33",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"},}
-              , React.createElement('div', { style: {flex:1},}, React.createElement('div', { style: {color:TEXT,fontWeight:"bold",fontSize:15,cursor:"pointer",textDecoration:"underline"}, onClick: ()=>{setProfileName(r.name);setView("profile");},}, r.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, r.class, " · "  , r.monthName))
+              , React.createElement('div', { style: {flex:1},}, React.createElement('div', { style: {color:TEXT,fontWeight:"bold",fontSize:15,cursor:"pointer",textDecoration:"underline"}, onClick: ()=>{setProfileName(r.name);setView("profile");},}, r.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, r.class, " Â· "  , r.monthName))
               , React.createElement('div', { style: {display:"flex",gap:16,fontSize:13,flexWrap:"wrap"},}
                 , r.K<11&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:RED,fontWeight:"bold"},}, fmt(r.K,2)))
-                , parseInt(r.behaviour)<3&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:ORANGE,fontWeight:"bold"},}, r.behaviour, "/5 — "  , BEHAVIOUR_LABELS[r.behaviour]))
+                , parseInt(r.behaviour)<3&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:ORANGE,fontWeight:"bold"},}, r.behaviour, "/5 â€” "  , BEHAVIOUR_LABELS[r.behaviour]))
               )
             )
           ))
@@ -3248,9 +3243,9 @@ function App(){
       )
     /* CLEAR ALL DATA */
       , React.createElement('div', { style: {marginTop:40,borderTop:"2px solid "+(RED)+"44",paddingTop:24},}
-        , React.createElement('div', { style: {color:RED,fontWeight:"bold",fontSize:14,marginBottom:12},}, "⚠️ Danger Zone"  )
+        , React.createElement('div', { style: {color:RED,fontWeight:"bold",fontSize:14,marginBottom:12},}, "âš ï¸ Danger Zone"  )
         , !showClearModal?(
-          React.createElement('button', { onClick: ()=>setShowClearModal(true), style: {background:"transparent",color:RED,border:"1px solid "+(RED),borderRadius:8,padding:"10px 20px",cursor:"pointer",fontSize:13},}, "🗑️ Clear All Data"
+          React.createElement('button', { onClick: ()=>setShowClearModal(true), style: {background:"transparent",color:RED,border:"1px solid "+(RED),borderRadius:8,padding:"10px 20px",cursor:"pointer",fontSize:13},}, "ðŸ—‘ï¸ Clear All Data"
 
           )
         ):(
@@ -3276,7 +3271,7 @@ function App(){
         )
       )
 
-            /* ── DATA EXPORT ── */
+            /* â”€â”€ DATA EXPORT â”€â”€ */
       , React.createElement("div",{style:{background:CARD,borderRadius:14,border:"1px solid "+BORDER,padding:24,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}},
         React.createElement("div",{style:{color:TEXT,fontWeight:"600",fontSize:15,marginBottom:4}},"Download Data"),
         React.createElement("div",{style:{color:MUTED,fontSize:12,marginBottom:14}},"Export all data as CSV files. Opens in Excel or Google Sheets."),
@@ -3289,13 +3284,13 @@ function App(){
         React.createElement("button",{onClick:function(){exportAllReports(records,dorRecords,Array.isArray(calced)?calced:[]);},style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"11px 20px",cursor:"pointer",fontWeight:"600",fontSize:13,width:"100%"}},"Export All Student Reports")
       )
 
-/* ── CHANGE PASSWORD ── */
+/* â”€â”€ CHANGE PASSWORD â”€â”€ */
       , React.createElement('div', { style: {background:CARD,borderRadius:14,border:"1px solid "+BORDER,padding:24,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"},}
-        , React.createElement('div', { style: {color:TEXT,fontWeight:"600",fontSize:15,marginBottom:4},}, "🔑 "+(getAdminPassword()?"Change Admin Password":"Set Admin Password — First Time Setup") )
+        , React.createElement('div', { style: {color:TEXT,fontWeight:"600",fontSize:15,marginBottom:4},}, "ðŸ”‘ "+(getAdminPassword()?"Change Admin Password":"Set Admin Password â€” First Time Setup") )
         , React.createElement('div', { style: {color:MUTED,fontSize:12,marginBottom:getAdminPassword()?20:0},}, getAdminPassword()?"Password is stored securely (SHA-256).":"")
         , !getAdminPassword()&&React.createElement('div',{style:{background:"#FEF3C7",border:"1px solid #FCD34D",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#92400E",fontSize:13,fontWeight:"500"}},
-          "⚠️ No admin password is set. Set one now to secure the Danger Zone, register force-open, and Clear All Data. You can enter anything as Current Password on first setup.")
-        , htPwdMsg&&React.createElement('div', { style: {padding:"10px 14px",borderRadius:8,marginBottom:16,background:String(htPwdMsg).startsWith("✅")?"rgba(22,163,74,0.08)":"rgba(220,38,38,0.08)",color:String(htPwdMsg).startsWith("✅")?GREEN:RED,fontSize:13,fontWeight:"500"},}, htPwdMsg)
+          "âš ï¸ No admin password is set. Set one now to secure the Danger Zone, register force-open, and Clear All Data. You can enter anything as Current Password on first setup.")
+        , htPwdMsg&&React.createElement('div', { style: {padding:"10px 14px",borderRadius:8,marginBottom:16,background:String(htPwdMsg).startsWith("âœ…")?"rgba(22,163,74,0.08)":"rgba(220,38,38,0.08)",color:String(htPwdMsg).startsWith("âœ…")?GREEN:RED,fontSize:13,fontWeight:"500"},}, htPwdMsg)
         , React.createElement(FormRow, { label: getAdminPassword()?"Current Password":"Current Password (skip if first setup)",}
           , React.createElement('input', { type:"password", value:htOldPwd, onChange:e=>setHtOldPwd(e.target.value), placeholder:getAdminPassword()?"Enter current password":"Leave blank (first setup)", style:inputStyle,})
         )
@@ -3305,18 +3300,18 @@ function App(){
         , React.createElement(FormRow, { label: "Confirm New Password",}
           , React.createElement('input', { type:"password", value:htConfirmPwd, onChange:e=>setHtConfirmPwd(e.target.value), placeholder:"Confirm new password", style:{...inputStyle,borderColor:htConfirmPwd&&htNewPwd&&htConfirmPwd!==htNewPwd?RED:""},})
         )
-        , htConfirmPwd&&htNewPwd&&htConfirmPwd!==htNewPwd&&React.createElement('div',{style:{color:RED,fontSize:12,marginBottom:12}},"⚠ Passwords do not match")
+        , htConfirmPwd&&htNewPwd&&htConfirmPwd!==htNewPwd&&React.createElement('div',{style:{color:RED,fontSize:12,marginBottom:12}},"âš  Passwords do not match")
         , React.createElement('button', {
             onClick:async function(){
-              if(!htOldPwd||!htNewPwd||!htConfirmPwd){setHtPwdMsg("❌ Please fill all fields.");return;}
-              // No password set yet — allow any current password if first run
+              if(!htOldPwd||!htNewPwd||!htConfirmPwd){setHtPwdMsg("âŒ Please fill all fields.");return;}
+              // No password set yet â€” allow any current password if first run
               const isFirstRun=!getAdminPassword();
-              if(!isFirstRun&&!await checkAdminPassword(htOldPwd)){setHtPwdMsg("❌ Current password is incorrect.");return;}
-              if(htNewPwd.length<4){setHtPwdMsg("❌ New password must be at least 4 characters.");return;}
-              if(htNewPwd!==htConfirmPwd){setHtPwdMsg("❌ New passwords do not match.");return;}
+              if(!isFirstRun&&!await checkAdminPassword(htOldPwd)){setHtPwdMsg("âŒ Current password is incorrect.");return;}
+              if(htNewPwd.length<4){setHtPwdMsg("âŒ New password must be at least 4 characters.");return;}
+              if(htNewPwd!==htConfirmPwd){setHtPwdMsg("âŒ New passwords do not match.");return;}
               await setAdminPassword(htNewPwd);
               setHtOldPwd("");setHtNewPwd("");setHtConfirmPwd("");
-              setHtPwdMsg("✅ Password "+(isFirstRun?"set":"updated")+" successfully.");
+              setHtPwdMsg("âœ… Password "+(isFirstRun?"set":"updated")+" successfully.");
               setTimeout(()=>setHtPwdMsg(""),3000);
             },
             style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"11px 24px",cursor:"pointer",fontWeight:"600",fontSize:14,marginTop:4}
@@ -3355,11 +3350,11 @@ function App(){
                 maxQ>0&&React.createElement('span',null," Out of a possible ", React.createElement('strong',{style:{color:TEXT}},maxQ), " quarters based on the number of evening sessions.")
               )
               , React.createElement('div', { style: {background:"linear-gradient(145deg,"+CARD+","+ACCENT+")",border:"3px solid "+GOLD,borderRadius:20,padding:28,textAlign:"center",boxShadow:"0 0 50px "+GOLD+"33",marginBottom:24},}
-                , React.createElement('div', { style: {color:GOLD,fontSize:13,letterSpacing:4,marginBottom:6},}, "🌙 DOR CHAMPION 🌙")
+                , React.createElement('div', { style: {color:GOLD,fontSize:13,letterSpacing:4,marginBottom:6},}, "ðŸŒ™ DOR CHAMPION ðŸŒ™")
                 , React.createElement('div', { style: {color:MUTED,fontSize:12,letterSpacing:3,marginBottom:4},}, dorChampClass||"HIFZ CLASS A")
                 , React.createElement('div', { style: {color:GOLD,fontSize:13,marginBottom:24},}, selPeriod?selPeriod.label:"")
                 , React.createElement('div', { style: {background:GOLD+"22",border:"2px solid "+GOLD,borderRadius:16,padding:24,marginBottom:16},}
-                  , React.createElement('div', { style: {fontSize:36},}, "🥇")
+                  , React.createElement('div', { style: {fontSize:36},}, "ðŸ¥‡")
                   , React.createElement('div', { style: {color:GOLD,fontSize:26,fontWeight:"bold",margin:"8px 0",textAlign:"center",wordBreak:"break-word"},}, first.name)
                   , React.createElement('div', { style: {display:"flex",justifyContent:"center",gap:40,marginTop:14,alignItems:"stretch"},}
                     , React.createElement('div', { style: {textAlign:"center"}}, React.createElement('div', { style: {color:MUTED,fontSize:10,letterSpacing:2,marginBottom:6},}, "QUARTERS"), React.createElement('div', { style: {color:TEXT,fontSize:30,fontWeight:"bold"}}, first.cleanQuarters))
@@ -3368,7 +3363,7 @@ function App(){
                   )
                 )
                 , second&&React.createElement('div', { style: {background:BLUE+"22",border:"2px solid "+BLUE,borderRadius:14,padding:20,marginBottom:8},}
-                  , React.createElement('div', { style: {fontSize:26},}, "🥈")
+                  , React.createElement('div', { style: {fontSize:26},}, "ðŸ¥ˆ")
                   , React.createElement('div', { style: {color:BLUE,fontSize:22,fontWeight:"bold",margin:"6px 0",textAlign:"center",wordBreak:"break-word"},}, second.name)
                   , React.createElement('div', { style: {display:"flex",justifyContent:"center",gap:32,marginTop:10,alignItems:"stretch"},}
                     , React.createElement('div', { style: {textAlign:"center"}}, React.createElement('div', { style: {color:MUTED,fontSize:10,letterSpacing:2,marginBottom:6},}, "QUARTERS"), React.createElement('div', { style: {color:TEXT,fontSize:26,fontWeight:"bold"}}, second.cleanQuarters))
@@ -3382,7 +3377,7 @@ function App(){
                 , React.createElement('div', { style: {padding:"8px 12px"},}
                   , allRanked.map((s,i)=>React.createElement('div', {key:s.name, style: {display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",borderRadius:6,marginBottom:4,background:i===0?GOLD+"22":i===1?BLUE+"22":i%2===0?"transparent":DARK+"44",border:"1px solid "+(i===0?GOLD+"33":i===1?BLUE+"33":MUTED+"11")}},
                     React.createElement('div', {style:{display:"flex",alignItems:"center",gap:8}},
-                      React.createElement('span', {style:{color:i===0?GOLD:i===1?BLUE:MUTED,fontWeight:i<2?"bold":"normal",minWidth:26,fontSize:i<2?14:12}}, i===0?"🥇":i===1?"🥈":"#"+(i+1)),
+                      React.createElement('span', {style:{color:i===0?GOLD:i===1?BLUE:MUTED,fontWeight:i<2?"bold":"normal",minWidth:26,fontSize:i<2?14:12}}, i===0?"ðŸ¥‡":i===1?"ðŸ¥ˆ":"#"+(i+1)),
                       React.createElement('span', {style:{color:TEXT,fontSize:13}}, s.name)
                     ),
                     React.createElement('div', {style:{display:"flex",gap:14,fontSize:12}},
@@ -3428,12 +3423,12 @@ function App(){
             , !first?React.createElement('div', { style: {textAlign:"center",color:MUTED,padding:60},}, "No entries for this period."    ):(
               React.createElement('div', { style: {maxWidth:620,margin:"0 auto"},}
                 , React.createElement('div', { style: {background:"linear-gradient(145deg,"+(CARD)+","+(ACCENT)+")",border:"3px solid "+(GOLD),borderRadius:20,padding:40,textAlign:"center",boxShadow:"0 0 50px "+GOLD+"33"},}
-                  , React.createElement('div', { style: {color:GOLD,fontSize:13,letterSpacing:4,marginBottom:6},}, "🌙 SABAQ CHAMPION 🌙"   )
+                  , React.createElement('div', { style: {color:GOLD,fontSize:13,letterSpacing:4,marginBottom:6},}, "ðŸŒ™ SABAQ CHAMPION ðŸŒ™"   )
                   , React.createElement('div', { style: {color:MUTED,fontSize:12,letterSpacing:3,marginBottom:4},}, posterClass)
                   , React.createElement('div', { style: {color:GOLD,fontSize:13,marginBottom:28},}, selPeriod?selPeriod.label:"")
 
                   , React.createElement('div', { style: {background:GOLD+"22",border:"2px solid "+(GOLD),borderRadius:16,padding:28,marginBottom:20},}
-                    , React.createElement('div', { style: {fontSize:40},}, "🥇")
+                    , React.createElement('div', { style: {fontSize:40},}, "ðŸ¥‡")
                     , React.createElement('div', { style: {color:GOLD,fontSize:30,fontWeight:"bold",margin:"10px 0"},}, first.name)
                     , React.createElement('div', { style: {display:"flex",justifyContent:"center",gap:24,marginTop:16,flexWrap:"wrap"},}
                       , React.createElement('div', null, React.createElement('div', { style: {color:MUTED,fontSize:11,letterSpacing:2,marginBottom:4},}, "TOTAL SIDES" ), React.createElement('div', { style: {color:TEXT,fontSize:32,fontWeight:"bold",letterSpacing:1},}, fmt(first.championTotalSides,2)))
@@ -3444,7 +3439,7 @@ function App(){
 
                   , second&&(
                     React.createElement('div', { style: {background:BLUE+"22",border:"2px solid "+(BLUE),borderRadius:16,padding:22,marginBottom:28},}
-                      , React.createElement('div', { style: {fontSize:28},}, "🥈")
+                      , React.createElement('div', { style: {fontSize:28},}, "ðŸ¥ˆ")
                       , React.createElement('div', { style: {color:BLUE,fontSize:24,fontWeight:"bold",margin:"8px 0"},}, second.name)
                       , React.createElement('div', { style: {display:"flex",justifyContent:"center",gap:20,marginTop:12,flexWrap:"wrap"},}
                         , React.createElement('div', null, React.createElement('div', { style: {color:MUTED,fontSize:11,letterSpacing:2,marginBottom:4},}, "TOTAL SIDES" ), React.createElement('div', { style: {color:TEXT,fontSize:30,fontWeight:"bold",letterSpacing:1},}, fmt(second.championTotalSides,2)))
@@ -3460,7 +3455,7 @@ function App(){
                     , list.map((s,i)=>(
                       React.createElement('div', { key: s.id, style: {display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 12px",borderRadius:6,marginBottom:4,background:i===0?GOLD+"22":i===1?BLUE+"22":i%2===0?"transparent":DARK+"44",border:"1px solid "+(i===0?GOLD+"33":i===1?BLUE+"33":MUTED+"11")},}
                         , React.createElement('div', { style: {display:"flex",alignItems:"center",gap:8},}
-                          , React.createElement('span', { style: {color:i===0?GOLD:i===1?BLUE:MUTED,fontWeight:i<2?"bold":"normal",minWidth:26,fontSize:i<2?15:12},}, i===0?"🥇":i===1?"🥈":"#"+(i+1))
+                          , React.createElement('span', { style: {color:i===0?GOLD:i===1?BLUE:MUTED,fontWeight:i<2?"bold":"normal",minWidth:26,fontSize:i<2?15:12},}, i===0?"ðŸ¥‡":i===1?"ðŸ¥ˆ":"#"+(i+1))
                           , React.createElement('span', { style: {color:TEXT,fontSize:13},}, s.name)
                         )
                         , React.createElement('div', { style: {display:"flex",gap:16,fontSize:12},}
@@ -3488,9 +3483,9 @@ function App(){
   );
 }
 
-// ─────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // SABAQ ENTRY PAGE - Daily class-wide sabaq entry
-// ─────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecords,dailySabaqEntries,setDailySabaqEntries,selectedClass,selectedDate,syncNow,yearPlan,registerData}){
   const today=getTodayStr();
 
@@ -3542,7 +3537,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   
   const [status,setStatus] = React.useState("");
 
-  // Queue mode — one student at a time
+  // Queue mode â€” one student at a time
   const [queueIdx,setQueueIdx] = React.useState(null); // null = list view, number = queue mode
 
   React.useEffect(()=>{
@@ -3580,7 +3575,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   // Save handlers
   function saveAM(){
     const hasAny=amRows.some(r=>r.absent||r.spMistakes||r.sabaqLines||r.dorDone);
-    if(!hasAny){setStatus("❌ Nothing entered yet.");return;}
+    if(!hasAny){setStatus("âŒ Nothing entered yet.");return;}
     const daily=[],dors=[];
     amRows.forEach(row=>{
       daily.push({
@@ -3644,16 +3639,16 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
 
   const students=getClassStudents(cls);
 
-  // ── Shared select style (large tap target) ──
+  // â”€â”€ Shared select style (large tap target) â”€â”€
   const selS={background:"#F8F9FA",border:"1px solid #E5E7EB",borderRadius:8,
               padding:"10px 8px",fontSize:16,outline:"none",width:"100%",
               WebkitAppearance:"none",textAlign:"center",cursor:"pointer"};
   const secLabel={fontSize:10,fontWeight:"700",textTransform:"uppercase",
                   letterSpacing:"0.8px",marginBottom:6,display:"block"};
 
-  // ══════════════════════════════════════════════════════════
-  // QUEUE CARD — single student popup view
-  // ══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // QUEUE CARD â€” single student popup view
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   function QueueCard({rows,updRow,tab,onPrev,onNext,onDone,idx,total}){
     const row=rows[idx];
     if(!row)return null;
@@ -3699,7 +3694,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               color:"#D97706",fontSize:11,fontWeight:"600",
               background:"#FEF3C7",borderRadius:4,padding:"2px 8px",
               display:"inline-block",marginTop:3
-            }},"⚠️ Kaccha Dor yesterday — do Dor first")
+            }},"âš ï¸ Kaccha Dor yesterday â€” do Dor first")
           ),
           React.createElement('div',{style:{textAlign:"right"}},
             React.createElement('div',{style:{color:MUTED,fontSize:11}},
@@ -3735,7 +3730,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
           )
         ),
 
-        /* ── AM ENTRY FIELDS ── */
+        /* â”€â”€ AM ENTRY FIELDS â”€â”€ */
         !row.absent&&isAM&&React.createElement('div',null,
 
           /* Sabaq Para */
@@ -3763,7 +3758,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   style:{...selS,borderColor:spMk>0?spColor:undefined,
                          color:spMk>0?spColor:undefined,
                          fontWeight:spMk>0?"700":"400",maxWidth:160}},
-                  React.createElement('option',{value:""},"—"),
+                  React.createElement('option',{value:""},"â€”"),
                   MK_OPTS.map(m=>React.createElement('option',{key:m,value:m},m===0?"0":m))
                 )
               ),
@@ -3778,10 +3773,10 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                     background:row.spScrape?"#D97706":"transparent",
                     border:"2px solid "+(row.spScrape?"#D97706":"#D1D5DB"),
                     display:"flex",alignItems:"center",justifyContent:"center"}},
-                    row.spScrape&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"✓")
+                    row.spScrape&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"âœ“")
                   ),
                   React.createElement('span',{style:{fontSize:12,fontWeight:"600",
-                    color:row.spScrape?"#D97706":"#6B7280"}},row.spScrape?"🟡 Scrape":"Scrape")
+                    color:row.spScrape?"#D97706":"#6B7280"}},row.spScrape?"ðŸŸ¡ Scrape":"Scrape")
                 ),
                 React.createElement('div',{
                   onClick:()=>updRow(idx,"spKaccha",!row.spKaccha),
@@ -3793,14 +3788,14 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                     background:row.spKaccha?"#DC2626":"transparent",
                     border:"2px solid "+(row.spKaccha?"#DC2626":"#D1D5DB"),
                     display:"flex",alignItems:"center",justifyContent:"center"}},
-                    row.spKaccha&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"✓")
+                    row.spKaccha&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"âœ“")
                   ),
                   React.createElement('span',{style:{fontSize:12,fontWeight:"600",
-                    color:row.spKaccha?"#DC2626":"#6B7280"}},row.spKaccha?"🔴 Kaccha":"Kaccha")
+                    color:row.spKaccha?"#DC2626":"#6B7280"}},row.spKaccha?"ðŸ”´ Kaccha":"Kaccha")
                 )
               )
             ),
-            /* ── 2nd Attempt button ── */
+            /* â”€â”€ 2nd Attempt button â”€â”€ */
             !row.sp2Done
               ? React.createElement('button',{
                   onClick:()=>updRow(idx,"sp2Done",true),
@@ -3821,7 +3816,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   style:{...selS,borderColor:parseFloat(row.sp2Mistakes)||0>0?spColor:undefined,
                          color:parseFloat(row.sp2Mistakes)||0>0?spColor:undefined,
                          fontWeight:parseFloat(row.sp2Mistakes)||0>0?"700":"400",maxWidth:160}},
-                  React.createElement('option',{value:""},"—"),
+                  React.createElement('option',{value:""},"â€”"),
                   MK_OPTS.map(m=>React.createElement('option',{key:m,value:m},m===0?"0":m))
                 )
               ),
@@ -3836,10 +3831,10 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                     background:row.sp2Scrape?"#D97706":"transparent",
                     border:"2px solid "+(row.sp2Scrape?"#D97706":"#D1D5DB"),
                     display:"flex",alignItems:"center",justifyContent:"center"}},
-                    row.sp2Scrape&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"✓")
+                    row.sp2Scrape&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"âœ“")
                   ),
                   React.createElement('span',{style:{fontSize:12,fontWeight:"600",
-                    color:row.sp2Scrape?"#D97706":"#6B7280"}},row.sp2Scrape?"🟡 Scrape":"Scrape")
+                    color:row.sp2Scrape?"#D97706":"#6B7280"}},row.sp2Scrape?"ðŸŸ¡ Scrape":"Scrape")
                 ),
                 React.createElement('div',{
                   onClick:()=>updRow(idx,"sp2Kaccha",!row.sp2Kaccha),
@@ -3851,10 +3846,10 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                     background:row.sp2Kaccha?"#DC2626":"transparent",
                     border:"2px solid "+(row.sp2Kaccha?"#DC2626":"#D1D5DB"),
                     display:"flex",alignItems:"center",justifyContent:"center"}},
-                    row.sp2Kaccha&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"✓")
+                    row.sp2Kaccha&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"âœ“")
                   ),
                   React.createElement('span',{style:{fontSize:12,fontWeight:"600",
-                    color:row.sp2Kaccha?"#DC2626":"#6B7280"}},row.sp2Kaccha?"🔴 Kaccha":"Kaccha")
+                    color:row.sp2Kaccha?"#DC2626":"#6B7280"}},row.sp2Kaccha?"ðŸ”´ Kaccha":"Kaccha")
                 )
               )
             )
@@ -3879,7 +3874,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               React.createElement('label',{style:{...secLabel,color:"#059669"}},"Lines"),
               React.createElement('select',{value:row.sabaqLines,
                 onChange:e=>updRow(idx,"sabaqLines",e.target.value),style:{...selS,maxWidth:160}},
-                React.createElement('option',{value:""},"—"),
+                React.createElement('option',{value:""},"â€”"),
                 LINE_OPTS.map(l=>React.createElement('option',{key:l,value:l},l))
               )
             ),
@@ -3895,11 +3890,11 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   background:row.sabaqWeak?"#D97706":"transparent",
                   border:"2px solid "+(row.sabaqWeak?"#D97706":"#D1D5DB"),
                   display:"flex",alignItems:"center",justifyContent:"center"}},
-                  row.sabaqWeak&&React.createElement('span',{style:{color:"#fff",fontSize:13,fontWeight:"700"}},"✓")
+                  row.sabaqWeak&&React.createElement('span',{style:{color:"#fff",fontSize:13,fontWeight:"700"}},"âœ“")
                 ),
                 React.createElement('span',{style:{fontSize:13,fontWeight:"600",
                   color:row.sabaqWeak?"#D97706":"#6B7280"}},
-                  row.sabaqWeak?"⚠️ Weak Sabaq":"Weak")
+                  row.sabaqWeak?"âš ï¸ Weak Sabaq":"Weak")
               ),
               React.createElement('div',{
                 onClick:()=>updRow(idx,"sabaqLessLines",!row.sabaqLessLines),
@@ -3911,16 +3906,16 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   background:row.sabaqLessLines?"#2563EB":"transparent",
                   border:"2px solid "+(row.sabaqLessLines?"#2563EB":"#D1D5DB"),
                   display:"flex",alignItems:"center",justifyContent:"center"}},
-                  row.sabaqLessLines&&React.createElement('span',{style:{color:"#fff",fontSize:13,fontWeight:"700"}},"✓")
+                  row.sabaqLessLines&&React.createElement('span',{style:{color:"#fff",fontSize:13,fontWeight:"700"}},"âœ“")
                 ),
                 React.createElement('span',{style:{fontSize:13,fontWeight:"600",
                   color:row.sabaqLessLines?"#2563EB":"#6B7280"}},
-                  row.sabaqLessLines?"📉 Less Lines than target":"Less Lines")
+                  row.sabaqLessLines?"ðŸ“‰ Less Lines than target":"Less Lines")
               )
             )
           ),
 
-          /* Dor (morning) — for Kaccha students */
+          /* Dor (morning) â€” for Kaccha students */
           React.createElement('div',{style:{
             background:row.dorDone?"rgba(239,68,68,0.05)":"#F8F9FA",
             borderRadius:12,padding:"14px 16px",marginBottom:4,
@@ -3935,7 +3930,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 background:row.dorDone?"#DC2626":"transparent",
                 border:"2px solid "+(row.dorDone?"#DC2626":"#D1D5DB"),
                 display:"flex",alignItems:"center",justifyContent:"center"
-              }},row.dorDone&&React.createElement('span',{style:{color:"#fff",fontSize:13,fontWeight:"700"}},"✓")),
+              }},row.dorDone&&React.createElement('span',{style:{color:"#fff",fontSize:13,fontWeight:"700"}},"âœ“")),
               React.createElement('div',null,
                 React.createElement('div',{style:{fontSize:13,fontWeight:"600",
                   color:row.dorDone?"#DC2626":"#6B7280"}},"Dor (morning)"),
@@ -3947,7 +3942,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 React.createElement('label',{style:{...secLabel,color:"#DC2626"}},"Juz"),
                 React.createElement('select',{value:row.dorJuz,
                   onChange:e=>updRow(idx,"dorJuz",e.target.value),style:selS},
-                  React.createElement('option',{value:""},"—"),
+                  React.createElement('option',{value:""},"â€”"),
                   JUZ_OPTIONS.map(j=>React.createElement('option',{key:j,value:j},j))
                 )
               ),
@@ -3955,7 +3950,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 React.createElement('label',{style:{...secLabel,color:"#DC2626"}},"Quarter"),
                 React.createElement('select',{value:row.dorQuarter,
                   onChange:e=>updRow(idx,"dorQuarter",e.target.value),style:selS},
-                  React.createElement('option',{value:""},"—"),
+                  React.createElement('option',{value:""},"â€”"),
                   QUARTERS.map(q=>React.createElement('option',{key:q,value:q},q))
                 )
               ),
@@ -3965,7 +3960,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   onChange:e=>updRow(idx,"dorMistakes",e.target.value),
                   style:{...selS,borderColor:dMk>0?dColor:undefined,
                          color:dMk>0?dColor:undefined,fontWeight:dMk>0?"700":"400"}},
-                  React.createElement('option',{value:""},"—"),
+                  React.createElement('option',{value:""},"â€”"),
                   MK_OPTS.map(m=>React.createElement('option',{key:m,value:m},m===0?"0":m))
                 )
               )
@@ -3990,7 +3985,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
             style:{padding:"13px",borderRadius:10,border:"1px solid #E5E7EB",
               background:idx===0?"#F9FAFB":"#fff",color:idx===0?MUTED:TEXT,
               cursor:idx===0?"default":"pointer",fontSize:22,fontWeight:"600"}
-          },"←"),
+          },"â†"),
           idx<total-1
             ? React.createElement('button',{
                 onClick:onNext,
@@ -3998,14 +3993,14 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   background:GOLD,color:"#fff",cursor:"pointer",
                   fontSize:14,fontWeight:"700",
                   boxShadow:"0 2px 8px rgba(184,147,74,0.4)"}
-              },"Next →")
+              },"Next â†’")
             : React.createElement('button',{
                 onClick:onDone,
                 style:{padding:"13px",borderRadius:10,border:"none",
                   background:"#16a34a",color:"#fff",cursor:"pointer",
                   fontSize:14,fontWeight:"700",
                   boxShadow:"0 2px 8px rgba(22,163,74,0.3)"}
-              },"✓ Save All"),
+              },"âœ“ Save All"),
           React.createElement('button',{
             onClick:()=>setQueueIdx(null),
             style:{padding:"13px",borderRadius:10,border:"1px solid #E5E7EB",
@@ -4016,9 +4011,9 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     );
   }
 
-  // ══════════════════════════════════════════════════════════
-  // STUDENT LIST — overview + quick-mark absent
-  // ══════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // STUDENT LIST â€” overview + quick-mark absent
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const isAM=tab==="am";
     function statusDot(row){
     if(row.absent)return{bg:"#EF4444",label:"Absent"};
@@ -4068,7 +4063,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       bottom:"calc(env(safe-area-inset-bottom,0px) + 80px)",zIndex:1500,maxWidth:560,margin:"0 auto",
       padding:"13px 18px",borderRadius:14,textAlign:"center",fontSize:13,fontWeight:"700",
       boxShadow:"0 8px 30px rgba(0,0,0,0.25)",
-      background:status.startsWith("✅")?"linear-gradient(135deg,#0d6b5e,#15806f)":(status.startsWith("❌")?"#B91C1C":"#1a3a3a"),
+      background:status.startsWith("âœ…")?"linear-gradient(135deg,#0d6b5e,#15806f)":(status.startsWith("âŒ")?"#B91C1C":"#1a3a3a"),
       color:"#fff"}},status),
 
     /* Empty */
@@ -4164,15 +4159,15 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
 }
 
 
-// ══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // REGISTER SYSTEM COMPONENTS
-// ══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// ─── Helpers ──────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// ══════════════════════════════════════════════════════════════
-// YEAR PLANNER — Full rebuild with PDF, holidays, special dates
-// ══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// YEAR PLANNER â€” Full rebuild with PDF, holidays, special dates
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function getMonthsForPlanner(startYear, startMonth, count){
   const months=[];
@@ -4277,7 +4272,7 @@ function formatDateDMYShort(d){
 
 function getRegisterKey(cls,session,date){return cls+"||"+session+"||"+date;}
 
-// Build O(1) lookup Map: "key||studentName" → entry
+// Build O(1) lookup Map: "key||studentName" â†’ entry
 function buildRegisterIndex(registerData){
   const m=new Map();
   if(!Array.isArray(registerData))return m;
@@ -4292,7 +4287,7 @@ function getStudentStatus(registerData,cls,session,date,name,idx){
 }
 
 function getWAMessage(studentName){
-  return`السلام عليكم ورحمة الله وبركاته
+  return`Ø§Ù„Ø³Ù„Ø§Ù… Ø¹Ù„ÙŠÙƒÙ… ÙˆØ±Ø­Ù…Ø© Ø§Ù„Ù„Ù‡ ÙˆØ¨Ø±ÙƒØ§ØªÙ‡
 
 Dear Parent,
 
@@ -4300,7 +4295,7 @@ Our records show that your child ${studentName} was absent and therefore has a m
 
 While we fully acknowledge and understand that the absence may have been genuine, as per our Hifz class policy, the missed time will still need to be made up.
 
-It would be even more beneficial if your child could prepare and learn some extra sabaq on Saturday, to be read to the ustad during the make-up session on Sunday (Asr–Maghrib).
+It would be even more beneficial if your child could prepare and learn some extra sabaq on Saturday, to be read to the ustad during the make-up session on Sunday (Asrâ€“Maghrib).
 
 This make-up session is not a punishment or detention, but rather an opportunity for your child to regain the blessings, suhbat (company) of the ustaadh, and momentum that may have been missed during their absence.
 
@@ -4309,7 +4304,7 @@ JazakAllahu Khayran for your understanding and cooperation.
 Head of Hifz | Madrasah Al-Ihsaan`;
 }
 
-// ─── YEAR PLANNER PAGE ────────────────────────────────────────
+// â”€â”€â”€ YEAR PLANNER PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function YearPlannerPage({yearPlan,setYearPlan,records}){
     const SESSIONS=["morning","evening"];
 
@@ -4321,16 +4316,16 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 
   const months=getMonthsForPlanner(startYear,startMonth,12);
 
-  // ── Special events ──
+  // â”€â”€ Special events â”€â”€
   const SPECIAL_TYPES=[
-    {key:"exam",label:"Exam / Revision Days",color:"#16a34a",bg:"#dcfce7",dot:"🟩"},
-    {key:"parents",label:"Parents Evening",color:"#ca8a04",bg:"#fef9c3",dot:"🟨"},
-    {key:"boys_jalsa",label:"Boys Jalsah",color:"#d97706",bg:"#fef3c7",dot:"🟧"},
-    {key:"girls_jalsa",label:"Girls Jalsah",color:"#7c3aed",bg:"#f3e8ff",dot:"🟪"},
-    {key:"holiday",label:"Holidays",color:"#dc2626",bg:"#fee2e2",dot:"🟥"},
+    {key:"exam",label:"Exam / Revision Days",color:"#16a34a",bg:"#dcfce7",dot:"ðŸŸ©"},
+    {key:"parents",label:"Parents Evening",color:"#ca8a04",bg:"#fef9c3",dot:"ðŸŸ¨"},
+    {key:"boys_jalsa",label:"Boys Jalsah",color:"#d97706",bg:"#fef3c7",dot:"ðŸŸ§"},
+    {key:"girls_jalsa",label:"Girls Jalsah",color:"#7c3aed",bg:"#f3e8ff",dot:"ðŸŸª"},
+    {key:"holiday",label:"Holidays",color:"#dc2626",bg:"#fee2e2",dot:"ðŸŸ¥"},
   ];
 
-  // ── Date classification ──
+  // â”€â”€ Date classification â”€â”€
   function getDateType(year,month,day){
     // Check holiday ranges first
     const ranges=getHolidayRanges(yearPlan);
@@ -4353,7 +4348,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     return{background:t.bg,color:t.color,fontWeight:"700"};
   }
 
-  // ── Dates tab ──
+  // â”€â”€ Dates tab â”€â”€
   function updateDay(session,year,month,slotIdx,val){
     const planDates=getPlanDates(yearPlan,cls,session);
     const num=parseInt(val);
@@ -4378,7 +4373,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     }
   }
 
-  // ── Holidays tab helpers ──
+  // â”€â”€ Holidays tab helpers â”€â”€
   const holidayRanges=getHolidayRanges(yearPlan);
   const holidayDates=getHolidayDates(yearPlan);
 
@@ -4405,7 +4400,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     setHolidayDates(yearPlan,setYearPlan,[...other,...unique]);
   }
 
-  // ── Special dates helper ──
+  // â”€â”€ Special dates helper â”€â”€
   function updateSpecialDay(type,year,month,slotIdx,val){
     const dates=getSpecialDates(yearPlan,type);
     const num=parseInt(val);
@@ -4418,10 +4413,10 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     setSpecialDates(yearPlan,setYearPlan,type,[...other,...unique]);
   }
 
-  // ── PDF print ──
+  // â”€â”€ PDF print â”€â”€
   function printPlanner(){
     const printWin=window.open("","_blank");
-    if(!printWin){showToast("Pop-up blocked — please allow pop-ups for this site and try again.","warning");return;}
+    if(!printWin){showToast("Pop-up blocked â€” please allow pop-ups for this site and try again.","warning");return;}
     try{
       const html=buildPlannerPrintHTML(yearPlan,months,cls,SPECIAL_TYPES);
       printWin.document.write(html);
@@ -4440,18 +4435,18 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
   return(
     React.createElement('div',{style:{padding:"20px 16px",maxWidth:860,margin:"0 auto"}},
 
-      /* ── Header ── */
+      /* â”€â”€ Header â”€â”€ */
       React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}},
         React.createElement('div',null,
-          React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"📅 Year Planner"),
-          React.createElement('div',{style:{color:"#6b7280",fontSize:12,marginTop:2}},totalMorn+" AM · "+totalEve+" PM class dates")
+          React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"ðŸ“… Year Planner"),
+          React.createElement('div',{style:{color:"#6b7280",fontSize:12,marginTop:2}},totalMorn+" AM Â· "+totalEve+" PM class dates")
         ),
         React.createElement('div',{style:{display:"flex",gap:8}},
-          React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:9,padding:"9px 18px",cursor:"pointer",fontWeight:"600",fontSize:12}},"🖨 Print / PDF"),
+          React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:9,padding:"9px 18px",cursor:"pointer",fontWeight:"600",fontSize:12}},"ðŸ–¨ Print / PDF"),
         )
       ),
 
-      /* ── Academic year start ── */
+      /* â”€â”€ Academic year start â”€â”€ */
       React.createElement('div',{style:{display:"flex",gap:12,marginBottom:16,alignItems:"center",flexWrap:"wrap"}},
         React.createElement('span',{style:{color:"#6b7280",fontSize:12,fontWeight:"500"}},"Academic year starts:"),
         React.createElement('select',{value:startMonth,onChange:e=>setStartMonth(parseInt(e.target.value)),style:{border:"1px solid #e5e7eb",borderRadius:7,padding:"5px 10px",fontSize:12,outline:"none"}},
@@ -4465,18 +4460,18 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         ,c))
       ),
 
-      /* ── Tabs ── */
+      /* â”€â”€ Tabs â”€â”€ */
       React.createElement('div',{style:{display:"flex",gap:0,borderRadius:10,overflow:"hidden",border:"1px solid #e5e7eb",marginBottom:20,width:"fit-content"}},
-        [["dates","📋 Class Dates"],["holidays","🚫 Holidays"],["special","⭐ Special Dates"]].map(([tab,label])=>
+        [["dates","ðŸ“‹ Class Dates"],["holidays","ðŸš« Holidays"],["special","â­ Special Dates"]].map(([tab,label])=>
           React.createElement('button',{key:tab,onClick:()=>setActiveTab(tab),style:{background:activeTab===tab?"#1e2d3d":"transparent",color:activeTab===tab?"#fff":"#6b7280",border:"none",borderRight:"1px solid #e5e7eb",padding:"9px 16px",cursor:"pointer",fontSize:12,fontWeight:activeTab===tab?"600":"400"}}
           ,label)
         )
       ),
 
-      /* ══ TAB: CLASS DATES ══ */
+      /* â•â• TAB: CLASS DATES â•â• */
       activeTab==="dates"&&React.createElement('div',null,
         React.createElement('div',{style:{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,padding:"10px 14px",marginBottom:14,color:"#1D4ED8",fontSize:12}},
-          "Enter up to 6 day numbers per month (D1–D6). Evening Evening sessions auto-copy from Morning as you type — edit Evening cells independently to customise."
+          "Enter up to 6 day numbers per month (D1â€“D6). Evening Evening sessions auto-copy from Morning as you type â€” edit Evening cells independently to customise."
         ),
         React.createElement('div',{style:{background:"#fff",borderRadius:14,border:"1px solid rgba(184,147,74,0.15)",overflowX:"auto",WebkitOverflowScrolling:"touch",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}},
           /* Header row */
@@ -4496,7 +4491,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
               React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500"}},m.label),
               ...[0,1,2,3,4,5].map(si=>{
                 const ex=mdArr[si];
-                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",
+                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"â€”",
                   onChange:e=>updateDay("morning",m.year,m.month,si,e.target.value),
                   style:{...inS,background:ex?"rgba(184,147,74,0.08)":"#F9FAFB",borderColor:ex?"rgba(184,147,74,0.4)":"#E5E7EB",color:ex?"#B8934A":"#9CA3AF",fontWeight:ex?"600":"400"}});
               })
@@ -4514,7 +4509,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
               React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500"}},m.label),
               ...[0,1,2,3,4,5].map(si=>{
                 const ex=edArr[si];
-                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",
+                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"â€”",
                   onChange:e=>updateDay("evening",m.year,m.month,si,e.target.value),
                   style:{...inS,background:ex?"rgba(37,99,235,0.08)":"#F0F7FF",borderColor:ex?"rgba(37,99,235,0.3)":"#BFDBFE",color:ex?"#2563eb":"#93C5FD",fontWeight:ex?"600":"400"}});
               })
@@ -4523,20 +4518,20 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         )
       ),
 
-      /* ══ TAB: HOLIDAYS ══ */
+      /* â•â• TAB: HOLIDAYS â•â• */
       activeTab==="holidays"&&React.createElement('div',null,
         React.createElement('div',{style:{background:"#FEF3C7",border:"1px solid #FCD34D",borderRadius:10,padding:"10px 14px",marginBottom:14,color:"#92400E",fontSize:12}},
           "Enter individual holiday days below, OR use date ranges for longer breaks."
         ),
         /* Holiday Ranges */
         React.createElement('div',{style:{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",padding:"16px",marginBottom:16}},
-          React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:13,marginBottom:12,display:"flex",alignItems:"center",gap:6}},"📅 Holiday Date Ranges"),
+          React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:13,marginBottom:12,display:"flex",alignItems:"center",gap:6}},"ðŸ“… Holiday Date Ranges"),
           holidayRanges.map((r,i)=>React.createElement('div',{key:i,style:{display:"flex",alignItems:"center",gap:10,marginBottom:10,flexWrap:"wrap"}},
             React.createElement('span',{style:{color:"#6b7280",fontSize:12,minWidth:30}},"From"),
             React.createElement('input',{type:"date",value:r.from||"",onChange:e=>updateHolidayRange(i,"from",e.target.value),style:{border:"1px solid #e5e7eb",borderRadius:7,padding:"6px 10px",fontSize:12,outline:"none"}}),
             React.createElement('span',{style:{color:"#6b7280",fontSize:12,minWidth:12}},"To"),
             React.createElement('input',{type:"date",value:r.to||"",onChange:e=>updateHolidayRange(i,"to",e.target.value),style:{border:"1px solid #e5e7eb",borderRadius:7,padding:"6px 10px",fontSize:12,outline:"none"}}),
-            React.createElement('button',{onClick:()=>removeHolidayRange(i),style:{background:"#DC2626",color:"#fff",border:"none",borderRadius:6,padding:"5px 10px",cursor:"pointer",fontSize:11,fontWeight:"600"}},"✕ Remove")
+            React.createElement('button',{onClick:()=>removeHolidayRange(i),style:{background:"#DC2626",color:"#fff",border:"none",borderRadius:6,padding:"5px 10px",cursor:"pointer",fontSize:11,fontWeight:"600"}},"âœ• Remove")
           )),
           React.createElement('button',{onClick:addHolidayRange,style:{background:"transparent",border:"1px solid #e5e7eb",borderRadius:8,padding:"7px 16px",cursor:"pointer",fontSize:12,color:"#6b7280"}},"+ Add Date Range")
         ),
@@ -4554,7 +4549,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
               React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500"}},m.label),
               ...[0,1,2,3,4].map(si=>{
                 const ex=mDays[si];
-                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",
+                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"â€”",
                   onChange:e=>updateHolidayDay(m.year,m.month,si,e.target.value),
                   style:{...inS,background:ex?"#FEE2E2":"#FFF5F5",borderColor:ex?"#FECACA":"#FEE2E2",color:ex?"#DC2626":"#FCA5A5",fontWeight:ex?"600":"400"}});
               })
@@ -4563,7 +4558,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         )
       ),
 
-      /* ══ TAB: SPECIAL DATES ══ */
+      /* â•â• TAB: SPECIAL DATES â•â• */
       activeTab==="special"&&React.createElement('div',null,
         React.createElement('div',{style:{background:"#F0FDF4",border:"1px solid #86EFAC",borderRadius:10,padding:"10px 14px",marginBottom:14,color:"#15803D",fontSize:12}},
           "Enter special dates for events. These appear colour-coded on the planner."
@@ -4585,7 +4580,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
                   React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500"}},m.label),
                   ...[0,1,2,3,4].map(si=>{
                     const ex=mDays[si];
-                    return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",
+                    return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"â€”",
                       onChange:e=>updateSpecialDay(st.key,m.year,m.month,si,e.target.value),
                       style:{...inS,background:ex?st.bg:"#FAFAFA",borderColor:ex?st.color+"66":"#E5E7EB",color:ex?st.color:"#9CA3AF",fontWeight:ex?"600":"400"}});
                   })
@@ -4596,7 +4591,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         )
       ),
 
-      /* ── Legend ── */
+      /* â”€â”€ Legend â”€â”€ */
       React.createElement('div',{style:{marginTop:24,background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",padding:"14px 18px"}},
         React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:13,marginBottom:10}},"Legend / Key"),
         React.createElement('div',{style:{display:"flex",gap:12,flexWrap:"wrap"}},
@@ -4615,21 +4610,21 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         )
       ),
 
-      /* ── Planner Preview ── */
+      /* â”€â”€ Planner Preview â”€â”€ */
       React.createElement('div',{style:{marginTop:24}},
-        React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:14,marginBottom:14}},"📋 Planner Preview"),
+        React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:14,marginBottom:14}},"ðŸ“‹ Planner Preview"),
         React.createElement(PlannerCalendarView,{yearPlan,months,cls,SPECIAL_TYPES})
       ),
 
-      /* ── Buttons ── */
+      /* â”€â”€ Buttons â”€â”€ */
       React.createElement('div',{style:{marginTop:20,display:"flex",gap:10,flexWrap:"wrap"}},
-        React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:10,padding:"12px 24px",cursor:"pointer",fontWeight:"600",fontSize:14}},"🖨 Print / Save as PDF"),
+        React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:10,padding:"12px 24px",cursor:"pointer",fontWeight:"600",fontSize:14}},"ðŸ–¨ Print / Save as PDF"),
       )
     )
   );
 }
 
-// ─── PLANNER CALENDAR VIEW COMPONENT ──────────────────────────
+// â”€â”€â”€ PLANNER CALENDAR VIEW COMPONENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES}){
   const DOW=["Su","M","Tu","W","Th","F","S"];
 
@@ -4697,7 +4692,7 @@ function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES}){
   );
 }
 
-// ── PDF PRINT HTML builder ─────────────────────────────────────
+// â”€â”€ PDF PRINT HTML builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildPlannerPrintHTML(yearPlan,months,cls,SPECIAL_TYPES){
   const DOW=["Su","M","Tu","W","Th","F","S"];
   const TYPE_COLORS={
@@ -4773,13 +4768,13 @@ body{font-family:Arial,sans-serif;font-size:11px;margin:0;color:#1a1f2e;}
 .leg-dot{width:12px;height:12px;border-radius:2px;}
 h2{text-align:center;color:#1e2d3d;margin:0 0 10px;}
 </style></head><body>
-<h2>Madrasah Al-Ihsaan — Hifz Year Planner (${cls})</h2>
+<h2>Madrasah Al-Ihsaan â€” Hifz Year Planner (${cls})</h2>
 <div class="grid">${months.map(m=>monthHTML(m)).join("")}</div>
 <div class="legend">${legend}</div>
 </body></html>`;
 }
 
-// ─── v2.1 SHARED UI COMPONENTS ─────────────────────────────────
+// â”€â”€â”€ v2.1 SHARED UI COMPONENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PageTitle({title,sub}){
   return React.createElement('div',{style:{textAlign:"center",marginBottom:14}},
     React.createElement('div',{style:{fontSize:20,fontWeight:"800",color:"#1a1f2e",letterSpacing:"0.3px"}},title),
@@ -4805,7 +4800,7 @@ function DatePill({value,onChange,planDates}){
       background:"#fff",border:"1.5px solid rgba(196,150,63,0.4)",borderRadius:999,padding:"10px 20px",
       fontSize:14,fontWeight:"700",color:"#1a1f2e",boxShadow:"0 1px 5px rgba(0,0,0,0.07)"}},
       formatDateDMYShort(value),
-      React.createElement('span',{style:{fontSize:15,lineHeight:1}},"📅"),
+      React.createElement('span',{style:{fontSize:15,lineHeight:1}},"ðŸ“…"),
       React.createElement('input',{type:"date",value:value,onChange:e=>onChange(e.target.value),
         style:{position:"absolute",top:0,left:0,width:"100%",height:"100%",opacity:0,cursor:"pointer"}})
     ),
@@ -4825,7 +4820,7 @@ function SaveBar({onClick,label,color}){
         boxShadow:"0 4px 14px rgba(196,150,63,0.4)"}},label)
   );
 }
-// ───────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function HomeSearch({studentNames,onSelect}){
   const [q,setQ]=React.useState("");
@@ -4929,9 +4924,9 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
       return next;
     });
     setUnsaved(false);
-    setSaveMsg("✅ Saved & syncing...");
+    setSaveMsg("âœ… Saved & syncing...");
     scheduleSync();
-    syncNow().then(()=>setSaveMsg("✅ Saved & synced!")).catch(()=>setSaveMsg("✅ Saved locally"));
+    syncNow().then(()=>setSaveMsg("âœ… Saved & synced!")).catch(()=>setSaveMsg("âœ… Saved locally"));
     setTimeout(()=>setSaveMsg(""),3000);
   }
 
@@ -4954,14 +4949,14 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
       !isPlannedDate&&!forceOpen&&React.createElement('div',{style:{display:"flex",alignItems:"center",gap:6,justifyContent:"center",marginBottom:14,flexWrap:"wrap"}},
         React.createElement('input',{type:"password",value:forcePwd,onChange:e=>setForcePwd(e.target.value),placeholder:"Admin password to force open",
           style:{border:"1px solid #FCD34D",borderRadius:8,padding:"7px 12px",fontSize:12,outline:"none",width:200}}),
-        React.createElement('button',{onClick:()=>{checkAdminPassword(forcePwd).then(function(ok){if(ok){setForceOpen(true);setForcePwdErr("");}else{setForcePwdErr("Incorrect password — use admin password");}});},
+        React.createElement('button',{onClick:()=>{checkAdminPassword(forcePwd).then(function(ok){if(ok){setForceOpen(true);setForcePwdErr("");}else{setForcePwdErr("Incorrect password â€” use admin password");}});},
           style:{background:"#D97706",color:"#fff",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:12,fontWeight:"600"}},"Force Open"),
         forcePwdErr&&React.createElement('span',{style:{color:"#DC2626",fontSize:11}},forcePwdErr)
       ),
 
       saveMsg&&React.createElement('div',{style:{padding:"10px 16px",borderRadius:10,marginBottom:12,textAlign:"center",
-        background:String(saveMsg).startsWith("✅")?"rgba(22,163,74,0.08)":"rgba(37,99,235,0.05)",
-        color:String(saveMsg).startsWith("✅")?"#16a34a":"#2563eb",fontSize:13,fontWeight:"600"}},saveMsg),
+        background:String(saveMsg).startsWith("âœ…")?"rgba(22,163,74,0.08)":"rgba(37,99,235,0.05)",
+        color:String(saveMsg).startsWith("âœ…")?"#16a34a":"#2563eb",fontSize:13,fontWeight:"600"}},saveMsg),
 
       !canTakeRegister&&React.createElement('div',{style:{textAlign:"center",padding:40,color:"#9CA3AF",fontSize:14}},
         React.createElement('div',null,"No class scheduled on this date. Enter admin password above to force open the register.")
@@ -5037,7 +5032,7 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
 }
 
 
-// ─── VIEW REGISTER PAGE ───────────────────────────────────────
+// â”€â”€â”€ VIEW REGISTER PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow,initialSession}){
     const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [session,setSession]=React.useState(initialSession||"morning");
@@ -5082,7 +5077,7 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
     setSaveMsg("Syncing...");
     lsSaveRegister(registerData);
     setUnsaved(false);
-    syncNow().then(()=>setSaveMsg("✅ Synced!")).catch(()=>setSaveMsg("✅ Saved locally"));
+    syncNow().then(()=>setSaveMsg("âœ… Synced!")).catch(()=>setSaveMsg("âœ… Saved locally"));
     setTimeout(()=>setSaveMsg(""),3000);
   }
 
@@ -5098,7 +5093,7 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
 
   function statusLabel(s,entry){
     if(s==="L")return"L"+(entry.minutesLate?"("+entry.minutesLate+"m)":"");
-    if(s==="AG")return"A✓";
+    if(s==="AG")return"Aâœ“";
     return s||"P";
   }
 
@@ -5110,10 +5105,10 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
 
       /* Header */
       React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}},
-        React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"📋 View Register"+(session==="morning"?" (AM)":" (PM)")),
+        React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"ðŸ“‹ View Register"+(session==="morning"?" (AM)":" (PM)")),
         React.createElement('div',{style:{display:"flex",gap:8,alignItems:"center"}},
           saveMsg&&React.createElement('span',{style:{color:"#16a34a",fontSize:12,fontWeight:"600"}},saveMsg),
-          unsaved&&React.createElement('button',{onClick:saveChanges,style:{background:"#B8934A",color:"#fff",border:"none",borderRadius:10,padding:"8px 18px",cursor:"pointer",fontWeight:"600",fontSize:13}},"💾 Save Changes")
+          unsaved&&React.createElement('button',{onClick:saveChanges,style:{background:"#B8934A",color:"#fff",border:"none",borderRadius:10,padding:"8px 18px",cursor:"pointer",fontWeight:"600",fontSize:13}},"ðŸ’¾ Save Changes")
         )
       ),
 
@@ -5173,17 +5168,17 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
       React.createElement('div',{style:{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center",justifyContent:"center",background:"#fff",border:"1.5px solid #E3E7EF",borderRadius:12,padding:"10px 14px",marginTop:16}},
         [["P","Present","#16a34a","#F0FDF4","#86EFAC"],["L","Late","#D97706","#FFFBEB","#FCD34D"],["A","Absent","#DC2626","#FEF2F2","#FECACA"],["AG","Made Up","#15803D","#F0FDF4","#4ADE80"]].map(([code,label,color,bg,border])=>
           React.createElement('div',{key:code,style:{display:"flex",alignItems:"center",gap:4}},
-            React.createElement('div',{style:{background:bg,color,border:"1px solid "+border,borderRadius:4,padding:"2px 6px",fontSize:11,fontWeight:"600"}},code==="AG"?"A✓":code),
+            React.createElement('div',{style:{background:bg,color,border:"1px solid "+border,borderRadius:4,padding:"2px 6px",fontSize:11,fontWeight:"600"}},code==="AG"?"Aâœ“":code),
             React.createElement('span',{style:{color:"#6b7280",fontSize:11}},label)
           )
         ),
-        React.createElement('span',{style:{color:"#9CA3AF",fontSize:11,marginLeft:4}},"— click a cell to cycle status")
+        React.createElement('span',{style:{color:"#9CA3AF",fontSize:11,marginLeft:4}},"â€” click a cell to cycle status")
       )
     )
   );
 }
 
-// ─── ABSENCES PAGE ────────────────────────────────────────────
+// â”€â”€â”€ ABSENCES PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
     const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [month,setMonth]=React.useState(getTodayStr().substring(0,7));
@@ -5196,7 +5191,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
   ].sort(),[records,cls]);
   function getStudents(){return studs;}
 
-  // Pre-filter once per class+month — avoids O(students×registerData) per render
+  // Pre-filter once per class+month â€” avoids O(studentsÃ—registerData) per render
   const monthAbsEntries=React.useMemo(()=>{
     if(!Array.isArray(registerData))return[];
     return registerData.filter(r=>
@@ -5269,7 +5264,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
 
   return(
     React.createElement('div',{style:{padding:"20px 16px",maxWidth:700,margin:"0 auto"}},
-      React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18,marginBottom:16}},"⚠️ Absences"),
+      React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18,marginBottom:16}},"âš ï¸ Absences"),
 
       /* Filters */
       React.createElement('div',{style:{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16,alignItems:"center"}},
@@ -5288,7 +5283,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
 
       /* Pending absences */
       pending.length>0&&React.createElement('div',null,
-        React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:14,marginBottom:10}},"📬 Action Required ("+pending.length+" students)"),
+        React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:14,marginBottom:10}},"ðŸ“¬ Action Required ("+pending.length+" students)"),
         pending.map(({name,absences})=>{
           const pendingAbs=absences.filter(e=>e.status==="A"&&!e.msgSent);
           const latestRec=records.filter(r=>r.name===name).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
@@ -5302,7 +5297,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
                 )
               )
             ),
-            /* One row per absence — date left, actions right */
+            /* One row per absence â€” date left, actions right */
             React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:7,marginBottom:12}},
               pendingAbs.map(e=>{
                 const dt=new Date(e.date+"T00:00:00");
@@ -5346,7 +5341,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
                   onClick:()=>pendingAbs.forEach(e=>sendWAMsg(name,phone,e.date)),
                   style:{background:"linear-gradient(135deg,#3FD974,#2EC96A)",color:"#fff",border:"none",borderRadius:12,padding:"13px 18px",cursor:"pointer",fontWeight:"800",fontSize:13.5,display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",boxShadow:"0 4px 12px rgba(46,201,106,0.35)",letterSpacing:"0.2px"}
                 },
-                  React.createElement('span',null,"💬"),
+                  React.createElement('span',null,"ðŸ’¬"),
                   React.createElement('span',null,"Send via WhatsApp")
                 )
               )
@@ -5363,7 +5358,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
 
       /* Make-up Scheduled */
       scheduled.length>0&&React.createElement('div',{style:{marginTop:24}},
-        React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:14,marginBottom:10}},"📅 Make-up Session Scheduled"),
+        React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:14,marginBottom:10}},"ðŸ“… Make-up Session Scheduled"),
         scheduled.map(({name,absences})=>{
           const sentAbs=absences.filter(e=>e.msgSent&&e.status!=="AG");
           const latestRec=records.filter(r=>r.name===name).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
@@ -5371,35 +5366,35 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
           return React.createElement('div',{key:name,style:{background:"#FFFBEB",borderRadius:14,border:"1px solid #FCD34D",padding:"14px 20px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
             React.createElement('div',null,
               React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"600",fontSize:13}},name),
-              React.createElement('div',{style:{color:"#D97706",fontSize:11,marginTop:2}},"Message sent — awaiting make-up")
+              React.createElement('div',{style:{color:"#D97706",fontSize:11,marginTop:2}},"Message sent â€” awaiting make-up")
             ),
             React.createElement('div',{style:{display:"flex",gap:8}},
               sentAbs.map(e=>React.createElement('button',{key:e.date+e.session,
                 onClick:()=>markMadeUp(name,e.date,e.session),
                 style:{background:"#F0FDF4",color:"#16a34a",border:"1px solid #86EFAC",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:11,fontWeight:"600"}
-              },"✓ Session Made Up"))
+              },"âœ“ Session Made Up"))
             )
           );
         })
       ),
 
-      absenceList.length===0&&React.createElement('div',{style:{textAlign:"center",padding:60,color:"#9CA3AF",fontSize:14}},"🎉 No absences for this period!")
+      absenceList.length===0&&React.createElement('div',{style:{textAlign:"center",padding:60,color:"#9CA3AF",fontSize:14}},"ðŸŽ‰ No absences for this period!")
     )
   );
 }
 
-// ══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // MONTHLY COLLATION ENGINE
 // Reads daily sabaq entries + register data for a student/month
 // Returns a pre-filled record matching defaultEntry shape
-// ══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, registerData, existingRecords, dateFrom, dateTo){
   // yearMonth = "YYYY-MM" (used for month-based filter when dateFrom/dateTo not provided)
   // dateFrom / dateTo = "YYYY-MM-DD" for custom range
   const LINES_PER_SIDE = 13;
   const useRange = !!(dateFrom && dateTo);
 
-  // ── 1. Get all daily entries for this student/class/period ──
+  // â”€â”€ 1. Get all daily entries for this student/class/period â”€â”€
   const dailies = (dailySabaqEntries||[]).filter(e=>{
     if(!e.studentName===studentName||e.class!==cls||!e.date)return false;
     if(e.studentName!==studentName)return false;
@@ -5411,7 +5406,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
     return null; // No daily data for this period
   }
 
-  // ── 2. Compute from daily entries ──
+  // â”€â”€ 2. Compute from daily entries â”€â”€
   const presentDays = dailies.filter(e=>!e.absent);
   const absentDays  = dailies.filter(e=>e.absent);
 
@@ -5424,7 +5419,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
   // Total days that count as "sabaq days" = present & sabaqPara & not paraDor
   const totalDaysOfSabaq = sabaqParaDays.length;
 
-  // Sabaq (new lesson) lines — from sabaqLines field
+  // Sabaq (new lesson) lines â€” from sabaqLines field
   const totalLines = presentDays
     .filter(e=>e.sabaqPara&&!e.paraDor)
     .reduce((sum,e)=>sum+(parseFloat(e.sabaqLines)||parseFloat(e.spLines)||0), 0);
@@ -5434,7 +5429,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
   // Plus lines = remainder
   const plusLines = Math.round(totalLines % LINES_PER_SIDE);
 
-  // ── Quality metrics from daily entries ──
+  // â”€â”€ Quality metrics from daily entries â”€â”€
   // Sabaq Para mistakes
   const spDays = presentDays.filter(e=>e.sabaqPara&&!e.paraDor);
   const spMistakesTotal = spDays.reduce((s,e)=>s+(parseFloat(e.spMistakes)||0),0);
@@ -5477,18 +5472,18 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
     return e.date.startsWith(yearMonth);
   }).map(e=>e.date))].length;
 
-  // ── 3. Date range from daily entries ──
+  // â”€â”€ 3. Date range from daily entries â”€â”€
   const sortedDates = dailies.map(e=>e.date).sort();
   const recDateFrom = sortedDates[0] || (useRange ? dateFrom : yearMonth+"-01");
   const recDateTo   = sortedDates[sortedDates.length-1] || recDateFrom;
 
-  // ── 4. Pull contact info from most recent existing record ──
+  // â”€â”€ 4. Pull contact info from most recent existing record â”€â”€
   const prevRecords = (existingRecords||[])
     .filter(r=>r.name===studentName && r.class===cls)
     .sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""));
   const prevRec = prevRecords[0] || {};
 
-  // ── 5. Determine sensible upcomingTarget ──
+  // â”€â”€ 5. Determine sensible upcomingTarget â”€â”€
   // If average >= 11, keep target at 13. Below 10 drop to 10.
   const avg = totalDaysOfSabaq > 0 ? totalLines / totalDaysOfSabaq : 0;
   const upcomingTarget = avg >= 11 ? 13 : avg >= 8 ? 11 : 10;
@@ -5501,7 +5496,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
   const pagesFromLines = Math.floor(totalFullSides / 2);
   const autoToPage = fromPageNum > 0 ? fromPageNum + pagesFromLines : "";
 
-  // Missing data check — which dates in the range had no entries?
+  // Missing data check â€” which dates in the range had no entries?
   const coveredDates = new Set(dailies.map(e=>e.date));
   let missingDates = [];
   if(useRange){
@@ -5615,12 +5610,12 @@ function exportAllReports(records,dorRecords,calced){
   document.body.removeChild(a);URL.revokeObjectURL(url);
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // DATABASE SERVICE LAYER
 // All data operations go through these services.
 // Each service: writes to localStorage immediately,
 // then queues a Supabase sync in the background.
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function LineChart({data,color}){
   if(!data||data.length===0)return React.createElement("div",{style:{color:"#6b7280",fontSize:12,textAlign:"center",padding:20}},"No data yet");
@@ -5640,7 +5635,7 @@ function LineChart({data,color}){
 }
 
 
-// ── Error Boundary ─────────────────────────────────────────────
+// â”€â”€ Error Boundary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class ErrorBoundary extends React.Component{
   constructor(props){super(props);this.state={hasError:false,error:null};}
   static getDerivedStateFromError(error){return{hasError:true,error};}
