@@ -1502,7 +1502,7 @@ function App(){
   function scheduleSync(){
     if(isFirstLoad.current)return; // skip until loadCloud completes
     if(syncTimer.current)clearTimeout(syncTimer.current);
-    syncTimer.current=setTimeout(function(){syncNow().catch(function(){});},8000);
+    syncTimer.current=setTimeout(function(){syncNow().catch(function(){});},2000);
   }
   React.useEffect(()=>{lsSave(records);scheduleSync();},[records]);
   React.useEffect(()=>{lsSaveDor(dorRecords);scheduleSync();},[dorRecords]);
