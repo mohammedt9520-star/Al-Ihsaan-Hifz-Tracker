@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260628-120000 | Supabase Auth, SHA-256, no native dialogs, profileRecords fix | 23/23 tests -->
+<!-- hifz-20260628-130000 | Supabase Auth, SHA-256, no native dialogs, profileRecords fix | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -56,9 +56,9 @@ async function sbFetch(path,method,body){
   if(r.status===204)return [];
   try{return await r.json();}catch(e){throw new Error("Invalid JSON response from server");}
 }
-async function sbUpsert(table,rows){
+async function sbUpsert(table,rows,conflictCol="id"){
   if(!rows||rows.length===0)return;
-  for(let i=0;i<rows.length;i+=500){await sbFetch(table+"?on_conflict=id","POST",rows.slice(i,i+500));}
+  for(let i=0;i<rows.length;i+=500){await sbFetch(table+"?on_conflict="+conflictCol,"POST",rows.slice(i,i+500));}
 }
 async function sbFetchAll(q){
   // Max 100 pages (100k rows) — sufficient for 5+ years of register data
@@ -1976,7 +1976,7 @@ function App(){
       await Promise.all([sbUpsert("sabaq_records",records.map(sbMapSabaqOut)),sbUpsert("dor_records",dorRecords.map(sbMapDorOut)),sbUpsert("daily_sabaq",dailySabaqEntries.map(sbMapDailyOut)),sbUpsert("register_data",registerData.map(sbMapRegisterOut)),sbUpsert("year_plan",planRows),sbUpsert("app_settings",[
         {key:"adminPassword",value:getAdminPassword(),updated_at:new Date().toISOString()},
         {key:"htEmail",value:htEmail||"",updated_at:new Date().toISOString()}
-      ])]);
+      ],"key")]);
       // lsSave already called by useEffect on state change — no duplicate needed
       setSyncStatus("live");
     }catch(e){
