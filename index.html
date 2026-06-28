@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260618-013304 | Supabase Auth, SHA-256, no native dialogs, profileRecords fix | 23/23 tests -->
+<!-- hifz-20260628-120000 | Supabase Auth, SHA-256, no native dialogs, profileRecords fix | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -41,7 +41,7 @@ const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",do
 
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
-// â”€â”€ SUPABASE LAYER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── SUPABASE LAYER ─────────────────────────────────────────────
 async function sbFetch(path,method,body){
   const h={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+(await sbGetToken()),"Content-Type":"application/json"};
   if(method==="POST"||method==="PATCH")h["Prefer"]="resolution=merge-duplicates";
@@ -61,7 +61,7 @@ async function sbUpsert(table,rows){
   for(let i=0;i<rows.length;i+=500){await sbFetch(table+"?on_conflict=id","POST",rows.slice(i,i+500));}
 }
 async function sbFetchAll(q){
-  // Max 100 pages (100k rows) â€” sufficient for 5+ years of register data
+  // Max 100 pages (100k rows) — sufficient for 5+ years of register data
   let all=[],offset=0,maxPages=100;
   while(maxPages-->0){
     const sep=q.includes("?")?"&":"?";
@@ -136,7 +136,7 @@ const XLSX_TEMPLATE_B64="UEsDBBQAAAAIADsx0lxGx01IlwAAAM0AAAAQAAAAZG9jUHJvcHMvYXB
 // Replaces all alert() / confirm() / prompt() browser dialogs
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// â”€â”€ Global toast state (imperative API via module-level ref) â”€â”€
+// ── Global toast state (imperative API via module-level ref) ──
 var _toastQueue=[];
 var _toastSetState=null;
 
@@ -159,10 +159,10 @@ function Toast(){
   _toastSetState=setToasts;
   if(!toasts.length)return null;
   var STYLES={
-    success:{bg:"#16a34a",icon:"âœ…"},
+    success:{bg:"#16a34a",icon:"✅"},
     error:{bg:"#dc2626",icon:"âŒ"},
-    warning:{bg:"#d97706",icon:"âš ï¸"},
-    info:{bg:"#1a3a3a",icon:"â„¹ï¸"},
+    warning:{bg:"#d97706",icon:"⚠️"},
+    info:{bg:"#1a3a3a",icon:"ℹ️"},
   };
   return React.createElement("div",{
     style:{position:"fixed",bottom:"calc(env(safe-area-inset-bottom,0px) + 88px)",
@@ -185,7 +185,7 @@ function Toast(){
   );
 }
 
-// â”€â”€ ConfirmModal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── ConfirmModal ──────────────────────────────────────────────
 var _confirmResolve=null;
 var _confirmSetState=null;
 
@@ -235,7 +235,7 @@ function ConfirmModal(){
   );
 }
 
-// â”€â”€ InputModal (replaces prompt()) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── InputModal (replaces prompt()) ───────────────────────────
 var _inputResolve=null;
 var _inputSetState=null;
 
@@ -409,10 +409,10 @@ function DorHeatmapView({heatmap}){
 }
 
 
-function fmt(n,dec=2){if(!isFinite(n)||isNaN(n))return"â€”";return n.toFixed(dec);}
+function fmt(n,dec=2){if(!isFinite(n)||isNaN(n))return"—";return n.toFixed(dec);}
 function getAvgColor(avg){if(avg>=11)return GREEN;if(avg>=10)return ORANGE;return RED;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
-// â”€â”€ SHA-256 password hashing (crypto.subtle) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── SHA-256 password hashing (crypto.subtle) ──────────────────
 // Replaces btoa() encoding. Async; callers that need sync result
 // use the cached stored value only for comparison.
 async function _hashPwdAsync(p){
@@ -436,13 +436,13 @@ async function checkAdminPassword(p){
   const stored=getAdminPassword();
   if(!stored)return false;
   const h=await _hashPwdAsync(p);
-  // Hash-only â€” legacy plaintext fallback removed
+  // Hash-only — legacy plaintext fallback removed
   return stored===h;
 }
 // Migration: if stored value is old btoa format (not 64-char hex),
 // it will never match SHA-256 output â†’ user must reset password once.
-// This is intentional â€” the old format was not secure.
-// â”€â”€ LOCAL STORAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// This is intentional — the old format was not secure.
+// ── LOCAL STORAGE ──────────────────────────────────────────────
 function lsGet(){try{return(JSON.parse(localStorage.getItem("sabaqData")||"[]")).map(sanitiseRecord).filter(Boolean);}catch(e){return[];}}
 function lsSave(r){try{localStorage.setItem("sabaqData",JSON.stringify(r));}catch(e){console.warn("lsSave",e);}}
 function lsGetDor(){try{return(JSON.parse(localStorage.getItem("dorData")||"[]")).map(sanitiseDor).filter(Boolean);}catch(e){return[];}}
@@ -473,7 +473,7 @@ const defaultEntry={
   eveningPossibleDays:"",eveningAbsences:"",
 };
 
-// â”€â”€ DATA SANITISATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── DATA SANITISATION ─────────────────────────────────────────
 // Called after loading from localStorage or Supabase to fix any corrupt values
 function sanitiseRecord(r){
   if(!r||typeof r!=="object")return null;
@@ -487,7 +487,7 @@ function sanitiseRecord(r){
     totalFullSides: String(Math.max(0,Math.min(9999,parseFloat(r.totalFullSides)||0))),
     // plusLines cap 0-12
     plusLines:       String(Math.max(0,Math.min(12,parseInt(r.plusLines)||0))),
-    // V2/V3/V4: absences, paraDorMornings, totalDaysOfSabaq â€” all capped 0-31
+    // V2/V3/V4: absences, paraDorMornings, totalDaysOfSabaq — all capped 0-31
     absences:        String(Math.max(0,Math.min(31,parseInt(r.absences)||0))),
     paraDorMornings: String(Math.max(0,Math.min(31,parseInt(r.paraDorMornings)||0))),
     totalDaysOfSabaq:String(Math.max(0,Math.min(31,parseInt(r.totalDaysOfSabaq)||0))),
@@ -502,7 +502,7 @@ function sanitiseRecord(r){
     weakSabaqInstances: r.weakSabaqInstances||"N/A",
     weakDorInstances:   r.weakDorInstances||"N/A",
   };
-  // V8: cross-field â€” absences+paraDorMornings must not exceed totalDaysOfSabaq
+  // V8: cross-field — absences+paraDorMornings must not exceed totalDaysOfSabaq
   var _tds=parseInt(out.totalDaysOfSabaq)||0;
   var _abs=parseInt(out.absences)||0;
   var _pdm=parseInt(out.paraDorMornings)||0;
@@ -553,8 +553,8 @@ function sanitiseDaily(r){
     dorScrape: !!r.dorScrape,
   };
 }
-// â”€â”€ END SANITISATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// HTML escape â€” every user value written into HTML strings must use this
+// ── END SANITISATION ────────────────────────────────────────────
+// HTML escape — every user value written into HTML strings must use this
 function esc(v){
   if(v===null||v===undefined)return"";
   return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;")
@@ -579,19 +579,19 @@ function calcEntry(s){
   const totalAvgPages=I>0?I/13:0;
   let monthName="";
   if(s.dateFrom){try{const d=new Date(s.dateFrom);if(!isNaN(d.getTime()))monthName=d.toLocaleString("default",{month:"long",year:"numeric"});}catch(e){}}
-  // â”€â”€ Sabaq Champion fields (spec v2.4) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Sabaq Champion fields (spec v2.4) ──────────────────
   // Step 1: totalLines = I (already computed above)
   // Step 2: sabaqDays
   const sabaqDays = J; // = max(0, N - H - G)
   // Step 3: average lines per sabaq day
   const average = sabaqDays > 0 ? I / sabaqDays : 0;
-  // Step 4: trueAverage â€” absences hurt, Para Dor does NOT
+  // Step 4: trueAverage — absences hurt, Para Dor does NOT
   const trueAverage = (N - H) > 0 ? I / (N - H) : 0;
-  // Step 5: adjustedLines â€” credit Para Dor at student's own trueAverage
+  // Step 5: adjustedLines — credit Para Dor at student's own trueAverage
   const adjustedLines = I + (trueAverage * H);
   // Step 6: championTotalSides
   const championTotalSides = adjustedLines / 13;
-  // Step 7: championDailyAverage â€” divide by ALL days (Para Dor already credited)
+  // Step 7: championDailyAverage — divide by ALL days (Para Dor already credited)
   const championDailyAverage = N > 0 ? championTotalSides / N : 0;
   return{I,J,K,P,R,S:S_val,T,U,O,Q,G,H,N,totalAttended,attendancePct,totalAvgPages,monthName,
     sabaqDays,average,trueAverage,adjustedLines,championTotalSides,championDailyAverage};
@@ -661,7 +661,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
       (!entry.dateTo||d.date<=entry.dateTo);
   });
 
-  // â”€â”€ Dor Heatmap builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Dor Heatmap builder ──────────────────────────────────
   function hmDot(color){
     var c=color==="green"?"#22c55e":color==="orange"?"#f59e0b":color==="red"?"#ef4444":"#c0c0c0";
     return '<div style="width:10px;height:10px;border-radius:50%;background:'+c+';display:inline-block;margin:1px;flex-shrink:0;"></div>';
@@ -720,7 +720,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   const llCt=parseInt(entry.sabaqLessLinesCount)||0;
   const hasQuality=avgSpM>0||spScrCt>0||spKacCt>0||sp2Ct>0||wkSabCt>0||llCt>0;
 
-  // â”€â”€ SVG donut for attendance % â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── SVG donut for attendance % ──────────────────────────────
   function svgDonut(pct,color){
     const r=30,cx=36,cy=36,stroke=6;
     const circ=2*Math.PI*r;
@@ -729,7 +729,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   }
   function attPctColor(p){return p>=90?"#27ae60":p>=75?"#e67e22":"#e74c3c";}
 
-  // â”€â”€ CSS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── CSS ─────────────────────────────────────────────────────
   var h="";
   h+='<!DOCTYPE html><html><head><meta charset="UTF-8"/>';
   h+='<style>';
@@ -790,14 +790,14 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   // PAGE 1
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-  // â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Header ────────────────────────────────────────────────
   h+='<div class="rpt-header">';
   h+='<img src="'+window.LOGO_SRC+'" class="rpt-logo"/>';
   h+='<div><div class="rpt-title">Monthly Hifz Report</div>';
   h+='<div class="rpt-title-sub">Al-Ihsaan Academy</div></div>';
   h+='</div>';
 
-  // â”€â”€ Meta box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Meta box ─────────────────────────────────────────────
   h+='<div class="meta-box">';
   h+='<div class="meta-row">';
   h+='<div class="meta-lbl">Student\'s Name:</div>';
@@ -813,7 +813,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='</div>';
   h+='</div>';
 
-  // â”€â”€ 1. Attendance Overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 1. Attendance Overview ────────────────────────────────
   const amPossible=calc.N+calc.G;
   const amAttended=calc.N;
   const amAbsences=calc.G;
@@ -840,7 +840,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
     h+=attBlock("Attendance Overview",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue");
   }
 
-  // â”€â”€ 2. Sabaq Target Given â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 2. Sabaq Target Given ─────────────────────────────────
   h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Sabaq Target Given</div>';
   h+='<div class="sec-body sec-body-teal"><table class="dtbl"><tr>';
   h+='<td><div class="lbl">Total Sabaq Days</div><div class="val">'+calc.N+'</div></td>';
@@ -852,14 +852,14 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='<td colspan="2" style="text-align:center;"><div class="lbl">Total Lines Target</div><div class="val" style="font-size:20px;">'+calc.P+'</div></td>';
   h+='</tr></table></div></div>';
 
-  // â”€â”€ 3. Sabaq Completed This Month â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 3. Sabaq Completed This Month ────────────────────────
   h+='<div class="sec"><div class="sec-hdr sec-hdr-green"><span class="sec-num">3</span> Sabaq Completed This Month</div>';
   h+='<div class="sec-body sec-body-green"><table class="dtbl"><tr>';
   h+='<td><div class="lbl">Page Numbers</div><div class="val">'+esc(entry.fromPage)+' \u2013 '+esc(entry.toPage)+'</div></td>';
   h+='<td><div class="lbl">Total Lines</div><div class="val">'+fmt(calc.I,0)+'</div></td>';
   h+='<td><div class="lbl">Sabaq Para Total</div><div class="val">'+fmt(calc.totalAvgPages,2)+'</div></td>';
   h+='</tr><tr>';
-  // Average Lines Completed â€” legend goes BELOW inside this cell
+  // Average Lines Completed — legend goes BELOW inside this cell
   const mkC=avgCircleColor==="green"?"#27ae60":avgCircleColor==="orange"?"#e67e22":"#e74c3c";
   h+='<td colspan="2" style="text-align:center;">';
   h+='<div class="lbl">Average Lines Completed</div>';
@@ -879,7 +879,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='</td>';
   h+='</tr></table></div></div>';
 
-  // â”€â”€ 4. Target for Next Month â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 4. Target for Next Month ──────────────────────────────
   h+='<div class="sec"><div class="sec-hdr sec-hdr-purple"><span class="sec-num">4</span> Target for Next Month</div>';
   h+='<div class="sec-body"><table class="dtbl"><tr>';
   h+='<td style="text-align:left;"><div class="lbl">Sabaq Lines Per Day</div></td>';
@@ -894,7 +894,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   h+='<div class="pgbreak"></div>';
 
-  // â”€â”€ 5. Dor (Revision) Record â€” CSS Grid Heatmap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 5. Dor (Revision) Record — CSS Grid Heatmap ──────────
   h+='<div style="background:#fff;border-radius:10px;overflow:hidden;border:1.5px solid #dde;margin-bottom:14px;">';
   h+='<div style="background:#CF5B0C;display:flex;align-items:center;gap:10px;padding:9px 16px;">';
   h+='<div style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;">5</div>';
@@ -915,7 +915,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   }
   h+='</div>';
 
-  // â”€â”€ Daily Sabaq Analysis (if data exists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Daily Sabaq Analysis (if data exists) ─────────────────
   if(hasQuality){
     h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">6</span> Daily Sabaq Analysis</div>';
     h+='<div class="sec-body sec-body-teal"><table class="dtbl"><tr>';
@@ -938,7 +938,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   const bhvNum=hasQuality?7:6;
   const cmtNum=bhvNum+1;
 
-  // â”€â”€ Behaviour â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Behaviour ─────────────────────────────────────────────
   h+='<div class="sec"><div class="sec-hdr sec-hdr-blue"><span class="sec-num">'+bhvNum+'</span> Behaviour</div>';
   h+='<div class="sec-body"><table class="dtbl"><tr>';
   h+='<td style="padding:14px;text-align:center;">';
@@ -947,11 +947,11 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='<div style="font-size:11px;color:#888;margin-top:4px;">1 = Very Poor &nbsp;|&nbsp; 2 = Poor &nbsp;|&nbsp; 3 = Average &nbsp;|&nbsp; 4 = Good &nbsp;|&nbsp; 5 = Very Good</div>';
   h+='</td></tr></table></div></div>';
 
-  // â”€â”€ Teacher Comments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Teacher Comments ──────────────────────────────────────
   h+='<div class="sec"><div class="sec-hdr sec-hdr-navy"><span class="sec-num">'+cmtNum+'</span> Teacher\'s Comments</div>';
   h+='<div class="sec-body"><div class="comments">'+esc(entry.teacherComments||"No comments recorded.")+'</div></div></div>';
 
-  // â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Footer ────────────────────────────────────────────────
   h+='<div class="footer">';
   h+='<strong>Please review your report with your child and address any concerns.<br/>';
   h+='If the Madrasah is concerned regarding your child\u2019s performance, we will arrange a meeting soon <em>Insha\u2019Allah</em>.</strong><br/><br/>';
@@ -1354,7 +1354,7 @@ function calcDorChampions(dorRecords, records, dateFrom, dateTo){
 }
 
 function getAvailablePeriods(records){
-  // Group by dateFrom month+year only â€” ignore exact day and dateTo differences
+  // Group by dateFrom month+year only — ignore exact day and dateTo differences
   // This ensures all students from the same monthly import batch appear as one period
   const seen={};
   (Array.isArray(records)?records:[]).filter(r=>!r.isStudentProfile).forEach(r=>{
@@ -1381,7 +1381,7 @@ function recordMatchesPeriod(r,period){
 }
 
 
-// â”€â”€ Login Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Login Screen ──────────────────────────────────────────────
 // Rendered in place of the whole app when not signed in.
 // Staff sign in with the shared Supabase email/password account.
 
@@ -1548,7 +1548,7 @@ function App(){
     // Fall back to raw placeholder record only when no real records exist yet.
     const calcedForStudent=calced.filter(r=>r.name===profileName).sort((a,b)=>(a.dateFrom||"").localeCompare(b.dateFrom||""));
     if(calcedForStudent.length>0)return calcedForStudent;
-    // New student â€” no real entries yet; show placeholder so profile is visible
+    // New student — no real entries yet; show placeholder so profile is visible
     return records.filter(r=>r.name===profileName&&r.isStudentProfile).sort((a,b)=>(a.dateFrom||"").localeCompare(b.dateFrom||""));
   },[calced,records,profileName]);
   const htFiltered=React.useMemo(()=>latestPerStudent.filter(s=>{
@@ -1568,12 +1568,12 @@ function App(){
   }).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||"")),[calced,historyClass,historyStudent,historyDateFrom,historyDateTo]);
 
   function emailHeadteacher(filteredStudents){
-    const lines=filteredStudents.map(s=>"â€¢ "+s.name+" ("+s.class+") â€” avg: "+fmt(s.K,2)+", absences: "+(s.absences||0));
+    const lines=filteredStudents.map(s=>"• "+s.name+" ("+s.class+") — avg: "+fmt(s.K,2)+", absences: "+(s.absences||0));
     const body=encodeURIComponent("Hifz Student Summary\n\n"+lines.join("\n"));
-    const subj=encodeURIComponent("Al-Ihsaan Hifz â€” Student Report "+getTodayStr());
+    const subj=encodeURIComponent("Al-Ihsaan Hifz — Student Report "+getTodayStr());
     window.open("mailto:"+htEmail+"?subject="+subj+"&body="+body);
   }
-  // â”€â”€ XLSX import via SheetJS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── XLSX import via SheetJS ───────────────────────────────
   function importXLSX(e){
     const file=e.target&&e.target.files&&e.target.files[0];
     if(!file)return;
@@ -1584,7 +1584,7 @@ function App(){
     reader.onload=function(ev){
       try{
         if(typeof XLSX==="undefined"){
-          showToast("XLSX library not loaded yet â€” please wait a moment and try again.","warning");
+          showToast("XLSX library not loaded yet — please wait a moment and try again.","warning");
           return;
         }
         const data=new Uint8Array(ev.target.result);
@@ -1592,11 +1592,11 @@ function App(){
         const ws=wb.Sheets[wb.SheetNames[0]];
         const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
         if(rows.length<2){showToast("Workbook appears empty. Please check the file contains data rows.","error");return;}
-        // I1: Detect wrong column layout â€” a row is only a data row if col B (Name) has content.
+        // I1: Detect wrong column layout — a row is only a data row if col B (Name) has content.
         // Rows with only col A content (pre-numbered placeholders) are not data rows.
         var _dataRows=rows.slice(1).filter(function(r){return String(r[1]||"").trim();});
         if(_dataRows.length===0){
-          showToast("âš ï¸ No names found in column B. Use 'Download XLSX Template' to get the correct format.","warning");
+          showToast("⚠️ No names found in column B. Use 'Download XLSX Template' to get the correct format.","warning");
           return;
         }
 
@@ -1612,7 +1612,7 @@ function App(){
           if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)){const p=s.split("/");return p[2]+"-"+p[1].padStart(2,"0")+"-"+p[0].padStart(2,"0");}
           return s;
         }
-        // â”€â”€ Column map matches XLSX template exactly (0-based) â”€â”€â”€â”€â”€â”€
+        // ── Column map matches XLSX template exactly (0-based) ──────
         // A=0(#) B=1(Name) C=2(From Page) D=3(To Page) E=4(Total Full Sides)
         // F=5(Additional Lines) G=6(Absences) H=7(Para Dor Mornings)
         // I=8(Total Lines-CALC) J=9(Sabaq Days-CALC) K=10(Average-CALC)
@@ -1621,20 +1621,20 @@ function App(){
         // S=18(True Avg-CALC) T=19(Adjusted Lines-CALC)
         // U=20(Champion Total Sides-CALC) V=21(Champion Daily Avg-CALC)
         // W=22(Behaviour) X=23(Teacher Comments)
-        // Calculated columns (I,J,K,Q,S,T,U,V) are SKIPPED â€” app recalculates
+        // Calculated columns (I,J,K,Q,S,T,U,V) are SKIPPED — app recalculates
         const C={
           name:1, fromPage:2, toPage:3, totalFullSides:4, plusLines:5,
           absences:6, paraDorMornings:7,
-          // I(8)=Total Lines CALC â€” skip
-          // J(9)=Sabaq Days CALC â€” skip
-          // K(10)=Average CALC â€” skip
+          // I(8)=Total Lines CALC — skip
+          // J(9)=Sabaq Days CALC — skip
+          // K(10)=Average CALC — skip
           class:11, dateFrom:12, dateTo:13, totalDaysOfSabaq:14, targetGiven:15,
-          // Q(16)=Total Lines Target CALC â€” skip
+          // Q(16)=Total Lines Target CALC — skip
           upcomingTarget:17,
-          // S(18)=True Average CALC â€” skip
-          // T(19)=Adjusted Lines CALC â€” skip
-          // U(20)=Champion Total Sides CALC â€” skip
-          // V(21)=Champion Daily Avg CALC â€” skip
+          // S(18)=True Average CALC — skip
+          // T(19)=Adjusted Lines CALC — skip
+          // U(20)=Champion Total Sides CALC — skip
+          // V(21)=Champion Daily Avg CALC — skip
           behaviour:22, teacherComments:23
         };
         const newRecs=[];
@@ -1752,7 +1752,7 @@ function App(){
               var p=rec[f].split("/");rec[f]=p[2]+"-"+p[1].padStart(2,"0")+"-"+p[0].padStart(2,"0");
             }
           });
-          // Validate class â€” default to first valid class if unknown
+          // Validate class — default to first valid class if unknown
           if(rec.class&&!CLASSES.includes(rec.class)){
             rec.class=CLASSES[0];
           }
@@ -1809,7 +1809,7 @@ function App(){
     const emails=[record.parentEmail1,record.parentEmail2].filter(Boolean);
     if(emails.length>0){
       const monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString('default',{month:'long',year:'numeric'}):'';
-      const subject=encodeURIComponent('Al-Ihsaan Academy â€” Hifz Report: '+esc(record.name)+(monthStr?' ('+monthStr+')':''));
+      const subject=encodeURIComponent('Al-Ihsaan Academy — Hifz Report: '+esc(record.name)+(monthStr?' ('+monthStr+')':''));
       const body=encodeURIComponent(
         'Ø§Ù„Ø³Ù„Ø§Ù… Ø¹Ù„ÙŠÙƒÙ… ÙˆØ±Ø­Ù…Ø© Ø§Ù„Ù„Ù‡ ÙˆØ¨Ø±ÙƒØ§ØªÙ‡\n\n'+
         'Dear Parent,\n\n'+
@@ -1817,7 +1817,7 @@ function App(){
         (monthStr?'Month: '+monthStr+'\n\n':'')+
         'The Hifz report is now open in a new tab.\n\nTo attach as PDF: tap the browser menu â†’ Share â†’ Print â†’ Save as PDF, then attach to this email.\n\n'+
         'JazakAllahu Khayran\n'+
-        'Al-Ihsaan Academy â€” Hifz Department'
+        'Al-Ihsaan Academy — Hifz Department'
       );
       // Small delay so the report tab opens first
       setTimeout(()=>{ window.location.href='mailto:'+emails.join(',')+'?subject='+subject+'&body='+body; },400);
@@ -1825,14 +1825,14 @@ function App(){
   }
   async function saveEntry(){
     if(!form.name.trim()){showToast("Please enter a student name.","error");return;}
-    if(form.name.trim().length>80){showToast("Student name too long â€” max 80 characters.","error");return;}
+    if(form.name.trim().length>80){showToast("Student name too long — max 80 characters.","error");return;}
     if(!form.dateFrom){showToast("Please enter a Date From.","error");return;}
     if(!form.dateTo){showToast("Please enter a Date To.","error");return;}
     const _dfRe=/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/;
-    if(!_dfRe.test(form.dateFrom)){showToast("Invalid Date From â€” use YYYY-MM-DD format.","error");return;}
-    if(!_dfRe.test(form.dateTo)){showToast("Invalid Date To â€” use YYYY-MM-DD format.","error");return;}
+    if(!_dfRe.test(form.dateFrom)){showToast("Invalid Date From — use YYYY-MM-DD format.","error");return;}
+    if(!_dfRe.test(form.dateTo)){showToast("Invalid Date To — use YYYY-MM-DD format.","error");return;}
     if(form.dateFrom>form.dateTo){showToast("Date From must be before Date To.","error");return;}
-    // â”€â”€ Sanitise all numeric fields before saving â”€â”€
+    // ── Sanitise all numeric fields before saving ──
     function clampInt(v,min,max){var n=parseInt(v)||0;return String(Math.max(min,Math.min(max,n)));}
     function clampFloat(v,min,max){var n=parseFloat(v)||0;return String(Math.max(min,Math.min(max,n)));}
     let savedForm={...form,
@@ -1850,7 +1850,7 @@ function App(){
     // Page order validation
     const fp=parseInt(savedForm.fromPage)||0;
     const tp=parseInt(savedForm.toPage)||0;
-    if(fp>0&&tp===0){showToast("Please enter the To Page â€” required when From Page is set.","error");return;}
+    if(fp>0&&tp===0){showToast("Please enter the To Page — required when From Page is set.","error");return;}
     if(fp>0&&tp>0&&fp>tp){showToast("From Page ("+fp+") cannot be greater than To Page ("+tp+").","error");return;}
     // Cross-field validation
     const tds=parseInt(savedForm.totalDaysOfSabaq)||0;
@@ -1870,7 +1870,7 @@ function App(){
     }
     if(editingId){
       const exists=records.some(r=>r.id===editingId);
-      if(!exists){showToast("This record no longer exists â€” it may have been deleted on another device.","error");return;}
+      if(!exists){showToast("This record no longer exists — it may have been deleted on another device.","error");return;}
       setRecords(prev=>prev.map(r=>r.id===editingId?{...savedForm,id:editingId}:r));
     }
     else{
@@ -1884,7 +1884,7 @@ function App(){
   }
   async function clearAllData(){
     if(!await checkAdminPassword(clearPwd)){showToast("Incorrect password.","error");return;}
-    const _cdok=await showConfirm("This will permanently delete ALL records. This cannot be undone.","âš ï¸ Delete All Data");if(!_cdok)return;
+    const _cdok=await showConfirm("This will permanently delete ALL records. This cannot be undone.","⚠️ Delete All Data");if(!_cdok)return;
     // Cancel any pending sync to prevent re-upsert after delete
     if(syncTimer.current){clearTimeout(syncTimer.current);syncTimer.current=null;}
     pendingSync.current=false;
@@ -1929,7 +1929,7 @@ function App(){
       }
     }
   }
-  // â”€â”€ STUDENT MANAGEMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── STUDENT MANAGEMENT ─────────────────────────────────────────
   async function deleteStudent(name, cls){
     const _pds=await showConfirm("Permanently delete "+name+" and ALL their records?\n\nThis includes all monthly records, Dor entries, daily entries and register entries. This cannot be undone.","Delete Student");if(!_pds)return;
     setRecords(prev=>{const next=prev.filter(r=>!(r.name===name&&r.class===cls));lsSave(next);return next;});
@@ -1956,7 +1956,7 @@ function App(){
 
   function openEdit(id){
     const raw=records.find(r=>r.id===id);
-    if(!raw){showToast("Record not found â€” it may have been deleted.","error");return;}
+    if(!raw){showToast("Record not found — it may have been deleted.","error");return;}
     const r=sanitiseRecord(raw)||raw;
     setForm({...r});
     setEditingId(id);
@@ -1971,17 +1971,17 @@ function App(){
     setSyncStatus("saving");
     try{
       const planRows=yearPlan.map(p=>({id:p.id||(p.class+"_"+p.session),class:p.class,session:p.session,dates:p.dates,updated_at:new Date().toISOString()}));
-      // Sync all sabaq records (max ~30k over 40 years â€” manageable)
+      // Sync all sabaq records (max ~30k over 40 years — manageable)
       // For high-volume tables, only sync recent data to stay within Supabase limits
       await Promise.all([sbUpsert("sabaq_records",records.map(sbMapSabaqOut)),sbUpsert("dor_records",dorRecords.map(sbMapDorOut)),sbUpsert("daily_sabaq",dailySabaqEntries.map(sbMapDailyOut)),sbUpsert("register_data",registerData.map(sbMapRegisterOut)),sbUpsert("year_plan",planRows),sbUpsert("app_settings",[
         {key:"adminPassword",value:getAdminPassword(),updated_at:new Date().toISOString()},
         {key:"htEmail",value:htEmail||"",updated_at:new Date().toISOString()}
       ])]);
-      // lsSave already called by useEffect on state change â€” no duplicate needed
+      // lsSave already called by useEffect on state change — no duplicate needed
       setSyncStatus("live");
     }catch(e){
       console.error("syncNow",e);
-      setSyncStatus(prev=>prev==="live"?"offline":prev);
+      setSyncStatus("offline");
     }finally{
       isSyncing.current=false;
       if(pendingSync.current){pendingSync.current=false;scheduleSync();}
@@ -2017,21 +2017,21 @@ function App(){
 
   const NAV_ITEMS=[
     {icon:"\u2600\uFE0F",label:"Take Register (AM)",view:"takeRegister",session:"morning"},
-    {icon:"ðŸ“",label:"Morning Record Entry",view:"sabaqEntry"},
+    {icon:"📝",label:"Morning Record Entry",view:"sabaqEntry"},
     {icon:"\uD83C\uDF19",label:"Take Register (PM)",view:"takeRegister",session:"evening"},
-    {icon:"ðŸ“–",label:"Evening Record Entry",view:"dor"},
-    {icon:"ðŸ‘¤",label:"Profiles",view:"profile"},
-    {icon:"ðŸ“‹",label:"View Register (AM)",view:"viewRegister",session:"morning"},
+    {icon:"📖",label:"Evening Record Entry",view:"dor"},
+    {icon:"👤",label:"Profiles",view:"profile"},
+    {icon:"📋",label:"View Register (AM)",view:"viewRegister",session:"morning"},
     {icon:"\uD83C\uDF19",label:"View Register (PM)",view:"viewRegister",session:"evening"},
-    {icon:"âš ï¸",label:"Absences",view:"absences"},
-    {icon:"ðŸ«",label:"Classes",view:"classes"},
-    {icon:"ðŸ“…",label:"Year Planner",view:"yearPlanner"},
-    {icon:"âž•",label:"Add Monthly Entry",view:"addEntry"},
-    {icon:"ðŸ“„",label:"Reports",view:"reports"},
-    {icon:"ðŸ“…",label:"History",view:"history"},
-    {icon:"ðŸ†",label:"Sabaq Champ",view:"poster"},
-    {icon:"ðŸ”–",label:"Dor Champ",view:"dorchamp"},
-    {icon:"ðŸŽ“",label:"Head Admin Portal",view:"headteacher",danger:true},
+    {icon:"⚠️",label:"Absences",view:"absences"},
+    {icon:"🏫",label:"Classes",view:"classes"},
+    {icon:"📅",label:"Year Planner",view:"yearPlanner"},
+    {icon:"➕",label:"Add Monthly Entry",view:"addEntry"},
+    {icon:"📄",label:"Reports",view:"reports"},
+    {icon:"📅",label:"History",view:"history"},
+    {icon:"🏆",label:"Sabaq Champ",view:"poster"},
+    {icon:"🔖",label:"Dor Champ",view:"dorchamp"},
+    {icon:"🎓",label:"Head Admin Portal",view:"headteacher",danger:true},
   ];
 
   const showSidebar=view!=="menu";
@@ -2039,7 +2039,7 @@ function App(){
   return React.createElement(React.Fragment,null,
   React.createElement('div',{style:{minHeight:"100vh",background:DARK,display:"flex",flexDirection:"column",fontFamily:"'Inter','Segoe UI',Georgia,sans-serif"}},
 
-    /* â”€â”€ TOP BAR â”€â”€ */
+    /* ── TOP BAR ── */
     React.createElement('div',{style:{background:"linear-gradient(90deg,#1a3a3a 0%,#1f4040 100%)",height:58,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",flexShrink:0,position:"sticky",top:0,zIndex:200,boxShadow:"0 2px 12px rgba(0,0,0,0.2)"}},
       React.createElement('div',{style:{display:"flex",alignItems:"center",gap:12}},
         view!=="menu"&&React.createElement('button',{
@@ -2058,7 +2058,7 @@ function App(){
           React.createElement('span',{style:{display:"block",width:sidebarOpen?12:18,height:2,background:sidebarOpen?"#fff":SIDEBAR_TEXT,borderRadius:2,transition:"all 0.2s"}}),
           React.createElement('span',{style:{display:"block",width:18,height:2,background:sidebarOpen?"#fff":SIDEBAR_TEXT,borderRadius:2,transition:"all 0.2s"}})
         ),
-        view!=="menu"&&React.createElement('button',{onClick:()=>{setSidebarOpen(false);setView("menu");},style:{background:"transparent",border:"none",color:SIDEBAR_MUTED,cursor:"pointer",fontSize:18,lineHeight:1,padding:"4px 6px",borderRadius:4}},"âŒ‚"),
+        view!=="menu"&&React.createElement('button',{onClick:()=>{setSidebarOpen(false);setView("menu");},style:{background:"transparent",border:"none",color:SIDEBAR_MUTED,cursor:"pointer",fontSize:18,lineHeight:1,padding:"4px 6px",borderRadius:4}},"⌂"),
         React.createElement('div',{style:{borderLeft:showSidebar?"1px solid rgba(255,255,255,0.1)":"none",paddingLeft:showSidebar?12:0,marginLeft:showSidebar?4:0}},
           React.createElement('div',{style:{color:"#ffffff",fontSize:14,fontWeight:"700",letterSpacing:"0.3px",lineHeight:1.2}},"Al-Ihsaan Academy"),
           React.createElement('div',{style:{color:"rgba(255,255,255,0.45)",fontSize:10,letterSpacing:"1.8px",marginTop:1,textTransform:"uppercase"}},"Hifz Management")
@@ -2075,16 +2075,16 @@ function App(){
       )
     ),
 
-    /* â”€â”€ BODY â”€â”€ */
+    /* ── BODY ── */
     React.createElement('div',{style:{display:"flex",flex:1,minHeight:0,position:"relative"}},
 
-      /* â”€â”€ SIDEBAR OVERLAY (mobile/collapsed behaviour) â”€â”€ */
+      /* ── SIDEBAR OVERLAY (mobile/collapsed behaviour) ── */
       showSidebar&&sidebarOpen&&React.createElement('div',{
         onClick:()=>setSidebarOpen(false),
         style:{position:"fixed",inset:0,top:56,background:"rgba(0,0,0,0.35)",zIndex:150,backdropFilter:"blur(2px)"}
       }),
 
-      /* â”€â”€ SIDEBAR PANEL â”€â”€ */
+      /* ── SIDEBAR PANEL ── */
       showSidebar&&React.createElement('div',{style:{
         position:"fixed",left:0,top:56,bottom:0,
         width:240,
@@ -2131,13 +2131,13 @@ function App(){
         )
       ),
 
-      /* â”€â”€ MAIN CONTENT â”€â”€ */
+      /* ── MAIN CONTENT ── */
       React.createElement('div',{style:{flex:1,overflowY:"auto",minWidth:0,background:"#F7F8FA"}},
 
     /* HOME MENU */
       view==="menu"&&(React.createElement('div',{style:{minHeight:"100vh",background:"#F7F8FA",display:"flex",flexDirection:"column"}},
 
-  /* â”€â”€ HERO HEADER â”€â”€ */
+  /* ── HERO HEADER ── */
   React.createElement('div',{style:{
     background:"linear-gradient(160deg,#0f2027 0%,#1a3a3a 50%,#203a43 100%)",
     padding:"44px 24px 36px",display:"flex",flexDirection:"column",
@@ -2178,16 +2178,16 @@ function App(){
         boxShadow:syncStatus==="live"?"0 0 6px #22c55e44":syncStatus==="saving"||syncStatus==="loading"?"0 0 6px #f59e0b44":"0 0 6px #ef444444"
       }}),
       React.createElement('span',{style:{color:"rgba(255,255,255,0.65)",fontSize:12}},
-        syncStatus==="live"?"Connected â€” data up to date"
+        syncStatus==="live"?"Connected — data up to date"
         :syncStatus==="saving"?"Saving to cloud..."
         :syncStatus==="loading"?"Loading data..."
-        :syncStatus==="offline"?"Offline â€” working locally"
+        :syncStatus==="offline"?"Offline — working locally"
         :"Connecting..."
       )
     )
   ),
 
-  /* â”€â”€ MENU GROUPS â”€â”€ */
+  /* ── MENU GROUPS ── */
   React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"20px 16px 40px",background:"#F7F8FA"}},
 
     React.createElement(HomeSearch,{studentNames:studentNames,onSelect:n=>{setProfileName(n);setView("profile");}}),
@@ -2196,29 +2196,29 @@ function App(){
       const GROUPS=[
         {label:"Daily Entry",items:[
           {icon:"\u2600\uFE0F",label:"Take Register (AM)",sub:"Morning attendance",view:"takeRegister",session:"morning",accent:"#16a34a"},
-          {icon:"ðŸ“",label:"Morning Record Entry",sub:"Sabaq Para \u00b7 Sabaq",view:"sabaqEntry",accent:"#B8934A"},
+          {icon:"📝",label:"Morning Record Entry",sub:"Sabaq Para \u00b7 Sabaq",view:"sabaqEntry",accent:"#B8934A"},
           {icon:"\uD83C\uDF19",label:"Take Register (PM)",sub:"Evening attendance",view:"takeRegister",session:"evening",accent:"#0EA5E9"},
-          {icon:"ðŸ“–",label:"Evening Record Entry",sub:"Dor 1 \u00b7 Dor 2 \u00b7 Para Test",view:"dor",accent:"#4F46E5"},
+          {icon:"📖",label:"Evening Record Entry",sub:"Dor 1 \u00b7 Dor 2 \u00b7 Para Test",view:"dor",accent:"#4F46E5"},
         ]},
         {label:"Students & Registers",items:[
-          {icon:"ðŸ‘¤",label:"Profiles",sub:"Individual student profiles",view:"profile",accent:"#7C3AED"},
-          {icon:"ðŸ“‹",label:"View Register (AM)",sub:"Morning attendance history",view:"viewRegister",session:"morning",accent:"#0EA5E9"},
+          {icon:"👤",label:"Profiles",sub:"Individual student profiles",view:"profile",accent:"#7C3AED"},
+          {icon:"📋",label:"View Register (AM)",sub:"Morning attendance history",view:"viewRegister",session:"morning",accent:"#0EA5E9"},
           {icon:"\uD83C\uDF19",label:"View Register (PM)",sub:"Evening attendance history",view:"viewRegister",session:"evening",accent:"#4F46E5"},
-          {icon:"âš ï¸",label:"Absences",sub:"Review & resolve absences",view:"absences",accent:"#DC2626"},
-          {icon:"ðŸ«",label:"Classes",sub:"Manage students & classes",view:"classes",accent:"#2563EB"},
-          {icon:"ðŸ“…",label:"Year Planner",sub:"Manage class calendar",view:"yearPlanner",accent:"#059669"},
+          {icon:"⚠️",label:"Absences",sub:"Review & resolve absences",view:"absences",accent:"#DC2626"},
+          {icon:"🏫",label:"Classes",sub:"Manage students & classes",view:"classes",accent:"#2563EB"},
+          {icon:"📅",label:"Year Planner",sub:"Manage class calendar",view:"yearPlanner",accent:"#059669"},
         ]},
         {label:"Records & Reports",items:[
-          {icon:"âž•",label:"Add Monthly Entry",sub:"Collate & save monthly record",view:"addEntry",accent:"#B8934A"},
-          {icon:"ðŸ“„",label:"Reports",sub:"Email reports to parents",view:"reports",accent:"#059669"},
-          {icon:"ðŸ“…",label:"History",sub:"Browse all monthly records",view:"history",accent:"#6B7280"},
+          {icon:"➕",label:"Add Monthly Entry",sub:"Collate & save monthly record",view:"addEntry",accent:"#B8934A"},
+          {icon:"📄",label:"Reports",sub:"Email reports to parents",view:"reports",accent:"#059669"},
+          {icon:"📅",label:"History",sub:"Browse all monthly records",view:"history",accent:"#6B7280"},
         ]},
         {label:"Champions",items:[
-          {icon:"ðŸ†",label:"Sabaq Champion",sub:"Class sabaq rankings",view:"poster",accent:"#D97706"},
-          {icon:"ðŸ”–",label:"Dor Champion",sub:"Class Dor rankings",view:"dorchamp",accent:"#4F46E5"},
+          {icon:"🏆",label:"Sabaq Champion",sub:"Class sabaq rankings",view:"poster",accent:"#D97706"},
+          {icon:"🔖",label:"Dor Champion",sub:"Class Dor rankings",view:"dorchamp",accent:"#4F46E5"},
         ]},
         {label:"Admin",items:[
-          {icon:"ðŸŽ“",label:"Head Admin Portal",sub:"Data, exports & settings",view:"headteacher",accent:"#DC2626",danger:true},
+          {icon:"🎓",label:"Head Admin Portal",sub:"Data, exports & settings",view:"headteacher",accent:"#DC2626",danger:true},
         ]},
       ];
 
@@ -2277,7 +2277,7 @@ function App(){
             React.createElement('div',{style:{
               color:"rgba(0,0,0,0.2)",fontSize:16,fontWeight:"300",
               flexShrink:0
-            }},"â€º")
+            }},"›")
           ))
         )
       ));
@@ -2288,7 +2288,7 @@ function App(){
     /* BELOW TARGET */
       , view==="menu"&&belowTarget.length>0&&(
         React.createElement('div', { style: {background:RED+"11",border:"1px solid "+(RED)+"44",borderRadius:12,padding:"16px 20px",marginBottom:20},}
-          , React.createElement('div', { style: {color:RED,fontWeight:"bold",marginBottom:12,fontSize:15},}, "âš ï¸ Below Target (avg < 11)"     )
+          , React.createElement('div', { style: {color:RED,fontWeight:"bold",marginBottom:12,fontSize:15},}, "⚠️ Below Target (avg < 11)"     )
           , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"1fr 1fr",gap:6},}
             , belowTarget.map(s=>(
               React.createElement('div', { key: s.id, onClick: ()=>{setProfileName(s.name);setView("profile");}, style: {background:RED+"15",borderRadius:8,padding:"8px 12px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"},}
@@ -2324,12 +2324,12 @@ function App(){
     React.createElement('div', { style: {maxWidth:740,margin:"28px auto",padding:"0 20px 40px"},}
       , React.createElement('div', { style: {background:CARD,borderRadius:20,padding:28,border:"1px solid rgba(0,0,0,0.07)",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"},}
         , React.createElement('div', { style: {display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24,flexWrap:"wrap",gap:12},}
-          , React.createElement('h2', { style: {color:GOLD},}, editingId?"âœï¸ Edit Record":"âž• Add Monthly Entry")
+          , React.createElement('h2', { style: {color:GOLD},}, editingId?"✏️ Edit Record":"➕ Add Monthly Entry")
           , !editingId&&React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8}},
             React.createElement('button',{
               onClick:()=>setShowCollation(s=>!s),
               style:{background:showCollation?"#1e2d3d":"transparent",color:showCollation?"#fff":"#1e2d3d",border:"2px solid #1e2d3d",borderRadius:9,padding:"7px 14px",cursor:"pointer",fontWeight:"600",fontSize:12,display:"flex",alignItems:"center",gap:6}
-            },"ðŸ“Š Build Report from Daily Entries")
+            },"📊 Build Report from Daily Entries")
           )
           , React.createElement('div', { style: {display:"flex",gap:10,flexWrap:"wrap"},}
             , React.createElement('button', { onClick: ()=>{
@@ -2344,7 +2344,7 @@ function App(){
                 setTimeout(function(){URL.revokeObjectURL(url);},5000);
               }catch(ex){showToast("Download error: "+ex.message,"error");}
             }, style: {background:ACCENT,color:GOLD,border:"1px solid "+(GOLD)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:"bold"}},  "â¬‡ Download XLSX Template")
-            , React.createElement('label', { style: {background:ACCENT,color:TEXT,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13},}, "ðŸ“‚ Import XLSX"
+            , React.createElement('label', { style: {background:ACCENT,color:TEXT,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13},}, "📂 Import XLSX"
 
               , React.createElement('input', { type: "file", accept: ".xlsx,.xls,.csv", onChange: importXLSX, style: {display:"none"},})
             )
@@ -2358,14 +2358,14 @@ function App(){
               , addNewStudent&&React.createElement('span', { style: {color:DARK,fontSize:13,fontWeight:"bold"},}, "âœ“")
             )
             , React.createElement('span', { style: {color:GOLD,fontWeight:"bold",fontSize:14},}, "Add New Student"  )
-            , !addNewStudent&&React.createElement('span', { style: {color:MUTED,fontSize:12,marginLeft:4},}, "â€” or select existing student below"     )
+            , !addNewStudent&&React.createElement('span', { style: {color:MUTED,fontSize:12,marginLeft:4},}, "— or select existing student below"     )
           )
         )
 
         , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:16},}
           /* COLLATION PANEL */
           , showCollation&&!editingId&&React.createElement('div',{style:{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:12,padding:20,marginBottom:20}},
-            React.createElement('div',{style:{color:"#1D4ED8",fontWeight:"700",fontSize:14,marginBottom:12}},"ðŸ“Š Auto-fill from Daily Sabaq Entries"),
+            React.createElement('div',{style:{color:"#1D4ED8",fontWeight:"700",fontSize:14,marginBottom:12}},"📊 Auto-fill from Daily Sabaq Entries"),
             React.createElement('div',{style:{background:"#dbeafe",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#1e40af"}},
               "Select a student and month to preview collated data from daily sabaq entries. Then tap Apply to pre-fill the form."
             ),
@@ -2379,7 +2379,7 @@ function App(){
               React.createElement('div',null,
                 React.createElement('label',{style:{color:"#374151",fontSize:11,fontWeight:"600",display:"block",marginBottom:5}},"STUDENT"),
                 React.createElement('select',{value:form.name,onChange:e=>setForm(f=>({...f,name:e.target.value})),style:{border:"1px solid #BFDBFE",borderRadius:8,padding:"7px 10px",fontSize:13,width:"100%",outline:"none",background:"#fff"}},
-                  React.createElement('option',{value:""},"â€” Select â€”"),
+                  React.createElement('option',{value:""},"— Select —"),
                   [...new Set((dailySabaqEntries||[]).filter(e=>e.class===form.class&&e.date).map(e=>e.studentName))].sort().map(n=>React.createElement('option',{key:n,value:n},n))
                 )
               )
@@ -2400,7 +2400,7 @@ function App(){
                   }
                 },
                 style:{border:"1px solid #BFDBFE",borderRadius:8,padding:"7px 10px",fontSize:13,width:"100%",outline:"none",background:"#fff",marginBottom:10}},
-                React.createElement('option',{value:""},"â€” Pick a month to auto-fill dates â€”"),
+                React.createElement('option',{value:""},"— Pick a month to auto-fill dates —"),
                 getCollationMonths(form.name,form.class,dailySabaqEntries).map(m=>{
                   const parts=m.split("-");
                   const lbl=new Date(parseInt(parts[0]),parseInt(parts[1])-1,1).toLocaleString("default",{month:"long",year:"numeric"});
@@ -2427,7 +2427,7 @@ function App(){
               const preview=collateMonthlyRecord(form.name,form.class,collationMonth||"",dailySabaqEntries,registerData,records,collationDateFrom,collationDateTo);
               if(!preview){
                 return React.createElement('div',{style:{padding:"10px 14px",borderRadius:8,background:"#FEF3C7",border:"1px solid #FCD34D",color:"#92400E",fontSize:13}},
-                  "âš ï¸ No daily entries found for "+collationDateFrom+" to "+collationDateTo+". Please ensure entries have been saved for this period.");
+                  "⚠️ No daily entries found for "+collationDateFrom+" to "+collationDateTo+". Please ensure entries have been saved for this period.");
               }
               return React.createElement('div',null,
                 React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:14}},
@@ -2454,7 +2454,7 @@ function App(){
                   &&React.createElement('div',{
                     style:{padding:"8px 12px",borderRadius:8,marginBottom:8,
                       background:"#FEF3C7",border:"1px solid #FCD34D",color:"#92400E",fontSize:12}
-                  },"âš ï¸ No daily entries for: "+preview._missingDates.join(", ")),
+                  },"⚠️ No daily entries for: "+preview._missingDates.join(", ")),
                 React.createElement('div',{style:{display:"flex",gap:8}},
                   React.createElement('button',{
                     onClick:function(){
@@ -2489,7 +2489,7 @@ function App(){
                       setCollationDateTo("");
                     },
                     style:{background:"#1D4ED8",color:"#fff",border:"none",borderRadius:9,padding:"10px 20px",cursor:"pointer",fontWeight:"700",fontSize:13,flex:1}
-                  },"âœ… Apply to Form â€” Teacher fills comments & toPage")
+                  },"✅ Apply to Form — Teacher fills comments & toPage")
                 )
               );
             })()
@@ -2517,7 +2517,7 @@ function App(){
                   fc("class",latest.class);
                 }
               }, style: inputStyle,}
-                , React.createElement('option', { value: "",}, "â€” Select existing student â€”"    )
+                , React.createElement('option', { value: "",}, "— Select existing student —"    )
                 , studentNames.map(n=>React.createElement('option', { key: n, value: n,}, n))
               )
             )
@@ -2575,7 +2575,7 @@ function App(){
 
           , React.createElement(FormRow, { label: "Behaviour (1-5)" ,}
             , React.createElement('select', { value: form.behaviour, onChange: e=>fc("behaviour",parseInt(e.target.value)), style: {...inputStyle,color:BEHAVIOUR_COLORS[form.behaviour]},}
-              , [1,2,3,4,5].map(n=>React.createElement('option', { key: n, value: n,}, n, " â€” "  , BEHAVIOUR_LABELS[n]))
+              , [1,2,3,4,5].map(n=>React.createElement('option', { key: n, value: n,}, n, " — "  , BEHAVIOUR_LABELS[n]))
             )
           )
           , React.createElement('div', null)
@@ -2607,7 +2607,7 @@ function App(){
         /* LIVE PREVIEW */
         , form.totalFullSides!==""&&(
           React.createElement('div', { style: {background:ACCENT+"44",borderRadius:8,padding:16,marginTop:16,border:"1px solid "+(GOLD)+"33"},}
-            , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:12,fontSize:14},}, "ðŸ“Š Live Preview"  )
+            , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:12,fontSize:14},}, "📊 Live Preview"  )
             , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8},}
               , [["Total Lines",fmt(previewCalc.I,0)],["Sabaq Days",fmt(previewCalc.J,0)],["Average",fmt(previewCalc.K,2)],["True Avg",fmt(previewCalc.R,2)],["Champ Avg",fmt(previewCalc.championDailyAverage,3)],["Attendance",fmt(previewCalc.attendancePct,2)+"%"]].map(([l,v])=>(
                 React.createElement('div', { key: l, style: {background:DARK+"88",borderRadius:6,padding:"8px 10px"},}
@@ -2620,7 +2620,7 @@ function App(){
         )
 
         , React.createElement('div', { style: {display:"flex",gap:12,marginTop:24},}
-          , React.createElement('button', { onClick: saveEntry, style: {flex:1,background:"linear-gradient(135deg,#C8A55A 0%,#B8934A 100%)",color:"#fff",border:"none",borderRadius:12,padding:"14px",cursor:"pointer",fontWeight:"700",fontSize:15,boxShadow:"0 2px 8px rgba(184,147,74,0.35)"},}, editingId?"ðŸ’¾ Save Changes":"âœ… Save Entry")
+          , React.createElement('button', { onClick: saveEntry, style: {flex:1,background:"linear-gradient(135deg,#C8A55A 0%,#B8934A 100%)",color:"#fff",border:"none",borderRadius:12,padding:"14px",cursor:"pointer",fontWeight:"700",fontSize:15,boxShadow:"0 2px 8px rgba(184,147,74,0.35)"},}, editingId?"ðŸ’¾ Save Changes":"✅ Save Entry")
           , React.createElement('button', { onClick: ()=>{setView("menu");setEditingId(null);setForm(defaultEntry);setAddNewStudent(false);}, style: {flex:1,background:"transparent",color:TEXT,border:"1px solid "+(MUTED),borderRadius:8,padding:"13px",cursor:"pointer",fontSize:15},}, "Cancel")
         )
       )
@@ -2670,7 +2670,7 @@ function App(){
         const existingClasses=[...new Set(records.map(r=>r.class).filter(Boolean))];
         void classListVer;const allClasses=[...new Set([...CLASSES,...existingClasses])].sort();
 
-        /* â”€â”€ ADD STUDENT FORM â”€â”€ */
+        /* ── ADD STUDENT FORM ── */
         if(classesView==="addStudent") return(
           React.createElement('div', null
             , React.createElement('div', { style: {display:"flex",alignItems:"center",gap:12,marginBottom:24},}
@@ -2678,7 +2678,7 @@ function App(){
               , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "Add New Student" )
             )
             , React.createElement('div', { style: {background:CARD,borderRadius:14,border:"1px solid "+BORDER,padding:24,maxWidth:520,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}},
-              newStudentMsg&&React.createElement('div',{style:{padding:"10px 14px",borderRadius:8,marginBottom:16,background:String(newStudentMsg).startsWith("âœ…")?"rgba(22,163,74,0.08)":"rgba(220,38,38,0.08)",color:String(newStudentMsg).startsWith("âœ…")?GREEN:RED,fontSize:13,fontWeight:"500"}},newStudentMsg),
+              newStudentMsg&&React.createElement('div',{style:{padding:"10px 14px",borderRadius:8,marginBottom:16,background:String(newStudentMsg).startsWith("✅")?"rgba(22,163,74,0.08)":"rgba(220,38,38,0.08)",color:String(newStudentMsg).startsWith("✅")?GREEN:RED,fontSize:13,fontWeight:"500"}},newStudentMsg),
               React.createElement(FormRow,{label:"Full Name"},
                 React.createElement('input',{type:"text",value:newStudent.name,onChange:e=>setNewStudent(s=>({...s,name:e.target.value})),placeholder:"Student's full name",style:inputStyle})
               ),
@@ -2726,9 +2726,9 @@ function App(){
                     isStudentProfile:true,
                   };
                   setRecords(prev=>{const next=[...prev,studentRecord];lsSave(next);return next;});
-                  setNewStudentMsg("âœ… "+newStudent.name.trim()+" added! Syncing...");
+                  setNewStudentMsg("✅ "+newStudent.name.trim()+" added! Syncing...");
                   // Sync immediately after adding student
-                  syncNow().then(()=>setNewStudentMsg("âœ… "+newStudent.name.trim()+" added & synced!")).catch(()=>{});
+                  syncNow().then(()=>setNewStudentMsg("✅ "+newStudent.name.trim()+" added & synced!")).catch(()=>{});
                   setNewStudent({name:"",class:newStudent.class,startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});
                   setTimeout(()=>{setClassesView("list");setNewStudentMsg("");},2000);
                 },
@@ -2738,10 +2738,10 @@ function App(){
           )
         );
 
-        /* â”€â”€ CLASS LIST VIEW â”€â”€ */
+        /* ── CLASS LIST VIEW ── */
         return React.createElement('div', null
           , React.createElement('div', { style: {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24},}
-            , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "ðŸ« Classes" )
+            , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "🏫 Classes" )
             , React.createElement('button', {
                 onClick:()=>setClassesView("addStudent"),
                 style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"10px 20px",cursor:"pointer",fontWeight:"600",fontSize:13}
@@ -2852,7 +2852,7 @@ function App(){
     React.createElement('div', { style: {padding:24},}
       , React.createElement('div', { style: {background:CARD,borderRadius:10,padding:18,marginBottom:20,border:"1px solid "+(GOLD)+"33"},}
         , React.createElement('div', { style: {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14},}
-          , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "ðŸ‘¤ Student Profile" )
+          , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "👤 Student Profile" )
           , profileName&&React.createElement('button', {
               onClick:()=>{
                 if(!editingProfile){
@@ -2873,9 +2873,9 @@ function App(){
               },
               style:{background:editingProfile?GOLD:"transparent",color:editingProfile?"#fff":MUTED,border:"1px solid "+(editingProfile?GOLD:BORDER),borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:4}
             },
-            editingProfile?"âœ“ Done":"âœï¸"
+            editingProfile?"âœ“ Done":"✏️"
           ),
-          // Move Class â€” only visible when a student is selected and not editing
+          // Move Class — only visible when a student is selected and not editing
           !editingProfile&&profileName&&React.createElement('button',{
             onClick:async ()=>{
               const curRec=records.filter(r=>r.name===profileName).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
@@ -2899,7 +2899,7 @@ function App(){
           , CLASSES.map(c=>React.createElement('button', {key:c,onClick:()=>{setProfileClass(c);setProfileName("");},style:{background:profileClass===c?GOLD:DARK,color:profileClass===c?DARK:TEXT,border:"1px solid "+(GOLD)+"44",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontWeight:"bold",fontSize:13}},c))
         )
         , React.createElement('select', { value: profileName, onChange: e=>setProfileName(e.target.value), style: {...inputStyle,maxWidth:320},}
-          , React.createElement('option', { value: "",}, "â€” Select student â€”"  )
+          , React.createElement('option', { value: "",}, "— Select student —"  )
           , studentNames.filter(n=>calced.some(r=>r.name===n&&r.class===profileClass)||records.some(r=>r.name===n&&r.class===profileClass)).map(n=>React.createElement('option', { key: n, value: n,}, n))
         )
       )
@@ -2924,7 +2924,7 @@ function App(){
               , React.createElement(StatBox, { label: "Attendance", value: fmt(pl.attendancePct,2)+"%",})
               , React.createElement(StatBox, { label: "Total Months" , value: profileRecords.length,})
               , React.createElement(StatBox, { label: "Class", value: pl.class, color: TEXT,})
-              , React.createElement(StatBox, { label: "Behaviour", value: (pl.behaviour||5)+"/5 â€” "+(BEHAVIOUR_LABELS[pl.behaviour]||"Good"), color: BEHAVIOUR_COLORS[pl.behaviour]||GREEN,})
+              , React.createElement(StatBox, { label: "Behaviour", value: (pl.behaviour||5)+"/5 — "+(BEHAVIOUR_LABELS[pl.behaviour]||"Good"), color: BEHAVIOUR_COLORS[pl.behaviour]||GREEN,})
               , React.createElement(StatBox, { label: "Best Average" , value: fmt(bestK,2), color: GREEN,})
             )
 
@@ -3011,7 +3011,7 @@ function App(){
                         background:GOLD+"18",color:GOLD,
                         borderRadius:20,padding:"3px 12px",
                         fontSize:12,fontWeight:"600"
-                      }},pl.class||"â€”")
+                      }},pl.class||"—")
                 )
               ),
 
@@ -3100,7 +3100,7 @@ function App(){
                     <div style="font-size:13px;color:#666;">${esc(pl.class)}</div>
                     </div>
                     <div style="margin-bottom:24px;">
-                    <div style="font-size:15px;font-weight:bold;color:#1a3a6b;margin-bottom:16px;letter-spacing:1px;">AVERAGE LINES PER DAY â€” PROGRESS OVER TIME</div>
+                    <div style="font-size:15px;font-weight:bold;color:#1a3a6b;margin-bottom:16px;letter-spacing:1px;">AVERAGE LINES PER DAY — PROGRESS OVER TIME</div>
                     <div style="background:#f8f8f8;border:1px solid #ddd;border-radius:8px;padding:16px;">
                     <svg viewBox="0 0 500 200" style="width:100%;display:block;">
                     <line x1="40" y1="160" x2="460" y2="160" stroke="#ccc" stroke-width="1"/>
@@ -3116,7 +3116,7 @@ function App(){
                     <div style="text-align:center;color:#aaa;font-size:11px;margin-top:32px;border-top:1px solid #eee;padding-top:16px;">Generated by Al-Ihsaan Academy Sabaq Tracker</div>
                     </div></body></html>`;
                     const w=window.open("","_blank");if(w){w.document.write(chartHTML);w.document.close();setTimeout(()=>w.print(),500);}
-                  }, style: {background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "ðŸ“„ Print Progress Report"  )
+                  }, style: {background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📄 Print Progress Report"  )
               )
               , React.createElement('div', { className: "profile-chart"},
                 React.createElement(LineChart, { data: chartData, color: GOLD,})
@@ -3126,7 +3126,7 @@ function App(){
             /* DOR HEATMAP */
             , hasHeatmap&&(
               React.createElement('div', { style: {background:CARD,borderRadius:12,padding:20,marginBottom:20,border:"1px solid "+(GOLD)+"33"},}
-                , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:12},}, "ðŸ“– Dor Heatmap â€” "    , pl.monthName)
+                , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:12},}, "📖 Dor Heatmap — "    , pl.monthName)
                 , React.createElement(DorHeatmapView, { heatmap: heatmap,})
                 , (heatTotals.completeJuz>0||heatTotals.remainingQ>0)&&(
                   React.createElement('div', { style: {marginTop:12,color:TEXT,fontWeight:"bold",fontSize:14},}, "Total Dor: "
@@ -3138,7 +3138,7 @@ function App(){
 
             /* ALL RECORDS */
             , React.createElement('div', { style: {background:CARD,borderRadius:14,padding:20,border:"1px solid "+GOLD+"22",boxShadow:"0 4px 16px #00000044"},}
-              , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:16},}, "ðŸ“‹ All Monthly Records"   )
+              , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:16},}, "📋 All Monthly Records"   )
               , React.createElement('div', { style: {display:"grid",gap:10},}
                 , profileRecords.map(r=>(
                   React.createElement('div', { key: r.id, style: {background:DARK,borderRadius:8,padding:"12px 16px",border:"1px solid "+(GOLD)+"22",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"},}
@@ -3171,7 +3171,7 @@ function App(){
     , view==="reports"&&(
     React.createElement('div', { style: {padding:24},}
       , React.createElement('div', { style: {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12},}
-        , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:16},}, "ðŸ“„ Send Reports"  )
+        , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:16},}, "📄 Send Reports"  )
         , selectedStudents.length>0&&React.createElement('button', { onClick: sendSelected, style: {background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:"bold",fontSize:13},}, "ðŸ“§ Send "  , selectedStudents.length, " Selected" )
       )
       , [...CLASSES].map(cls=>{
@@ -3195,7 +3195,7 @@ function App(){
                       , React.createElement('div', null, React.createElement('div', { style: {color:isSel?GOLD:TEXT,fontWeight:"bold"},}, s.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, s.monthName))
                     )
                     , React.createElement('div', { style: {fontSize:12,color:MUTED,marginBottom:12},}
-                      , React.createElement('div', null, "ðŸ“Š Avg: "  , React.createElement('span', { style: {color:getAvgColor(s.K),fontWeight:"bold"},}, fmt(s.K,2)))
+                      , React.createElement('div', null, "📊 Avg: "  , React.createElement('span', { style: {color:getAvgColor(s.K),fontWeight:"bold"},}, fmt(s.K,2)))
                       , (s.parentEmail1||s.parentEmail2)&&React.createElement('div', { style: {marginTop:4},}, "ðŸ“§ " , [s.parentEmail1,s.parentEmail2].filter(Boolean).join(", "))
                     )
                     , React.createElement('button', { onClick: ()=>sendReport(s), style: {width:"100%",background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"9px",cursor:"pointer",fontWeight:"bold",fontSize:13},}, "ðŸ“§ Email Report"  )
@@ -3215,7 +3215,7 @@ function App(){
     React.createElement('div', { style: {padding:24},}
       , React.createElement('div', { style: {background:CARD,borderRadius:12,padding:20,marginBottom:20,border:"2px solid "+(RED)+"44"},}
         , React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
-          React.createElement('div',{style:{color:RED,fontWeight:"bold",fontSize:16}},"ðŸŽ“ Head Admin Portal"),
+          React.createElement('div',{style:{color:RED,fontWeight:"bold",fontSize:16}},"🎓 Head Admin Portal"),
           React.createElement('button',{
             onClick:async function(){
               const _ok=await showConfirm("Sign out of Al-Ihsaan Hifz Tracker?","Sign Out");
@@ -3248,7 +3248,7 @@ function App(){
               , React.createElement('div', { style: {flex:1},}, React.createElement('div', { style: {color:TEXT,fontWeight:"bold",fontSize:15,cursor:"pointer",textDecoration:"underline"}, onClick: ()=>{setProfileName(r.name);setView("profile");},}, r.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, r.class, " Â· "  , r.monthName))
               , React.createElement('div', { style: {display:"flex",gap:16,fontSize:13,flexWrap:"wrap"},}
                 , r.K<11&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:RED,fontWeight:"bold"},}, fmt(r.K,2)))
-                , parseInt(r.behaviour)<3&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:ORANGE,fontWeight:"bold"},}, r.behaviour, "/5 â€” "  , BEHAVIOUR_LABELS[r.behaviour]))
+                , parseInt(r.behaviour)<3&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:ORANGE,fontWeight:"bold"},}, r.behaviour, "/5 — "  , BEHAVIOUR_LABELS[r.behaviour]))
               )
             )
           ))
@@ -3256,7 +3256,7 @@ function App(){
       )
     /* CLEAR ALL DATA */
       , React.createElement('div', { style: {marginTop:40,borderTop:"2px solid "+(RED)+"44",paddingTop:24},}
-        , React.createElement('div', { style: {color:RED,fontWeight:"bold",fontSize:14,marginBottom:12},}, "âš ï¸ Danger Zone"  )
+        , React.createElement('div', { style: {color:RED,fontWeight:"bold",fontSize:14,marginBottom:12},}, "⚠️ Danger Zone"  )
         , !showClearModal?(
           React.createElement('button', { onClick: ()=>setShowClearModal(true), style: {background:"transparent",color:RED,border:"1px solid "+(RED),borderRadius:8,padding:"10px 20px",cursor:"pointer",fontSize:13},}, "ðŸ—‘ï¸ Clear All Data"
 
@@ -3284,7 +3284,7 @@ function App(){
         )
       )
 
-            /* â”€â”€ DATA EXPORT â”€â”€ */
+            /* ── DATA EXPORT ── */
       , React.createElement("div",{style:{background:CARD,borderRadius:14,border:"1px solid "+BORDER,padding:24,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}},
         React.createElement("div",{style:{color:TEXT,fontWeight:"600",fontSize:15,marginBottom:4}},"Download Data"),
         React.createElement("div",{style:{color:MUTED,fontSize:12,marginBottom:14}},"Export all data as CSV files. Opens in Excel or Google Sheets."),
@@ -3297,13 +3297,13 @@ function App(){
         React.createElement("button",{onClick:function(){exportAllReports(records,dorRecords,Array.isArray(calced)?calced:[]);},style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"11px 20px",cursor:"pointer",fontWeight:"600",fontSize:13,width:"100%"}},"Export All Student Reports")
       )
 
-/* â”€â”€ CHANGE PASSWORD â”€â”€ */
+/* ── CHANGE PASSWORD ── */
       , React.createElement('div', { style: {background:CARD,borderRadius:14,border:"1px solid "+BORDER,padding:24,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"},}
-        , React.createElement('div', { style: {color:TEXT,fontWeight:"600",fontSize:15,marginBottom:4},}, "ðŸ”‘ "+(getAdminPassword()?"Change Admin Password":"Set Admin Password â€” First Time Setup") )
+        , React.createElement('div', { style: {color:TEXT,fontWeight:"600",fontSize:15,marginBottom:4},}, "ðŸ”‘ "+(getAdminPassword()?"Change Admin Password":"Set Admin Password — First Time Setup") )
         , React.createElement('div', { style: {color:MUTED,fontSize:12,marginBottom:getAdminPassword()?20:0},}, getAdminPassword()?"Password is stored securely (SHA-256).":"")
         , !getAdminPassword()&&React.createElement('div',{style:{background:"#FEF3C7",border:"1px solid #FCD34D",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#92400E",fontSize:13,fontWeight:"500"}},
-          "âš ï¸ No admin password is set. Set one now to secure the Danger Zone, register force-open, and Clear All Data. You can enter anything as Current Password on first setup.")
-        , htPwdMsg&&React.createElement('div', { style: {padding:"10px 14px",borderRadius:8,marginBottom:16,background:String(htPwdMsg).startsWith("âœ…")?"rgba(22,163,74,0.08)":"rgba(220,38,38,0.08)",color:String(htPwdMsg).startsWith("âœ…")?GREEN:RED,fontSize:13,fontWeight:"500"},}, htPwdMsg)
+          "⚠️ No admin password is set. Set one now to secure the Danger Zone, register force-open, and Clear All Data. You can enter anything as Current Password on first setup.")
+        , htPwdMsg&&React.createElement('div', { style: {padding:"10px 14px",borderRadius:8,marginBottom:16,background:String(htPwdMsg).startsWith("✅")?"rgba(22,163,74,0.08)":"rgba(220,38,38,0.08)",color:String(htPwdMsg).startsWith("✅")?GREEN:RED,fontSize:13,fontWeight:"500"},}, htPwdMsg)
         , React.createElement(FormRow, { label: getAdminPassword()?"Current Password":"Current Password (skip if first setup)",}
           , React.createElement('input', { type:"password", value:htOldPwd, onChange:e=>setHtOldPwd(e.target.value), placeholder:getAdminPassword()?"Enter current password":"Leave blank (first setup)", style:inputStyle,})
         )
@@ -3317,14 +3317,14 @@ function App(){
         , React.createElement('button', {
             onClick:async function(){
               if(!htOldPwd||!htNewPwd||!htConfirmPwd){setHtPwdMsg("âŒ Please fill all fields.");return;}
-              // No password set yet â€” allow any current password if first run
+              // No password set yet — allow any current password if first run
               const isFirstRun=!getAdminPassword();
               if(!isFirstRun&&!await checkAdminPassword(htOldPwd)){setHtPwdMsg("âŒ Current password is incorrect.");return;}
               if(htNewPwd.length<4){setHtPwdMsg("âŒ New password must be at least 4 characters.");return;}
               if(htNewPwd!==htConfirmPwd){setHtPwdMsg("âŒ New passwords do not match.");return;}
               await setAdminPassword(htNewPwd);
               setHtOldPwd("");setHtNewPwd("");setHtConfirmPwd("");
-              setHtPwdMsg("âœ… Password "+(isFirstRun?"set":"updated")+" successfully.");
+              setHtPwdMsg("✅ Password "+(isFirstRun?"set":"updated")+" successfully.");
               setTimeout(()=>setHtPwdMsg(""),3000);
             },
             style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"11px 24px",cursor:"pointer",fontWeight:"600",fontSize:14,marginTop:4}
@@ -3496,9 +3496,9 @@ function App(){
   );
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────
 // SABAQ ENTRY PAGE - Daily class-wide sabaq entry
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────
 function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecords,dailySabaqEntries,setDailySabaqEntries,selectedClass,selectedDate,syncNow,yearPlan,registerData}){
   const today=getTodayStr();
 
@@ -3550,7 +3550,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   
   const [status,setStatus] = React.useState("");
 
-  // Queue mode â€” one student at a time
+  // Queue mode — one student at a time
   const [queueIdx,setQueueIdx] = React.useState(null); // null = list view, number = queue mode
 
   React.useEffect(()=>{
@@ -3652,7 +3652,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
 
   const students=getClassStudents(cls);
 
-  // â”€â”€ Shared select style (large tap target) â”€â”€
+  // ── Shared select style (large tap target) ──
   const selS={background:"#F8F9FA",border:"1px solid #E5E7EB",borderRadius:8,
               padding:"10px 8px",fontSize:16,outline:"none",width:"100%",
               WebkitAppearance:"none",textAlign:"center",cursor:"pointer"};
@@ -3660,7 +3660,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   letterSpacing:"0.8px",marginBottom:6,display:"block"};
 
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // QUEUE CARD â€” single student popup view
+  // QUEUE CARD — single student popup view
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   function QueueCard({rows,updRow,tab,onPrev,onNext,onDone,idx,total}){
     const row=rows[idx];
@@ -3707,7 +3707,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               color:"#D97706",fontSize:11,fontWeight:"600",
               background:"#FEF3C7",borderRadius:4,padding:"2px 8px",
               display:"inline-block",marginTop:3
-            }},"âš ï¸ Kaccha Dor yesterday â€” do Dor first")
+            }},"⚠️ Kaccha Dor yesterday — do Dor first")
           ),
           React.createElement('div',{style:{textAlign:"right"}},
             React.createElement('div',{style:{color:MUTED,fontSize:11}},
@@ -3743,7 +3743,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
           )
         ),
 
-        /* â”€â”€ AM ENTRY FIELDS â”€â”€ */
+        /* ── AM ENTRY FIELDS ── */
         !row.absent&&isAM&&React.createElement('div',null,
 
           /* Sabaq Para */
@@ -3771,7 +3771,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   style:{...selS,borderColor:spMk>0?spColor:undefined,
                          color:spMk>0?spColor:undefined,
                          fontWeight:spMk>0?"700":"400",maxWidth:160}},
-                  React.createElement('option',{value:""},"â€”"),
+                  React.createElement('option',{value:""},"—"),
                   MK_OPTS.map(m=>React.createElement('option',{key:m,value:m},m===0?"0":m))
                 )
               ),
@@ -3808,7 +3808,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 )
               )
             ),
-            /* â”€â”€ 2nd Attempt button â”€â”€ */
+            /* ── 2nd Attempt button ── */
             !row.sp2Done
               ? React.createElement('button',{
                   onClick:()=>updRow(idx,"sp2Done",true),
@@ -3829,7 +3829,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   style:{...selS,borderColor:parseFloat(row.sp2Mistakes)||0>0?spColor:undefined,
                          color:parseFloat(row.sp2Mistakes)||0>0?spColor:undefined,
                          fontWeight:parseFloat(row.sp2Mistakes)||0>0?"700":"400",maxWidth:160}},
-                  React.createElement('option',{value:""},"â€”"),
+                  React.createElement('option',{value:""},"—"),
                   MK_OPTS.map(m=>React.createElement('option',{key:m,value:m},m===0?"0":m))
                 )
               ),
@@ -3887,7 +3887,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               React.createElement('label',{style:{...secLabel,color:"#059669"}},"Lines"),
               React.createElement('select',{value:row.sabaqLines,
                 onChange:e=>updRow(idx,"sabaqLines",e.target.value),style:{...selS,maxWidth:160}},
-                React.createElement('option',{value:""},"â€”"),
+                React.createElement('option',{value:""},"—"),
                 LINE_OPTS.map(l=>React.createElement('option',{key:l,value:l},l))
               )
             ),
@@ -3907,7 +3907,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 ),
                 React.createElement('span',{style:{fontSize:13,fontWeight:"600",
                   color:row.sabaqWeak?"#D97706":"#6B7280"}},
-                  row.sabaqWeak?"âš ï¸ Weak Sabaq":"Weak")
+                  row.sabaqWeak?"⚠️ Weak Sabaq":"Weak")
               ),
               React.createElement('div',{
                 onClick:()=>updRow(idx,"sabaqLessLines",!row.sabaqLessLines),
@@ -3928,7 +3928,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
             )
           ),
 
-          /* Dor (morning) â€” for Kaccha students */
+          /* Dor (morning) — for Kaccha students */
           React.createElement('div',{style:{
             background:row.dorDone?"rgba(239,68,68,0.05)":"#F8F9FA",
             borderRadius:12,padding:"14px 16px",marginBottom:4,
@@ -3955,7 +3955,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 React.createElement('label',{style:{...secLabel,color:"#DC2626"}},"Juz"),
                 React.createElement('select',{value:row.dorJuz,
                   onChange:e=>updRow(idx,"dorJuz",e.target.value),style:selS},
-                  React.createElement('option',{value:""},"â€”"),
+                  React.createElement('option',{value:""},"—"),
                   JUZ_OPTIONS.map(j=>React.createElement('option',{key:j,value:j},j))
                 )
               ),
@@ -3963,7 +3963,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 React.createElement('label',{style:{...secLabel,color:"#DC2626"}},"Quarter"),
                 React.createElement('select',{value:row.dorQuarter,
                   onChange:e=>updRow(idx,"dorQuarter",e.target.value),style:selS},
-                  React.createElement('option',{value:""},"â€”"),
+                  React.createElement('option',{value:""},"—"),
                   QUARTERS.map(q=>React.createElement('option',{key:q,value:q},q))
                 )
               ),
@@ -3973,7 +3973,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   onChange:e=>updRow(idx,"dorMistakes",e.target.value),
                   style:{...selS,borderColor:dMk>0?dColor:undefined,
                          color:dMk>0?dColor:undefined,fontWeight:dMk>0?"700":"400"}},
-                  React.createElement('option',{value:""},"â€”"),
+                  React.createElement('option',{value:""},"—"),
                   MK_OPTS.map(m=>React.createElement('option',{key:m,value:m},m===0?"0":m))
                 )
               )
@@ -4025,7 +4025,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   }
 
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // STUDENT LIST â€” overview + quick-mark absent
+  // STUDENT LIST — overview + quick-mark absent
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const isAM=tab==="am";
     function statusDot(row){
@@ -4076,7 +4076,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       bottom:"calc(env(safe-area-inset-bottom,0px) + 80px)",zIndex:1500,maxWidth:560,margin:"0 auto",
       padding:"13px 18px",borderRadius:14,textAlign:"center",fontSize:13,fontWeight:"700",
       boxShadow:"0 8px 30px rgba(0,0,0,0.25)",
-      background:status.startsWith("âœ…")?"linear-gradient(135deg,#0d6b5e,#15806f)":(status.startsWith("âŒ")?"#B91C1C":"#1a3a3a"),
+      background:status.startsWith("✅")?"linear-gradient(135deg,#0d6b5e,#15806f)":(status.startsWith("âŒ")?"#B91C1C":"#1a3a3a"),
       color:"#fff"}},status),
 
     /* Empty */
@@ -4176,10 +4176,10 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
 // REGISTER SYSTEM COMPONENTS
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ──────────────────────────────────────────────────
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// YEAR PLANNER â€” Full rebuild with PDF, holidays, special dates
+// YEAR PLANNER — Full rebuild with PDF, holidays, special dates
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function getMonthsForPlanner(startYear, startMonth, count){
@@ -4317,7 +4317,7 @@ JazakAllahu Khayran for your understanding and cooperation.
 Head of Hifz | Madrasah Al-Ihsaan`;
 }
 
-// â”€â”€â”€ YEAR PLANNER PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── YEAR PLANNER PAGE ────────────────────────────────────────
 function YearPlannerPage({yearPlan,setYearPlan,records}){
     const SESSIONS=["morning","evening"];
 
@@ -4329,7 +4329,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 
   const months=getMonthsForPlanner(startYear,startMonth,12);
 
-  // â”€â”€ Special events â”€â”€
+  // ── Special events ──
   const SPECIAL_TYPES=[
     {key:"exam",label:"Exam / Revision Days",color:"#16a34a",bg:"#dcfce7",dot:"ðŸŸ©"},
     {key:"parents",label:"Parents Evening",color:"#ca8a04",bg:"#fef9c3",dot:"ðŸŸ¨"},
@@ -4338,7 +4338,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     {key:"holiday",label:"Holidays",color:"#dc2626",bg:"#fee2e2",dot:"ðŸŸ¥"},
   ];
 
-  // â”€â”€ Date classification â”€â”€
+  // ── Date classification ──
   function getDateType(year,month,day){
     // Check holiday ranges first
     const ranges=getHolidayRanges(yearPlan);
@@ -4361,7 +4361,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     return{background:t.bg,color:t.color,fontWeight:"700"};
   }
 
-  // â”€â”€ Dates tab â”€â”€
+  // ── Dates tab ──
   function updateDay(session,year,month,slotIdx,val){
     const planDates=getPlanDates(yearPlan,cls,session);
     const num=parseInt(val);
@@ -4386,7 +4386,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     }
   }
 
-  // â”€â”€ Holidays tab helpers â”€â”€
+  // ── Holidays tab helpers ──
   const holidayRanges=getHolidayRanges(yearPlan);
   const holidayDates=getHolidayDates(yearPlan);
 
@@ -4413,7 +4413,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     setHolidayDates(yearPlan,setYearPlan,[...other,...unique]);
   }
 
-  // â”€â”€ Special dates helper â”€â”€
+  // ── Special dates helper ──
   function updateSpecialDay(type,year,month,slotIdx,val){
     const dates=getSpecialDates(yearPlan,type);
     const num=parseInt(val);
@@ -4426,10 +4426,10 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     setSpecialDates(yearPlan,setYearPlan,type,[...other,...unique]);
   }
 
-  // â”€â”€ PDF print â”€â”€
+  // ── PDF print ──
   function printPlanner(){
     const printWin=window.open("","_blank");
-    if(!printWin){showToast("Pop-up blocked â€” please allow pop-ups for this site and try again.","warning");return;}
+    if(!printWin){showToast("Pop-up blocked — please allow pop-ups for this site and try again.","warning");return;}
     try{
       const html=buildPlannerPrintHTML(yearPlan,months,cls,SPECIAL_TYPES);
       printWin.document.write(html);
@@ -4448,10 +4448,10 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
   return(
     React.createElement('div',{style:{padding:"20px 16px",maxWidth:860,margin:"0 auto"}},
 
-      /* â”€â”€ Header â”€â”€ */
+      /* ── Header ── */
       React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}},
         React.createElement('div',null,
-          React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"ðŸ“… Year Planner"),
+          React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"📅 Year Planner"),
           React.createElement('div',{style:{color:"#6b7280",fontSize:12,marginTop:2}},totalMorn+" AM Â· "+totalEve+" PM class dates")
         ),
         React.createElement('div',{style:{display:"flex",gap:8}},
@@ -4459,7 +4459,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         )
       ),
 
-      /* â”€â”€ Academic year start â”€â”€ */
+      /* ── Academic year start ── */
       React.createElement('div',{style:{display:"flex",gap:12,marginBottom:16,alignItems:"center",flexWrap:"wrap"}},
         React.createElement('span',{style:{color:"#6b7280",fontSize:12,fontWeight:"500"}},"Academic year starts:"),
         React.createElement('select',{value:startMonth,onChange:e=>setStartMonth(parseInt(e.target.value)),style:{border:"1px solid #e5e7eb",borderRadius:7,padding:"5px 10px",fontSize:12,outline:"none"}},
@@ -4473,9 +4473,9 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         ,c))
       ),
 
-      /* â”€â”€ Tabs â”€â”€ */
+      /* ── Tabs ── */
       React.createElement('div',{style:{display:"flex",gap:0,borderRadius:10,overflow:"hidden",border:"1px solid #e5e7eb",marginBottom:20,width:"fit-content"}},
-        [["dates","ðŸ“‹ Class Dates"],["holidays","ðŸš« Holidays"],["special","â­ Special Dates"]].map(([tab,label])=>
+        [["dates","📋 Class Dates"],["holidays","ðŸš« Holidays"],["special","â­ Special Dates"]].map(([tab,label])=>
           React.createElement('button',{key:tab,onClick:()=>setActiveTab(tab),style:{background:activeTab===tab?"#1e2d3d":"transparent",color:activeTab===tab?"#fff":"#6b7280",border:"none",borderRight:"1px solid #e5e7eb",padding:"9px 16px",cursor:"pointer",fontSize:12,fontWeight:activeTab===tab?"600":"400"}}
           ,label)
         )
@@ -4484,7 +4484,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
       /* â•â• TAB: CLASS DATES â•â• */
       activeTab==="dates"&&React.createElement('div',null,
         React.createElement('div',{style:{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,padding:"10px 14px",marginBottom:14,color:"#1D4ED8",fontSize:12}},
-          "Enter up to 6 day numbers per month (D1â€“D6). Evening Evening sessions auto-copy from Morning as you type â€” edit Evening cells independently to customise."
+          "Enter up to 6 day numbers per month (D1â€“D6). Evening Evening sessions auto-copy from Morning as you type — edit Evening cells independently to customise."
         ),
         React.createElement('div',{style:{background:"#fff",borderRadius:14,border:"1px solid rgba(184,147,74,0.15)",overflowX:"auto",WebkitOverflowScrolling:"touch",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}},
           /* Header row */
@@ -4504,7 +4504,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
               React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500"}},m.label),
               ...[0,1,2,3,4,5].map(si=>{
                 const ex=mdArr[si];
-                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"â€”",
+                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",
                   onChange:e=>updateDay("morning",m.year,m.month,si,e.target.value),
                   style:{...inS,background:ex?"rgba(184,147,74,0.08)":"#F9FAFB",borderColor:ex?"rgba(184,147,74,0.4)":"#E5E7EB",color:ex?"#B8934A":"#9CA3AF",fontWeight:ex?"600":"400"}});
               })
@@ -4522,7 +4522,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
               React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500"}},m.label),
               ...[0,1,2,3,4,5].map(si=>{
                 const ex=edArr[si];
-                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"â€”",
+                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",
                   onChange:e=>updateDay("evening",m.year,m.month,si,e.target.value),
                   style:{...inS,background:ex?"rgba(37,99,235,0.08)":"#F0F7FF",borderColor:ex?"rgba(37,99,235,0.3)":"#BFDBFE",color:ex?"#2563eb":"#93C5FD",fontWeight:ex?"600":"400"}});
               })
@@ -4538,7 +4538,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         ),
         /* Holiday Ranges */
         React.createElement('div',{style:{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",padding:"16px",marginBottom:16}},
-          React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:13,marginBottom:12,display:"flex",alignItems:"center",gap:6}},"ðŸ“… Holiday Date Ranges"),
+          React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:13,marginBottom:12,display:"flex",alignItems:"center",gap:6}},"📅 Holiday Date Ranges"),
           holidayRanges.map((r,i)=>React.createElement('div',{key:i,style:{display:"flex",alignItems:"center",gap:10,marginBottom:10,flexWrap:"wrap"}},
             React.createElement('span',{style:{color:"#6b7280",fontSize:12,minWidth:30}},"From"),
             React.createElement('input',{type:"date",value:r.from||"",onChange:e=>updateHolidayRange(i,"from",e.target.value),style:{border:"1px solid #e5e7eb",borderRadius:7,padding:"6px 10px",fontSize:12,outline:"none"}}),
@@ -4562,7 +4562,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
               React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500"}},m.label),
               ...[0,1,2,3,4].map(si=>{
                 const ex=mDays[si];
-                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"â€”",
+                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",
                   onChange:e=>updateHolidayDay(m.year,m.month,si,e.target.value),
                   style:{...inS,background:ex?"#FEE2E2":"#FFF5F5",borderColor:ex?"#FECACA":"#FEE2E2",color:ex?"#DC2626":"#FCA5A5",fontWeight:ex?"600":"400"}});
               })
@@ -4593,7 +4593,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
                   React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500"}},m.label),
                   ...[0,1,2,3,4].map(si=>{
                     const ex=mDays[si];
-                    return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"â€”",
+                    return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",
                       onChange:e=>updateSpecialDay(st.key,m.year,m.month,si,e.target.value),
                       style:{...inS,background:ex?st.bg:"#FAFAFA",borderColor:ex?st.color+"66":"#E5E7EB",color:ex?st.color:"#9CA3AF",fontWeight:ex?"600":"400"}});
                   })
@@ -4604,7 +4604,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         )
       ),
 
-      /* â”€â”€ Legend â”€â”€ */
+      /* ── Legend ── */
       React.createElement('div',{style:{marginTop:24,background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",padding:"14px 18px"}},
         React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:13,marginBottom:10}},"Legend / Key"),
         React.createElement('div',{style:{display:"flex",gap:12,flexWrap:"wrap"}},
@@ -4623,13 +4623,13 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         )
       ),
 
-      /* â”€â”€ Planner Preview â”€â”€ */
+      /* ── Planner Preview ── */
       React.createElement('div',{style:{marginTop:24}},
-        React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:14,marginBottom:14}},"ðŸ“‹ Planner Preview"),
+        React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:14,marginBottom:14}},"📋 Planner Preview"),
         React.createElement(PlannerCalendarView,{yearPlan,months,cls,SPECIAL_TYPES})
       ),
 
-      /* â”€â”€ Buttons â”€â”€ */
+      /* ── Buttons ── */
       React.createElement('div',{style:{marginTop:20,display:"flex",gap:10,flexWrap:"wrap"}},
         React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:10,padding:"12px 24px",cursor:"pointer",fontWeight:"600",fontSize:14}},"ðŸ–¨ Print / Save as PDF"),
       )
@@ -4637,7 +4637,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
   );
 }
 
-// â”€â”€â”€ PLANNER CALENDAR VIEW COMPONENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PLANNER CALENDAR VIEW COMPONENT ──────────────────────────
 function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES}){
   const DOW=["Su","M","Tu","W","Th","F","S"];
 
@@ -4705,7 +4705,7 @@ function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES}){
   );
 }
 
-// â”€â”€ PDF PRINT HTML builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── PDF PRINT HTML builder ─────────────────────────────────────
 function buildPlannerPrintHTML(yearPlan,months,cls,SPECIAL_TYPES){
   const DOW=["Su","M","Tu","W","Th","F","S"];
   const TYPE_COLORS={
@@ -4781,13 +4781,13 @@ body{font-family:Arial,sans-serif;font-size:11px;margin:0;color:#1a1f2e;}
 .leg-dot{width:12px;height:12px;border-radius:2px;}
 h2{text-align:center;color:#1e2d3d;margin:0 0 10px;}
 </style></head><body>
-<h2>Madrasah Al-Ihsaan â€” Hifz Year Planner (${cls})</h2>
+<h2>Madrasah Al-Ihsaan — Hifz Year Planner (${cls})</h2>
 <div class="grid">${months.map(m=>monthHTML(m)).join("")}</div>
 <div class="legend">${legend}</div>
 </body></html>`;
 }
 
-// â”€â”€â”€ v2.1 SHARED UI COMPONENTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── v2.1 SHARED UI COMPONENTS ─────────────────────────────────
 function PageTitle({title,sub}){
   return React.createElement('div',{style:{textAlign:"center",marginBottom:14}},
     React.createElement('div',{style:{fontSize:20,fontWeight:"800",color:"#1a1f2e",letterSpacing:"0.3px"}},title),
@@ -4813,7 +4813,7 @@ function DatePill({value,onChange,planDates}){
       background:"#fff",border:"1.5px solid rgba(196,150,63,0.4)",borderRadius:999,padding:"10px 20px",
       fontSize:14,fontWeight:"700",color:"#1a1f2e",boxShadow:"0 1px 5px rgba(0,0,0,0.07)"}},
       formatDateDMYShort(value),
-      React.createElement('span',{style:{fontSize:15,lineHeight:1}},"ðŸ“…"),
+      React.createElement('span',{style:{fontSize:15,lineHeight:1}},"📅"),
       React.createElement('input',{type:"date",value:value,onChange:e=>onChange(e.target.value),
         style:{position:"absolute",top:0,left:0,width:"100%",height:"100%",opacity:0,cursor:"pointer"}})
     ),
@@ -4833,7 +4833,7 @@ function SaveBar({onClick,label,color}){
         boxShadow:"0 4px 14px rgba(196,150,63,0.4)"}},label)
   );
 }
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ───────────────────────────────────────────────────────────────
 
 function HomeSearch({studentNames,onSelect}){
   const [q,setQ]=React.useState("");
@@ -4937,9 +4937,9 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
       return next;
     });
     setUnsaved(false);
-    setSaveMsg("âœ… Saved & syncing...");
+    setSaveMsg("✅ Saved & syncing...");
     scheduleSync();
-    syncNow().then(()=>setSaveMsg("âœ… Saved & synced!")).catch(()=>setSaveMsg("âœ… Saved locally"));
+    syncNow().then(()=>setSaveMsg("✅ Saved & synced!")).catch(()=>setSaveMsg("✅ Saved locally"));
     setTimeout(()=>setSaveMsg(""),3000);
   }
 
@@ -4962,14 +4962,14 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
       !isPlannedDate&&!forceOpen&&React.createElement('div',{style:{display:"flex",alignItems:"center",gap:6,justifyContent:"center",marginBottom:14,flexWrap:"wrap"}},
         React.createElement('input',{type:"password",value:forcePwd,onChange:e=>setForcePwd(e.target.value),placeholder:"Admin password to force open",
           style:{border:"1px solid #FCD34D",borderRadius:8,padding:"7px 12px",fontSize:12,outline:"none",width:200}}),
-        React.createElement('button',{onClick:()=>{checkAdminPassword(forcePwd).then(function(ok){if(ok){setForceOpen(true);setForcePwdErr("");}else{setForcePwdErr("Incorrect password â€” use admin password");}});},
+        React.createElement('button',{onClick:()=>{checkAdminPassword(forcePwd).then(function(ok){if(ok){setForceOpen(true);setForcePwdErr("");}else{setForcePwdErr("Incorrect password — use admin password");}});},
           style:{background:"#D97706",color:"#fff",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:12,fontWeight:"600"}},"Force Open"),
         forcePwdErr&&React.createElement('span',{style:{color:"#DC2626",fontSize:11}},forcePwdErr)
       ),
 
       saveMsg&&React.createElement('div',{style:{padding:"10px 16px",borderRadius:10,marginBottom:12,textAlign:"center",
-        background:String(saveMsg).startsWith("âœ…")?"rgba(22,163,74,0.08)":"rgba(37,99,235,0.05)",
-        color:String(saveMsg).startsWith("âœ…")?"#16a34a":"#2563eb",fontSize:13,fontWeight:"600"}},saveMsg),
+        background:String(saveMsg).startsWith("✅")?"rgba(22,163,74,0.08)":"rgba(37,99,235,0.05)",
+        color:String(saveMsg).startsWith("✅")?"#16a34a":"#2563eb",fontSize:13,fontWeight:"600"}},saveMsg),
 
       !canTakeRegister&&React.createElement('div',{style:{textAlign:"center",padding:40,color:"#9CA3AF",fontSize:14}},
         React.createElement('div',null,"No class scheduled on this date. Enter admin password above to force open the register.")
@@ -5045,7 +5045,7 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
 }
 
 
-// â”€â”€â”€ VIEW REGISTER PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── VIEW REGISTER PAGE ───────────────────────────────────────
 function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow,initialSession}){
     const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [session,setSession]=React.useState(initialSession||"morning");
@@ -5090,7 +5090,7 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
     setSaveMsg("Syncing...");
     lsSaveRegister(registerData);
     setUnsaved(false);
-    syncNow().then(()=>setSaveMsg("âœ… Synced!")).catch(()=>setSaveMsg("âœ… Saved locally"));
+    syncNow().then(()=>setSaveMsg("✅ Synced!")).catch(()=>setSaveMsg("✅ Saved locally"));
     setTimeout(()=>setSaveMsg(""),3000);
   }
 
@@ -5118,7 +5118,7 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
 
       /* Header */
       React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}},
-        React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"ðŸ“‹ View Register"+(session==="morning"?" (AM)":" (PM)")),
+        React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"📋 View Register"+(session==="morning"?" (AM)":" (PM)")),
         React.createElement('div',{style:{display:"flex",gap:8,alignItems:"center"}},
           saveMsg&&React.createElement('span',{style:{color:"#16a34a",fontSize:12,fontWeight:"600"}},saveMsg),
           unsaved&&React.createElement('button',{onClick:saveChanges,style:{background:"#B8934A",color:"#fff",border:"none",borderRadius:10,padding:"8px 18px",cursor:"pointer",fontWeight:"600",fontSize:13}},"ðŸ’¾ Save Changes")
@@ -5185,13 +5185,13 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
             React.createElement('span',{style:{color:"#6b7280",fontSize:11}},label)
           )
         ),
-        React.createElement('span',{style:{color:"#9CA3AF",fontSize:11,marginLeft:4}},"â€” click a cell to cycle status")
+        React.createElement('span',{style:{color:"#9CA3AF",fontSize:11,marginLeft:4}},"— click a cell to cycle status")
       )
     )
   );
 }
 
-// â”€â”€â”€ ABSENCES PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── ABSENCES PAGE ────────────────────────────────────────────
 function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
     const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [month,setMonth]=React.useState(getTodayStr().substring(0,7));
@@ -5204,7 +5204,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
   ].sort(),[records,cls]);
   function getStudents(){return studs;}
 
-  // Pre-filter once per class+month â€” avoids O(studentsÃ—registerData) per render
+  // Pre-filter once per class+month — avoids O(studentsÃ—registerData) per render
   const monthAbsEntries=React.useMemo(()=>{
     if(!Array.isArray(registerData))return[];
     return registerData.filter(r=>
@@ -5277,7 +5277,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
 
   return(
     React.createElement('div',{style:{padding:"20px 16px",maxWidth:700,margin:"0 auto"}},
-      React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18,marginBottom:16}},"âš ï¸ Absences"),
+      React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18,marginBottom:16}},"⚠️ Absences"),
 
       /* Filters */
       React.createElement('div',{style:{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16,alignItems:"center"}},
@@ -5310,7 +5310,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
                 )
               )
             ),
-            /* One row per absence â€” date left, actions right */
+            /* One row per absence — date left, actions right */
             React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:7,marginBottom:12}},
               pendingAbs.map(e=>{
                 const dt=new Date(e.date+"T00:00:00");
@@ -5371,7 +5371,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
 
       /* Make-up Scheduled */
       scheduled.length>0&&React.createElement('div',{style:{marginTop:24}},
-        React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:14,marginBottom:10}},"ðŸ“… Make-up Session Scheduled"),
+        React.createElement('div',{style:{color:"#374151",fontWeight:"600",fontSize:14,marginBottom:10}},"📅 Make-up Session Scheduled"),
         scheduled.map(({name,absences})=>{
           const sentAbs=absences.filter(e=>e.msgSent&&e.status!=="AG");
           const latestRec=records.filter(r=>r.name===name).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
@@ -5379,7 +5379,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
           return React.createElement('div',{key:name,style:{background:"#FFFBEB",borderRadius:14,border:"1px solid #FCD34D",padding:"14px 20px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
             React.createElement('div',null,
               React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"600",fontSize:13}},name),
-              React.createElement('div',{style:{color:"#D97706",fontSize:11,marginTop:2}},"Message sent â€” awaiting make-up")
+              React.createElement('div',{style:{color:"#D97706",fontSize:11,marginTop:2}},"Message sent — awaiting make-up")
             ),
             React.createElement('div',{style:{display:"flex",gap:8}},
               sentAbs.map(e=>React.createElement('button',{key:e.date+e.session,
@@ -5407,7 +5407,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
   const LINES_PER_SIDE = 13;
   const useRange = !!(dateFrom && dateTo);
 
-  // â”€â”€ 1. Get all daily entries for this student/class/period â”€â”€
+  // ── 1. Get all daily entries for this student/class/period ──
   const dailies = (dailySabaqEntries||[]).filter(e=>{
     if(!e.studentName===studentName||e.class!==cls||!e.date)return false;
     if(e.studentName!==studentName)return false;
@@ -5419,7 +5419,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
     return null; // No daily data for this period
   }
 
-  // â”€â”€ 2. Compute from daily entries â”€â”€
+  // ── 2. Compute from daily entries ──
   const presentDays = dailies.filter(e=>!e.absent);
   const absentDays  = dailies.filter(e=>e.absent);
 
@@ -5432,7 +5432,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
   // Total days that count as "sabaq days" = present & sabaqPara & not paraDor
   const totalDaysOfSabaq = sabaqParaDays.length;
 
-  // Sabaq (new lesson) lines â€” from sabaqLines field
+  // Sabaq (new lesson) lines — from sabaqLines field
   const totalLines = presentDays
     .filter(e=>e.sabaqPara&&!e.paraDor)
     .reduce((sum,e)=>sum+(parseFloat(e.sabaqLines)||parseFloat(e.spLines)||0), 0);
@@ -5442,7 +5442,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
   // Plus lines = remainder
   const plusLines = Math.round(totalLines % LINES_PER_SIDE);
 
-  // â”€â”€ Quality metrics from daily entries â”€â”€
+  // ── Quality metrics from daily entries ──
   // Sabaq Para mistakes
   const spDays = presentDays.filter(e=>e.sabaqPara&&!e.paraDor);
   const spMistakesTotal = spDays.reduce((s,e)=>s+(parseFloat(e.spMistakes)||0),0);
@@ -5485,18 +5485,18 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
     return e.date.startsWith(yearMonth);
   }).map(e=>e.date))].length;
 
-  // â”€â”€ 3. Date range from daily entries â”€â”€
+  // ── 3. Date range from daily entries ──
   const sortedDates = dailies.map(e=>e.date).sort();
   const recDateFrom = sortedDates[0] || (useRange ? dateFrom : yearMonth+"-01");
   const recDateTo   = sortedDates[sortedDates.length-1] || recDateFrom;
 
-  // â”€â”€ 4. Pull contact info from most recent existing record â”€â”€
+  // ── 4. Pull contact info from most recent existing record ──
   const prevRecords = (existingRecords||[])
     .filter(r=>r.name===studentName && r.class===cls)
     .sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""));
   const prevRec = prevRecords[0] || {};
 
-  // â”€â”€ 5. Determine sensible upcomingTarget â”€â”€
+  // ── 5. Determine sensible upcomingTarget ──
   // If average >= 11, keep target at 13. Below 10 drop to 10.
   const avg = totalDaysOfSabaq > 0 ? totalLines / totalDaysOfSabaq : 0;
   const upcomingTarget = avg >= 11 ? 13 : avg >= 8 ? 11 : 10;
@@ -5509,7 +5509,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
   const pagesFromLines = Math.floor(totalFullSides / 2);
   const autoToPage = fromPageNum > 0 ? fromPageNum + pagesFromLines : "";
 
-  // Missing data check â€” which dates in the range had no entries?
+  // Missing data check — which dates in the range had no entries?
   const coveredDates = new Set(dailies.map(e=>e.date));
   let missingDates = [];
   if(useRange){
@@ -5648,7 +5648,7 @@ function LineChart({data,color}){
 }
 
 
-// â”€â”€ Error Boundary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Error Boundary ─────────────────────────────────────────────
 class ErrorBoundary extends React.Component{
   constructor(props){super(props);this.state={hasError:false,error:null};}
   static getDerivedStateFromError(error){return{hasError:true,error};}
