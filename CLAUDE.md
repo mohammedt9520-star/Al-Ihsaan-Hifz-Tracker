@@ -9,20 +9,16 @@ All app code lives in `index.html` — there is no separate build step.
 1. Make edits to `index.html` in this Claude Code session
 2. Commit with a descriptive message
 3. Push to `master`
-4. GitHub Actions (`.github/workflows/deploy.yml`) auto-deploys to GitHub Pages
+4. Cloudflare Pages auto-deploys (connected directly to the GitHub repo)
 
-**Live URL**: `https://mohammedt9520-star.github.io/Al-Ihsaan-Hifz-Tracker/`
-
-> First-time setup: Go to **Settings → Pages → Source → GitHub Actions** in the repo to enable Pages.
+**Live URL**: `https://alihsaanhifz.pages.dev`
 
 ## Architecture
 
 ### File Structure
 ```
-index.html          ← entire app (React + CSS + JS, ~5700 lines)
-.github/
-  workflows/
-    deploy.yml      ← GitHub Pages auto-deploy on push to master
+index.html   ← entire app (React + CSS + JS, ~5700 lines)
+CLAUDE.md    ← this file
 ```
 
 ### Key Constants (index.html lines 42–43)
