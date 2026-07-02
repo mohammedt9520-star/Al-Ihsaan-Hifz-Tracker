@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260702-090000 | Supabase Auth, SHA-256, no native dialogs, profileRecords fix | 23/23 tests -->
+<!-- hifz-20260702-130000 | Supabase Auth, SHA-256, no native dialogs, profileRecords fix | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -160,7 +160,7 @@ function Toast(){
   if(!toasts.length)return null;
   var STYLES={
     success:{bg:"#16a34a",icon:"✅"},
-    error:{bg:"#dc2626",icon:"âŒ"},
+    error:{bg:"#dc2626",icon:"❌"},
     warning:{bg:"#d97706",icon:"⚠️"},
     info:{bg:"#1a3a3a",icon:"ℹ️"},
   };
@@ -440,7 +440,7 @@ async function checkAdminPassword(p){
   return stored===h;
 }
 // Migration: if stored value is old btoa format (not 64-char hex),
-// it will never match SHA-256 output â†’ user must reset password once.
+// it will never match SHA-256 output → user must reset password once.
 // This is intentional — the old format was not secure.
 // ── LOCAL STORAGE ──────────────────────────────────────────────
 function lsGet(){try{return(JSON.parse(localStorage.getItem("sabaqData")||"[]")).map(sanitiseRecord).filter(Boolean);}catch(e){return[];}}
@@ -478,7 +478,7 @@ const defaultEntry={
 function sanitiseRecord(r){
   if(!r||typeof r!=="object")return null;
   if(!r.id||!r.name)return null;
-  // V7: blank/invalid class â†’ default to first class
+  // V7: blank/invalid class → default to first class
   const _safeClass=CLASSES.includes(r.class)?r.class:CLASSES[0];
   var out={
     ...r,
@@ -1672,7 +1672,7 @@ function App(){
             if(_san)newRecs.push(_san);
           }
         }
-        if(!newRecs.length){showToast("âŒ No valid records found. Check Name column (B) is filled and file matches the XLSX template.","error");return;}
+        if(!newRecs.length){showToast("❌ No valid records found. Check Name column (B) is filled and file matches the XLSX template.","error");return;}
         // I3: within-batch dedup by name+month before pushing to store
         var _batchSeen={};
         var _batchUnique=newRecs.filter(function(rec){
@@ -1816,11 +1816,11 @@ function App(){
       const monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString('default',{month:'long',year:'numeric'}):'';
       const subject=encodeURIComponent('Al-Ihsaan Academy — Hifz Report: '+esc(record.name)+(monthStr?' ('+monthStr+')':''));
       const body=encodeURIComponent(
-        'Ø§Ù„Ø³Ù„Ø§Ù… Ø¹Ù„ÙŠÙƒÙ… ÙˆØ±Ø­Ù…Ø© Ø§Ù„Ù„Ù‡ ÙˆØ¨Ø±ÙƒØ§ØªÙ‡\n\n'+
+        'السلام عليكم ورحمة الله وبركاته\n\n'+
         'Dear Parent,\n\n'+
         'Please find attached the Hifz monthly report for '+record.name+'.\n\n'+
         (monthStr?'Month: '+monthStr+'\n\n':'')+
-        'The Hifz report is now open in a new tab.\n\nTo attach as PDF: tap the browser menu â†’ Share â†’ Print â†’ Save as PDF, then attach to this email.\n\n'+
+        'The Hifz report is now open in a new tab.\n\nTo attach as PDF: tap the browser menu → Share → Print → Save as PDF, then attach to this email.\n\n'+
         'JazakAllahu Khayran\n'+
         'Al-Ihsaan Academy — Hifz Department'
       );
@@ -2357,7 +2357,7 @@ function App(){
                 a.href=url;a.download="Hifz_Monthly_Template.xlsx";a.click();
                 setTimeout(function(){URL.revokeObjectURL(url);},5000);
               }catch(ex){showToast("Download error: "+ex.message,"error");}
-            }, style: {background:ACCENT,color:GOLD,border:"1px solid "+(GOLD)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:"bold"}},  "â¬‡ Download XLSX Template")
+            }, style: {background:ACCENT,color:GOLD,border:"1px solid "+(GOLD)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:"bold"}},  "⬇ Download XLSX Template")
             , React.createElement('label', { style: {background:ACCENT,color:TEXT,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13},}, "📂 Import XLSX"
 
               , React.createElement('input', { type: "file", accept: ".xlsx,.xls,.csv", onChange: importXLSX, style: {display:"none"},})
@@ -2688,7 +2688,7 @@ function App(){
         if(classesView==="addStudent") return(
           React.createElement('div', null
             , React.createElement('div', { style: {display:"flex",alignItems:"center",gap:12,marginBottom:24},}
-              , React.createElement('button', { onClick:()=>{setClassesView("list");setNewStudent({name:"",class:"HIFZ CLASS A",startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});setNewStudentMsg("");}, style:{background:"transparent",border:"1px solid "+BORDER,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:13,color:MUTED}}, "â† Back" )
+              , React.createElement('button', { onClick:()=>{setClassesView("list");setNewStudent({name:"",class:"HIFZ CLASS A",startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});setNewStudentMsg("");}, style:{background:"transparent",border:"1px solid "+BORDER,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:13,color:MUTED}}, "← Back" )
               , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "Add New Student" )
             )
             , React.createElement('div', { style: {background:CARD,borderRadius:14,border:"1px solid "+BORDER,padding:24,maxWidth:520,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}},
@@ -2720,11 +2720,11 @@ function App(){
               ),
               React.createElement('button',{
                 onClick:()=>{
-                  if(!newStudent.name.trim()){setNewStudentMsg("âŒ Full name is required.");return;}
-                  if(newStudent.name.trim().length>80){setNewStudentMsg("âŒ Name too long (max 80 characters).");return;}
-                  if(!newStudent.class){setNewStudentMsg("âŒ Please select a class.");return;}
+                  if(!newStudent.name.trim()){setNewStudentMsg("❌ Full name is required.");return;}
+                  if(newStudent.name.trim().length>80){setNewStudentMsg("❌ Name too long (max 80 characters).");return;}
+                  if(!newStudent.class){setNewStudentMsg("❌ Please select a class.");return;}
                   const nameExists=records.some(r=>r.name.trim().toLowerCase()===newStudent.name.trim().toLowerCase()&&r.class===newStudent.class);
-                  if(nameExists){setNewStudentMsg("âŒ "+newStudent.name.trim()+" already exists in "+newStudent.class+".");return;}
+                  if(nameExists){setNewStudentMsg("❌ "+newStudent.name.trim()+" already exists in "+newStudent.class+".");return;}
                   // Add a placeholder record for this student so they appear in the system
                   const today2=getTodayStr();
                   const studentRecord={
@@ -2839,7 +2839,7 @@ function App(){
                                 if(newCls)moveStudentClass(name,cls,newCls);
                               },
                               style:{background:"transparent",border:"1px solid #2563eb44",color:"#2563eb",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,flexShrink:0}
-                            },"â‡„"),
+                            },"⇄"),
                             React.createElement('button',{
                               onClick:e=>{e.stopPropagation();deleteStudent(name,cls);},
                               style:{background:"transparent",border:"1px solid "+RED+"44",color:RED,borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,flexShrink:0}
@@ -2900,7 +2900,7 @@ function App(){
               if(newCls)moveStudentClass(profileName,curClass,newCls);
             },
             style:{background:"transparent",color:"#2563eb",border:"1px solid #2563eb44",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:13,fontWeight:"500"}
-          },"â‡„ Move Class"),
+          },"⇄ Move Class"),
           !editingProfile&&profileName&&React.createElement('button',{
             onClick:()=>{
               const curRec=records.filter(r=>r.name===profileName).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
@@ -3040,7 +3040,7 @@ function App(){
                     width:28,height:28,borderRadius:"50%",
                     background:"rgba(37,99,235,0.1)",
                     display:"flex",alignItems:"center",justifyContent:"center",fontSize:14
-                  }},"â™‚"),
+                  }},"♂"),
                   React.createElement('div',{style:{color:TEXT,fontWeight:"600",fontSize:13}},"Father")
                 ),
                 React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
@@ -3072,7 +3072,7 @@ function App(){
                     width:28,height:28,borderRadius:"50%",
                     background:"rgba(124,58,237,0.1)",
                     display:"flex",alignItems:"center",justifyContent:"center",fontSize:14
-                  }},"â™€"),
+                  }},"♀"),
                   React.createElement('div',{style:{color:TEXT,fontWeight:"600",fontSize:13}},"Mother")
                 ),
                 React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
@@ -3237,7 +3237,7 @@ function App(){
             },
             style:{background:"transparent",border:"1px solid "+RED+"44",color:RED,
               borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"600"}
-          },"Sign Out â†—")
+          },"Sign Out ↗")
         )
         , React.createElement(FormRow, { label: "Head Teacher Email"  ,}, React.createElement(Input, { type: "email", value: htEmail, onChange: setHtEmail, placeholder: "headteacher@school.com",}))
         , React.createElement('div', { style: {color:MUTED,fontSize:12},}, "Saved automatically." )
@@ -3272,7 +3272,7 @@ function App(){
       , React.createElement('div', { style: {marginTop:40,borderTop:"2px solid "+(RED)+"44",paddingTop:24},}
         , React.createElement('div', { style: {color:RED,fontWeight:"bold",fontSize:14,marginBottom:12},}, "⚠️ Danger Zone"  )
         , !showClearModal?(
-          React.createElement('button', { onClick: ()=>setShowClearModal(true), style: {background:"transparent",color:RED,border:"1px solid "+(RED),borderRadius:8,padding:"10px 20px",cursor:"pointer",fontSize:13},}, "🗑ï¸ Clear All Data"
+          React.createElement('button', { onClick: ()=>setShowClearModal(true), style: {background:"transparent",color:RED,border:"1px solid "+(RED),borderRadius:8,padding:"10px 20px",cursor:"pointer",fontSize:13},}, "🗑️ Clear All Data"
 
           )
         ):(
@@ -3327,15 +3327,15 @@ function App(){
         , React.createElement(FormRow, { label: "Confirm New Password",}
           , React.createElement('input', { type:"password", value:htConfirmPwd, onChange:e=>setHtConfirmPwd(e.target.value), placeholder:"Confirm new password", style:{...inputStyle,borderColor:htConfirmPwd&&htNewPwd&&htConfirmPwd!==htNewPwd?RED:""},})
         )
-        , htConfirmPwd&&htNewPwd&&htConfirmPwd!==htNewPwd&&React.createElement('div',{style:{color:RED,fontSize:12,marginBottom:12}},"âš  Passwords do not match")
+        , htConfirmPwd&&htNewPwd&&htConfirmPwd!==htNewPwd&&React.createElement('div',{style:{color:RED,fontSize:12,marginBottom:12}},"⚠ Passwords do not match")
         , React.createElement('button', {
             onClick:async function(){
-              if(!htOldPwd||!htNewPwd||!htConfirmPwd){setHtPwdMsg("âŒ Please fill all fields.");return;}
+              if(!htOldPwd||!htNewPwd||!htConfirmPwd){setHtPwdMsg("❌ Please fill all fields.");return;}
               // No password set yet — allow any current password if first run
               const isFirstRun=!getAdminPassword();
-              if(!isFirstRun&&!await checkAdminPassword(htOldPwd)){setHtPwdMsg("âŒ Current password is incorrect.");return;}
-              if(htNewPwd.length<4){setHtPwdMsg("âŒ New password must be at least 4 characters.");return;}
-              if(htNewPwd!==htConfirmPwd){setHtPwdMsg("âŒ New passwords do not match.");return;}
+              if(!isFirstRun&&!await checkAdminPassword(htOldPwd)){setHtPwdMsg("❌ Current password is incorrect.");return;}
+              if(htNewPwd.length<4){setHtPwdMsg("❌ New password must be at least 4 characters.");return;}
+              if(htNewPwd!==htConfirmPwd){setHtPwdMsg("❌ New passwords do not match.");return;}
               await setAdminPassword(htNewPwd);
               setHtOldPwd("");setHtNewPwd("");setHtConfirmPwd("");
               setHtPwdMsg("✅ Password "+(isFirstRun?"set":"updated")+" successfully.");
@@ -3602,7 +3602,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   // Save handlers
   function saveAM(){
     const hasAny=amRows.some(r=>r.absent||r.spMistakes||r.sabaqLines||r.dorDone);
-    if(!hasAny){setStatus("âŒ Nothing entered yet.");return;}
+    if(!hasAny){setStatus("❌ Nothing entered yet.");return;}
     const daily=[],dors=[];
     amRows.forEach(row=>{
       daily.push({
@@ -4012,7 +4012,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
             style:{padding:"13px",borderRadius:10,border:"1px solid #E5E7EB",
               background:idx===0?"#F9FAFB":"#fff",color:idx===0?MUTED:TEXT,
               cursor:idx===0?"default":"pointer",fontSize:22,fontWeight:"600"}
-          },"â†"),
+          },"←"),
           idx<total-1
             ? React.createElement('button',{
                 onClick:onNext,
@@ -4020,7 +4020,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   background:GOLD,color:"#fff",cursor:"pointer",
                   fontSize:14,fontWeight:"700",
                   boxShadow:"0 2px 8px rgba(184,147,74,0.4)"}
-              },"Next â†’")
+              },"Next →")
             : React.createElement('button',{
                 onClick:onDone,
                 style:{padding:"13px",borderRadius:10,border:"none",
@@ -4090,7 +4090,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       bottom:"calc(env(safe-area-inset-bottom,0px) + 80px)",zIndex:1500,maxWidth:560,margin:"0 auto",
       padding:"13px 18px",borderRadius:14,textAlign:"center",fontSize:13,fontWeight:"700",
       boxShadow:"0 8px 30px rgba(0,0,0,0.25)",
-      background:status.startsWith("✅")?"linear-gradient(135deg,#0d6b5e,#15806f)":(status.startsWith("âŒ")?"#B91C1C":"#1a3a3a"),
+      background:status.startsWith("✅")?"linear-gradient(135deg,#0d6b5e,#15806f)":(status.startsWith("❌")?"#B91C1C":"#1a3a3a"),
       color:"#fff"}},status),
 
     /* Empty */
@@ -4299,7 +4299,7 @@ function formatDateDMYShort(d){
 
 function getRegisterKey(cls,session,date){return cls+"||"+session+"||"+date;}
 
-// Build O(1) lookup Map: "key||studentName" â†’ entry
+// Build O(1) lookup Map: "key||studentName" → entry
 function buildRegisterIndex(registerData){
   const m=new Map();
   if(!Array.isArray(registerData))return m;
@@ -4314,7 +4314,7 @@ function getStudentStatus(registerData,cls,session,date,name,idx){
 }
 
 function getWAMessage(studentName){
-  return`Ø§Ù„Ø³Ù„Ø§Ù… Ø¹Ù„ÙŠÙƒÙ… ÙˆØ±Ø­Ù…Ø© Ø§Ù„Ù„Ù‡ ÙˆØ¨Ø±ÙƒØ§ØªÙ‡
+  return`السلام عليكم ورحمة الله وبركاته
 
 Dear Parent,
 
@@ -4489,7 +4489,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 
       /* ── Tabs ── */
       React.createElement('div',{style:{display:"flex",gap:0,borderRadius:10,overflow:"hidden",border:"1px solid #e5e7eb",marginBottom:20,width:"fit-content"}},
-        [["dates","📋 Class Dates"],["holidays","🚫 Holidays"],["special","â­ Special Dates"]].map(([tab,label])=>
+        [["dates","📋 Class Dates"],["holidays","🚫 Holidays"],["special","⭐ Special Dates"]].map(([tab,label])=>
           React.createElement('button',{key:tab,onClick:()=>setActiveTab(tab),style:{background:activeTab===tab?"#1e2d3d":"transparent",color:activeTab===tab?"#fff":"#6b7280",border:"none",borderRight:"1px solid #e5e7eb",padding:"9px 16px",cursor:"pointer",fontSize:12,fontWeight:activeTab===tab?"600":"400"}}
           ,label)
         )
