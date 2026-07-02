@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260628-170000 | Supabase Auth, SHA-256, no native dialogs, profileRecords fix | 23/23 tests -->
+<!-- hifz-20260702-090000 | Supabase Auth, SHA-256, no native dialogs, profileRecords fix | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -1478,7 +1478,7 @@ function App(){
   React.useEffect(()=>{
     if(view!=="addEntry"){setForm(defaultEntry);setEditingId(null);}
   },[view]);
-  React.useEffect(()=>{loadCloud().catch(()=>setSyncStatus("offline"));},[]);
+  React.useEffect(()=>{loadCloud().catch(e=>{console.error("loadCloud failed:",e);setSyncStatus("offline");scheduleRetry();});},[]);
   // Reconnect detection: when network comes back, sync pending writes
   React.useEffect(()=>{
     function onOnline(){
@@ -1492,9 +1492,10 @@ function App(){
     window.addEventListener("online",onOnline);
     return ()=>window.removeEventListener("online",onOnline);
   },[syncStatus]);
-  // Debounced auto-sync: fires 4s after user-driven data change
+  // Debounced auto-sync: fires 2s after user-driven data change
   // isFirstLoad prevents syncing stale localStorage data on mount
   const syncTimer=React.useRef(null);
+  const retryTimer=React.useRef(null);
   const isFirstLoad=React.useRef(true);
   const isSyncing=React.useRef(false);
   // Pending-writes queue: stores writes that failed while offline
@@ -1503,6 +1504,10 @@ function App(){
     if(isFirstLoad.current)return; // skip until loadCloud completes
     if(syncTimer.current)clearTimeout(syncTimer.current);
     syncTimer.current=setTimeout(function(){syncNow().catch(function(){});},2000);
+  }
+  function scheduleRetry(){
+    if(retryTimer.current)clearTimeout(retryTimer.current);
+    retryTimer.current=setTimeout(function(){syncNow().catch(function(){});},30000);
   }
   React.useEffect(()=>{lsSave(records);scheduleSync();},[records]);
   React.useEffect(()=>{lsSaveDor(dorRecords);scheduleSync();},[dorRecords]);
@@ -1971,17 +1976,26 @@ function App(){
     setSyncStatus("saving");
     try{
       const planRows=yearPlan.map(p=>({id:p.id||(p.class+"_"+p.session),class:p.class,session:p.session,dates:p.dates,updated_at:new Date().toISOString()}));
-      // Sync all sabaq records (max ~30k over 40 years — manageable)
-      // For high-volume tables, only sync recent data to stay within Supabase limits
-      await Promise.all([sbUpsert("sabaq_records",records.map(sbMapSabaqOut)),sbUpsert("dor_records",dorRecords.map(sbMapDorOut)),sbUpsert("daily_sabaq",dailySabaqEntries.map(sbMapDailyOut)),sbUpsert("register_data",registerData.map(sbMapRegisterOut)),sbUpsert("year_plan",planRows),sbUpsert("app_settings",[
-        {key:"adminPassword",value:getAdminPassword(),updated_at:new Date().toISOString()},
-        {key:"htEmail",value:htEmail||"",updated_at:new Date().toISOString()}
-      ],"key")]);
-      // lsSave already called by useEffect on state change — no duplicate needed
-      setSyncStatus("live");
+      const results=await Promise.allSettled([
+        sbUpsert("sabaq_records",records.map(sbMapSabaqOut)),
+        sbUpsert("dor_records",dorRecords.map(sbMapDorOut)),
+        sbUpsert("daily_sabaq",dailySabaqEntries.map(sbMapDailyOut)),
+        sbUpsert("register_data",registerData.map(sbMapRegisterOut)),
+        sbUpsert("year_plan",planRows),
+        sbUpsert("app_settings",[
+          {key:"adminPassword",value:getAdminPassword(),updated_at:new Date().toISOString()},
+          {key:"htEmail",value:htEmail||"",updated_at:new Date().toISOString()}
+        ],"key")
+      ]);
+      const failures=results.filter(r=>r.status==="rejected");
+      if(failures.length>0){console.warn("syncNow partial failures:",failures.map(f=>f.reason?.message||f.reason));}
+      const anyOk=results.some(r=>r.status==="fulfilled");
+      if(anyOk){setSyncStatus("live");}
+      else{setSyncStatus("offline");scheduleRetry();}
     }catch(e){
       console.error("syncNow",e);
       setSyncStatus("offline");
+      scheduleRetry();
     }finally{
       isSyncing.current=false;
       if(pendingSync.current){pendingSync.current=false;scheduleSync();}
@@ -1998,11 +2012,11 @@ function App(){
       tryLoad(()=>sbFetchAll("year_plan?select=*")),
       tryLoad(()=>sbFetchAll("app_settings?select=*")),
     ]);
-    if(sR.ok&&sR.data.length>0){const d=sR.data.map(sbMapSabaqIn).map(sanitiseRecord).filter(Boolean);setRecords(d);lsSave(d);}
-    if(dR.ok&&dR.data.length>0){const d=dR.data.map(sbMapDorIn).map(sanitiseDor).filter(Boolean);setDorRecords(d);lsSaveDor(d);}
-    if(dlR.ok&&dlR.data.length>0){const d=dlR.data.map(sbMapDailyIn).map(sanitiseDaily).filter(Boolean);setDailySabaqEntries(d);lsSaveDailySabaq(d);}
-    if(rR.ok&&rR.data.length>0){const d=rR.data.map(sbMapRegisterIn).map(sanitiseRegister).filter(Boolean);setRegisterData(d);lsSaveRegister(d);}
-    if(pR.ok&&pR.data.length>0){setYearPlan(pR.data);lsSaveYearPlan(pR.data);}
+    if(sR.ok&&sR.data.length>0){try{const d=sR.data.map(sbMapSabaqIn).map(sanitiseRecord).filter(Boolean);setRecords(d);lsSave(d);}catch(e){console.warn("loadCloud set records:",e.message);}}
+    if(dR.ok&&dR.data.length>0){try{const d=dR.data.map(sbMapDorIn).map(sanitiseDor).filter(Boolean);setDorRecords(d);lsSaveDor(d);}catch(e){console.warn("loadCloud set dor:",e.message);}}
+    if(dlR.ok&&dlR.data.length>0){try{const d=dlR.data.map(sbMapDailyIn).map(sanitiseDaily).filter(Boolean);setDailySabaqEntries(d);lsSaveDailySabaq(d);}catch(e){console.warn("loadCloud set daily:",e.message);}}
+    if(rR.ok&&rR.data.length>0){try{const d=rR.data.map(sbMapRegisterIn).map(sanitiseRegister).filter(Boolean);setRegisterData(d);lsSaveRegister(d);}catch(e){console.warn("loadCloud set register:",e.message);}}
+    if(pR.ok&&pR.data.length>0){try{setYearPlan(pR.data);lsSaveYearPlan(pR.data);}catch(e){console.warn("loadCloud set plan:",e.message);}}
     if(stR.ok){
       const pw=stR.data.find(r=>r.key==="adminPassword");
       if(pw&&pw.value)localStorage.setItem("adminPassword",pw.value);
