@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260703-175000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260705-100000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -4376,6 +4376,28 @@ function getDayPlanStatus(yearPlan,session,year,month,day){
   return"class";
 }
 
+function getTermBoundsFromPlan(yearPlan){
+  const e=yearPlan.find(r=>r.id==="__term__");
+  const d=e&&(e.dates||(e.termStart?{termStart:e.termStart,termEnd:e.termEnd}:null));
+  return d?{termStart:d.termStart||null,termEnd:d.termEnd||null}:{termStart:null,termEnd:null};
+}
+function isTermExcluded(yearPlan,year,month,day){
+  const{termStart,termEnd}=getTermBoundsFromPlan(yearPlan);
+  const dt=new Date(year,month-1,day);
+  if(termStart){const s=new Date(termStart);if(dt<s)return true;}
+  if(termEnd){const e=new Date(termEnd);if(dt>e)return true;}
+  return false;
+}
+function getClassDatesForMonth(yearPlan,session,year,month){
+  const daysInMonth=new Date(year,month,0).getDate();
+  const result=[];
+  for(let d=1;d<=daysInMonth;d++){
+    if(isTermExcluded(yearPlan,year,month,d))continue;
+    if(getDayPlanStatus(yearPlan,session,year,month,d)==="class")result.push({year,month,day:d});
+  }
+  return result;
+}
+
 function isDateInRanges(year,month,day,ranges){
   const ts=new Date(year,month-1,day).getTime();
   return ranges.some(r=>{
@@ -4459,12 +4481,12 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 
   const STATUS_CYCLE=["class","holiday","exam","boys_jalsa","girls_jalsa","parents"];
   const STATUS_INFO={
-    class:      {bg:"#FFF7ED",color:"#92400E",border:"#B8934A",label:"Class"},
-    holiday:    {bg:"#FEE2E2",color:"#DC2626",border:"#DC2626",label:"Holiday"},
-    exam:       {bg:"#DCFCE7",color:"#16a34a",border:"#16a34a",label:"Exam / Revision"},
-    boys_jalsa: {bg:"#FEF3C7",color:"#d97706",border:"#d97706",label:"Boys Jalsah"},
-    girls_jalsa:{bg:"#F3E8FF",color:"#7c3aed",border:"#7c3aed",label:"Girls Jalsah"},
-    parents:    {bg:"#DBEAFE",color:"#1d4ed8",border:"#1d4ed8",label:"Parents Evening"},
+    class:      {bg:"#ffffff",color:"#374151",border:"#D1D5DB",label:"Class"},
+    holiday:    {bg:"#DC2626",color:"#ffffff",border:"#DC2626",label:"Holiday"},
+    exam:       {bg:"#16a34a",color:"#ffffff",border:"#16a34a",label:"Exam / Revision"},
+    boys_jalsa: {bg:"#ea580c",color:"#ffffff",border:"#ea580c",label:"Boys Jalsah"},
+    girls_jalsa:{bg:"#7c3aed",color:"#ffffff",border:"#7c3aed",label:"Girls Jalsah"},
+    parents:    {bg:"#eab308",color:"#ffffff",border:"#eab308",label:"Parents Evening"},
   };
   const MONTH_COLORS=["#4c1d95","#be185d","#14532d","#9a3412","#166534","#92400e","#1e3a5f","#065f46","#7c2d12","#312e81","#134e4a","#1e1b4b"];
   const DOW_LABELS=["M","T","W","T","F","S","S"];
@@ -4717,8 +4739,8 @@ function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES,termBounds}){
     excluded:{bg:"repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 3px,#e9eaec 3px,#e9eaec 6px)",text:"#d1d5db"},
     holiday:{bg:"#DC2626",text:"#fff"},
     exam:{bg:"#16a34a",text:"#fff"},
-    parents:{bg:"#1d4ed8",text:"#fff"},
-    boys_jalsa:{bg:"#d97706",text:"#fff"},
+    parents:{bg:"#eab308",text:"#fff"},
+    boys_jalsa:{bg:"#ea580c",text:"#fff"},
     girls_jalsa:{bg:"#7c3aed",text:"#fff"},
     morning:{bg:"#B8934A",text:"#fff"},
     evening:{bg:"#2563eb",text:"#fff"},
@@ -4763,12 +4785,13 @@ function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES,termBounds}){
 function buildPlannerPrintHTML(yearPlan,months,cls,SPECIAL_TYPES){
   const DOW=["Su","M","Tu","W","Th","F","S"];
   const TYPE_COLORS={
-    holiday:"#DC2626",exam:"#16a34a",parents:"#1d4ed8",
-    boys_jalsa:"#d97706",girls_jalsa:"#7c3aed",
+    holiday:"#DC2626",exam:"#16a34a",parents:"#eab308",
+    boys_jalsa:"#ea580c",girls_jalsa:"#7c3aed",
     morning:"#B8934A",evening:"#2563eb",
   };
 
   function getDayType(year,month,day){
+    if(isTermExcluded(yearPlan,year,month,day))return"excluded";
     const mornSt=getDayPlanStatus(yearPlan,"morning",year,month,day);
     const eveSt=getDayPlanStatus(yearPlan,"evening",year,month,day);
     if(mornSt&&mornSt!=="class")return mornSt;
@@ -4796,11 +4819,12 @@ function buildPlannerPrintHTML(yearPlan,months,cls,SPECIAL_TYPES){
       weekCells.forEach((day,ci)=>{
         if(!day){html+=`<td></td>`;return;}
         const type=getDayType(m.year,m.month,day);
-        const color=type?TYPE_COLORS[type]:"";
+        const color=type&&type!=="excluded"?TYPE_COLORS[type]:"";
         const isSunSat=ci===0||ci===6;
-        const bg=color?color:isSunSat?"#e5e7eb":"#fff";
-        const tc=color?"#fff":isSunSat?"#9CA3AF":"#1a1f2e";
-        html+=`<td style="background:${bg};color:${tc};font-weight:${color?"700":"400"}">${day}</td>`;
+        const excl=type==="excluded";
+        const bg=excl?"repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 2px,#e5e7eb 2px,#e5e7eb 4px)":color?color:isSunSat?"#e5e7eb":"#fff";
+        const tc=excl?"#d1d5db":color?"#fff":isSunSat?"#9CA3AF":"#1a1f2e";
+        html+=`<td style="background:${bg};color:${tc};font-weight:${color&&!excl?"700":"400"}">${day}</td>`;
       });
       html+=`</tr>`;
     }
@@ -4815,13 +4839,14 @@ function buildPlannerPrintHTML(yearPlan,months,cls,SPECIAL_TYPES){
   return`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
 @page{size:A4 landscape;margin:10mm;}
+*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}
 body{font-family:Arial,sans-serif;font-size:11px;margin:0;color:#1a1f2e;}
 .title{text-align:center;font-size:16px;font-weight:700;margin-bottom:12px;color:#1e2d3d;}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .month{border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;}
 .month-hdr{background:#1e2d3d;color:#fff;text-align:center;font-weight:700;padding:6px;font-size:12px;}
 .cal{width:100%;border-collapse:collapse;}
-.cal th{background:#374151;color:#94a3b8;padding:3px 2px;text-align:center;font-size:9px;font-weight:600;}
+.cal th{background:#374151;color:#fff;padding:3px 2px;text-align:center;font-size:9px;font-weight:600;}
 .cal td{text-align:center;padding:3px 2px;border:1px solid #f3f4f6;font-size:10px;border-radius:2px;}
 .cal td.wk{color:#9CA3AF;font-size:9px;font-weight:600;background:#F8F9FA;}
 .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;padding:8px 12px;background:#F8F9FA;border-radius:8px;align-items:center;}
@@ -5095,11 +5120,14 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
 
 // ─── VIEW REGISTER PAGE ───────────────────────────────────────
 function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow,initialSession}){
-    const [cls,setCls]=React.useState("HIFZ CLASS A");
+  const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [session,setSession]=React.useState(initialSession||"morning");
   const [filterMonth,setFilterMonth]=React.useState(getTodayStr().substring(0,7));
   const [unsaved,setUnsaved]=React.useState(false);
   const [saveMsg,setSaveMsg]=React.useState("");
+  const [reasonModal,setReasonModal]=React.useState(null);
+  const [reasonText,setReasonText]=React.useState("");
+
   React.useEffect(()=>{if(initialSession)setSession(initialSession);},[initialSession]);
 
   const students=React.useMemo(()=>[
@@ -5107,30 +5135,80 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
   ].sort(),[records,cls]);
 
   const regIdx=React.useMemo(()=>buildRegisterIndex(registerData),[registerData]);
-  // Get all class dates for this class/session filtered by month
-  const planDates=getPlanDates(yearPlan,cls,session);
-  const allDates=planDates
-    .map(d=>{const ds=d.year+"-"+String(d.month).padStart(2,"0")+"-"+String(d.day).padStart(2,"0");return ds;})
-    .filter(d=>!filterMonth||d.startsWith(filterMonth))
-    .sort();
 
-  function getStatus(name,date){
-    return getStudentStatus(registerData,cls,session,date,name,regIdx);
+  const [selYear,selMonth]=React.useMemo(()=>{
+    const pts=(filterMonth||getTodayStr().substring(0,7)).split("-");
+    return[parseInt(pts[0]),parseInt(pts[1])];
+  },[filterMonth]);
+
+  const allDates=React.useMemo(()=>{
+    return getClassDatesForMonth(yearPlan,session,selYear,selMonth)
+      .map(d=>d.year+"-"+String(d.month).padStart(2,"0")+"-"+String(d.day).padStart(2,"0"));
+  },[yearPlan,session,selYear,selMonth]);
+
+  const monthOptions=React.useMemo(()=>{
+    const bounds=getTermBoundsFromPlan(yearPlan);
+    const opts=[];
+    const start=bounds.termStart?new Date(bounds.termStart):new Date(new Date().getFullYear(),new Date().getMonth()-2,1);
+    const end=bounds.termEnd?new Date(bounds.termEnd):new Date(new Date().getFullYear(),new Date().getMonth()+12,1);
+    start.setDate(1);
+    const cur=new Date(start);
+    while(cur<=end){
+      opts.push(cur.getFullYear()+"-"+String(cur.getMonth()+1).padStart(2,"0"));
+      cur.setMonth(cur.getMonth()+1);
+    }
+    return opts;
+  },[yearPlan]);
+
+  function getEntry(name,date){
+    const key=getRegisterKey(cls,session,date);
+    return regIdx.get(key+"||"+name)||null;
   }
 
   function cycleStatus(name,date){
-    const s=getStatus(name,date);
-    const order=["P","L","A","AG"];
-    const idx=order.indexOf(s.status);
-    const next=order[(idx+1)%order.length];
+    const entry=getEntry(name,date);
+    const cur=entry?entry.status:null;
+    let next;
+    if(!cur)next="P";
+    else if(cur==="P")next="A";
+    else if(cur==="A")next="AG";
+    else next=null;
+    const key=getRegisterKey(cls,session,date);
+    if(next===null){
+      setRegisterData(prev=>prev.filter(r=>!(r.key===key&&r.studentName===name)));
+    }else{
+      setRegisterData(prev=>{
+        const ei=prev.findIndex(r=>r.key===key&&r.studentName===name);
+        const base=ei>=0?prev[ei]:{key,class:cls,session,date,studentName:name,minutesLate:0,absenceReason:"",madeUp:false,msgSent:false};
+        const updated={...base,status:next,madeUp:next==="AG"};
+        if(ei>=0){const n=[...prev];n[ei]=updated;return n;}
+        return[...prev,updated];
+      });
+    }
+    setUnsaved(true);
+  }
+
+  function openReason(name,date){
+    const entry=getEntry(name,date);
+    setReasonText((entry&&entry.absenceReason)||"");
+    setReasonModal({name,date});
+  }
+
+  function saveReason(){
+    if(!reasonModal)return;
+    const{name,date}=reasonModal;
     const key=getRegisterKey(cls,session,date);
     setRegisterData(prev=>{
       const ei=prev.findIndex(r=>r.key===key&&r.studentName===name);
-      const cur=ei>=0?prev[ei]:{key,class:cls,session,date,studentName:name,status:"P",minutesLate:0,absenceReason:"",madeUp:false,msgSent:false};
-      const updated={...cur,status:next};
-      if(ei>=0){const n=[...prev];n[ei]=updated;return n;}
-      return[...prev,updated];
+      if(ei<0){
+        const newEntry={key,class:cls,session,date,studentName:name,status:"A",minutesLate:0,absenceReason:reasonText,madeUp:false,msgSent:false};
+        return[...prev,newEntry];
+      }
+      const n=[...prev];
+      n[ei]={...n[ei],absenceReason:reasonText};
+      return n;
     });
+    setReasonModal(null);
     setUnsaved(true);
   }
 
@@ -5138,102 +5216,137 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
     setSaveMsg("Syncing...");
     lsSaveRegister(registerData);
     setUnsaved(false);
-    syncNow().then(()=>setSaveMsg("✅ Synced!")).catch(()=>setSaveMsg("✅ Saved locally"));
+    syncNow().then(()=>setSaveMsg("Synced!")).catch(()=>setSaveMsg("Saved locally"));
     setTimeout(()=>setSaveMsg(""),3000);
   }
 
-  function statusStyle(status){
-    switch(status){
-      case"P":return{background:"#F0FDF4",color:"#16a34a",border:"1px solid #86EFAC",fontWeight:"600"};
-      case"L":return{background:"#FFFBEB",color:"#D97706",border:"1px solid #FCD34D",fontWeight:"600"};
-      case"A":return{background:"#FEF2F2",color:"#DC2626",border:"1px solid #FECACA",fontWeight:"600"};
-      case"AG":return{background:"#F0FDF4",color:"#15803D",border:"1px solid #4ADE80",fontWeight:"700"};
-      default:return{background:"#F9FAFB",color:"#9CA3AF",border:"1px solid #E5E7EB"};
-    }
+  const QUICK_REASONS=["Unwell","Abroad","Work","Hajj","Family","Childcare"];
+
+  function cellStyle(status){
+    if(status==="P")return{background:"#16a34a",color:"#fff",fontWeight:"700",borderRadius:6,padding:"4px 6px",minWidth:30,display:"inline-block",textAlign:"center",fontSize:12};
+    if(status==="A")return{background:"#DC2626",color:"#fff",fontWeight:"700",borderRadius:6,padding:"4px 6px",minWidth:30,display:"inline-block",textAlign:"center",fontSize:12};
+    if(status==="AG")return{background:"#2563eb",color:"#fff",fontWeight:"700",borderRadius:6,padding:"4px 6px",minWidth:30,display:"inline-block",textAlign:"center",fontSize:12};
+    return{background:"#F3F4F6",color:"#9CA3AF",borderRadius:6,padding:"4px 6px",minWidth:30,display:"inline-block",textAlign:"center",fontSize:12};
   }
 
-  function statusLabel(s,entry){
-    if(s==="L")return"L"+(entry.minutesLate?"("+entry.minutesLate+"m)":"");
-    if(s==="AG")return"A✓";
-    return s||"P";
-  }
+  const DOW_SHORT=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-  // Get available months
-  const allPlanMonths=[...new Set(planDates.map(d=>d.year+"-"+String(d.month).padStart(2,"0")))].sort();
+  return React.createElement('div',{style:{padding:"16px 12px 60px"}},
 
-  return(
-    React.createElement('div',{style:{padding:"20px 16px"}},
+    /* Header */
+    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}},
+      React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"📋 View Register"),
+      React.createElement('div',{style:{display:"flex",gap:8,alignItems:"center"}},
+        saveMsg&&React.createElement('span',{style:{color:"#16a34a",fontSize:12,fontWeight:"600"}},saveMsg),
+        unsaved&&React.createElement('button',{onClick:saveChanges,style:{background:"#B8934A",color:"#fff",border:"none",borderRadius:10,padding:"8px 18px",cursor:"pointer",fontWeight:"600",fontSize:13}},"Save")
+      )
+    ),
 
-      /* Header */
-      React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:10}},
-        React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"📋 View Register"+(session==="morning"?" (AM)":" (PM)")),
-        React.createElement('div',{style:{display:"flex",gap:8,alignItems:"center"}},
-          saveMsg&&React.createElement('span',{style:{color:"#16a34a",fontSize:12,fontWeight:"600"}},saveMsg),
-          unsaved&&React.createElement('button',{onClick:saveChanges,style:{background:"#B8934A",color:"#fff",border:"none",borderRadius:10,padding:"8px 18px",cursor:"pointer",fontWeight:"600",fontSize:13}},"💾 Save Changes")
+    /* Class pills */
+    React.createElement(ClassPills,{value:cls,onChange:setCls}),
+
+    /* Session + month row */
+    React.createElement('div',{style:{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap",alignItems:"center"}},
+      React.createElement('div',{style:{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid #E5E7EB"}},
+        [["morning","☀️ AM"],["evening","🌙 PM"]].map(([s,l],ti)=>
+          React.createElement('button',{key:s,onClick:()=>setSession(s),style:{
+            background:session===s?"#1e2d3d":"#fff",color:session===s?"#fff":"#6b7280",
+            border:"none",borderRight:ti<1?"1px solid #E5E7EB":"none",
+            padding:"8px 18px",cursor:"pointer",fontSize:12,fontWeight:session===s?"700":"400"}},l)
         )
       ),
+      React.createElement('select',{value:filterMonth,onChange:e=>setFilterMonth(e.target.value),
+        style:{flex:1,border:"1px solid #E5E7EB",borderRadius:8,padding:"8px 12px",fontSize:13,color:"#374151",outline:"none",background:"#fff",fontWeight:"600"}},
+        monthOptions.map(m=>{
+          const[y,mo]=m.split("-");
+          const lbl=new Date(parseInt(y),parseInt(mo)-1,1).toLocaleString("default",{month:"long",year:"numeric"});
+          return React.createElement('option',{key:m,value:m},lbl);
+        })
+      )
+    ),
 
-      /* Class pills (big & uniform) */
-      React.createElement(ClassPills,{value:cls,onChange:setCls}),
-      React.createElement('div',{style:{display:"flex",alignItems:"center",justifyContent:"flex-end",marginBottom:14}},
-        React.createElement('select',{value:filterMonth,onChange:e=>setFilterMonth(e.target.value),
-          style:{border:"1.5px solid #DCE2EC",borderRadius:10,padding:"8px 12px",fontSize:12.5,color:"#374151",outline:"none",background:"#fff",fontWeight:"600"}},
-          React.createElement('option',{value:""},"All months"),
-          allPlanMonths.filter(Boolean).map(m=>{
-            const [y,mo]=(m||"-").split("-");
-            const lbl=new Date(parseInt(y),parseInt(mo)-1,1).toLocaleString("default",{month:"long",year:"numeric"});
-            return React.createElement('option',{key:m,value:m},lbl);
-          })
-        )
-      ),
-
-      
-
-      /* Register grid */
-      allDates.length===0
-        ? React.createElement('div',{style:{textAlign:"center",padding:60,color:"#9CA3AF",fontSize:14}},"No class dates for this period. Set dates in Year Planner.")
-        : React.createElement('div',{style:{overflowX:"auto"}},
-            React.createElement('table',{style:{borderCollapse:"collapse",width:"100%",fontSize:12}},
-              /* Header */
-              React.createElement('thead',null,
-                React.createElement('tr',null,
-                  React.createElement('th',{style:{position:"sticky",left:0,background:"#1e2d3d",color:"#94a3b8",padding:"10px 16px",textAlign:"left",fontWeight:"600",fontSize:11,whiteSpace:"nowrap",zIndex:10}},"Student"),
-                  ...allDates.map(d=>React.createElement('th',{key:d,style:{background:"#1e2d3d",color:"#94a3b8",padding:"8px 6px",textAlign:"center",fontWeight:"600",fontSize:10,whiteSpace:"nowrap",minWidth:40}},
-                    formatDateDMYShort(d).substring(0,5)
-                  ))
-                )
-              ),
-              React.createElement('tbody',null,
-                students.map((name,ri)=>React.createElement('tr',{key:name,style:{background:ri%2===0?"#fff":"#FAFAFA"}},
-                  React.createElement('td',{style:{position:"sticky",left:0,background:ri%2===0?"#fff":"#FAFAFA",padding:"10px 16px",color:"#1a1f2e",fontWeight:"500",fontSize:13,whiteSpace:"nowrap",borderRight:"1px solid #F3F4F6",zIndex:5}},name),
-                  ...allDates.map(d=>{
-                    const entry=getStatus(name,d);
-                    const st=entry.status||"P";
-                    const ss=statusStyle(st);
-                    return React.createElement('td',{key:d,
-                      onClick:()=>cycleStatus(name,d),
-                      title:st==="L"&&entry.minutesLate?"Late: "+entry.minutesLate+" min":st==="A"&&entry.absenceReason?"Absent: "+entry.absenceReason:st==="AG"?"Absence made up":"",
-                      style:{textAlign:"center",padding:"6px 4px",cursor:"pointer"}
-                    },
-                      React.createElement('div',{style:{...ss,borderRadius:5,padding:"3px 5px",fontSize:11,minWidth:32,display:"inline-block",textAlign:"center"}},
-                        statusLabel(st,entry)
-                      )
-                    );
-                  })
-                ))
+    /* Register grid or empty */
+    allDates.length===0
+      ? React.createElement('div',{style:{textAlign:"center",padding:60,color:"#9CA3AF",fontSize:14}},"No class days in this month. Check Year Planner.")
+      : React.createElement('div',{style:{overflowX:"auto",borderRadius:12,border:"1px solid #E5E7EB"}},
+          React.createElement('table',{style:{borderCollapse:"collapse",width:"100%",fontSize:12}},
+            React.createElement('thead',null,
+              React.createElement('tr',null,
+                React.createElement('th',{style:{position:"sticky",left:0,background:"#1e2d3d",color:"#94a3b8",padding:"10px 14px",textAlign:"left",fontWeight:"600",fontSize:11,whiteSpace:"nowrap",zIndex:10,minWidth:130}},"Student"),
+                allDates.map(d=>{
+                  const dt=new Date(d+"T00:00:00");
+                  const day=dt.getDate();
+                  const dow=DOW_SHORT[dt.getDay()];
+                  const mon=dt.toLocaleString("default",{month:"short"});
+                  return React.createElement('th',{key:d,style:{background:"#1e2d3d",color:"#94a3b8",padding:"6px 4px",textAlign:"center",fontWeight:"600",fontSize:10,whiteSpace:"nowrap",minWidth:44}},
+                    React.createElement('div',null,dow),
+                    React.createElement('div',{style:{color:"#fff",fontWeight:"700",fontSize:12}},day),
+                    React.createElement('div',{style:{fontSize:9}},mon)
+                  );
+                })
               )
+            ),
+            React.createElement('tbody',null,
+              students.map((name,ri)=>React.createElement('tr',{key:name,style:{background:ri%2===0?"#fff":"#FAFAFA"}},
+                React.createElement('td',{style:{position:"sticky",left:0,background:ri%2===0?"#fff":"#FAFAFA",padding:"8px 14px",color:"#1a1f2e",fontWeight:"500",fontSize:13,whiteSpace:"nowrap",borderRight:"1px solid #F3F4F6",zIndex:5}},
+                  (ri+1)+". "+name
+                ),
+                allDates.map(d=>{
+                  const entry=getEntry(name,d);
+                  const st=entry?entry.status:null;
+                  const hasReason=entry&&entry.absenceReason;
+                  return React.createElement('td',{key:d,style:{textAlign:"center",padding:"4px 3px",verticalAlign:"middle"}},
+                    React.createElement('div',{style:{display:"flex",alignItems:"center",justifyContent:"center",gap:2}},
+                      React.createElement('span',{onClick:()=>cycleStatus(name,d),style:{...cellStyle(st),cursor:"pointer"}},
+                        st==="AG"?"A✓":st||"—"
+                      ),
+                      React.createElement('button',{
+                        onClick:()=>openReason(name,d),
+                        title:hasReason?entry.absenceReason:"Add absence reason",
+                        style:{width:8,height:8,borderRadius:"50%",border:"none",padding:0,cursor:"pointer",
+                          background:hasReason?"#d97706":"#D1D5DB",flexShrink:0}
+                      })
+                    )
+                  );
+                })
+              ))
             )
-          ),
-
-      /* Legend (bottom) */
-      React.createElement('div',{style:{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center",justifyContent:"center",background:"#fff",border:"1.5px solid #E3E7EF",borderRadius:12,padding:"10px 14px",marginTop:16}},
-        [["P","Present","#16a34a","#F0FDF4","#86EFAC"],["L","Late","#D97706","#FFFBEB","#FCD34D"],["A","Absent","#DC2626","#FEF2F2","#FECACA"],["AG","Made Up","#15803D","#F0FDF4","#4ADE80"]].map(([code,label,color,bg,border])=>
-          React.createElement('div',{key:code,style:{display:"flex",alignItems:"center",gap:4}},
-            React.createElement('div',{style:{background:bg,color,border:"1px solid "+border,borderRadius:4,padding:"2px 6px",fontSize:11,fontWeight:"600"}},code==="AG"?"A✓":code),
-            React.createElement('span',{style:{color:"#6b7280",fontSize:11}},label)
           )
         ),
-        React.createElement('span',{style:{color:"#9CA3AF",fontSize:11,marginLeft:4}},"— click a cell to cycle status")
+
+    /* Legend */
+    React.createElement('div',{style:{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center",justifyContent:"center",background:"#fff",border:"1px solid #E5E7EB",borderRadius:10,padding:"10px 14px",marginTop:14}},
+      [["P","Present","#16a34a"],["A","Absent","#DC2626"],["A✓","Made Up","#2563eb"],["—","Unmarked","#9CA3AF"]].map(([code,label,color])=>
+        React.createElement('div',{key:code,style:{display:"flex",alignItems:"center",gap:4}},
+          React.createElement('span',{style:{background:code==="—"?"#F3F4F6":color,color:code==="—"?"#9CA3AF":"#fff",borderRadius:5,padding:"2px 7px",fontSize:11,fontWeight:"700"}},code),
+          React.createElement('span',{style:{color:"#6b7280",fontSize:11}},label)
+        )
+      ),
+      React.createElement('span',{style:{color:"#9CA3AF",fontSize:11}},"· tap cell to cycle · dot = absence reason")
+    ),
+
+    /* Reason modal */
+    reasonModal&&React.createElement('div',{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:1000,display:"flex",alignItems:"flex-end",justifyContent:"center"},
+      onClick:e=>{if(e.target===e.currentTarget)setReasonModal(null);}},
+      React.createElement('div',{style:{background:"#fff",borderRadius:"20px 20px 0 0",padding:"24px 20px 36px",width:"100%",maxWidth:480,boxShadow:"0 -4px 24px rgba(0,0,0,0.15)"}},
+        React.createElement('div',{style:{fontWeight:"700",fontSize:17,color:"#1a1f2e",marginBottom:6}},"Reason for Absence"),
+        React.createElement('div',{style:{color:"#6b7280",fontSize:12,marginBottom:16}},reasonModal.name+" · "+formatDateDMYShort(reasonModal.date)),
+        React.createElement('div',{style:{fontSize:11,fontWeight:"700",color:"#B8934A",letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:8}},"Quick pick"),
+        React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16}},
+          QUICK_REASONS.map(r=>React.createElement('button',{key:r,
+            onClick:()=>setReasonText(r),
+            style:{background:reasonText===r?"#1e2d3d":"#F3F4F6",color:reasonText===r?"#fff":"#374151",
+              border:"none",borderRadius:20,padding:"7px 14px",cursor:"pointer",fontSize:13,fontWeight:"600"}},r))
+        ),
+        React.createElement('div',{style:{fontSize:11,fontWeight:"700",color:"#9CA3AF",letterSpacing:"0.8px",textTransform:"uppercase",marginBottom:6}},"Or type a reason"),
+        React.createElement('textarea',{value:reasonText,onChange:e=>setReasonText(e.target.value),
+          placeholder:"Enter reason...",
+          style:{width:"100%",border:"1.5px solid #E5E7EB",borderRadius:10,padding:"10px 12px",fontSize:14,outline:"none",resize:"none",height:80,boxSizing:"border-box"}}),
+        React.createElement('div',{style:{display:"flex",gap:10,marginTop:14}},
+          React.createElement('button',{onClick:()=>setReasonModal(null),style:{flex:1,padding:"12px",border:"1px solid #E5E7EB",borderRadius:10,background:"#fff",cursor:"pointer",fontSize:14,fontWeight:"600",color:"#6b7280"}},"Cancel"),
+          React.createElement('button',{onClick:()=>{setReasonText("");},style:{flex:1,padding:"12px",border:"none",borderRadius:10,background:"#FEE2E2",cursor:"pointer",fontSize:14,fontWeight:"700",color:"#DC2626"}},"Clear"),
+          React.createElement('button',{onClick:saveReason,style:{flex:2,padding:"12px",border:"none",borderRadius:10,background:"#16a34a",cursor:"pointer",fontSize:14,fontWeight:"700",color:"#fff"}},"Save")
+        )
       )
     )
   );
