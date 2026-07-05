@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260703-140000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260703-160000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -4430,19 +4430,29 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
   const [startYear,setStartYear]=React.useState(()=>{const n=new Date();return n.getMonth()<6?n.getFullYear()-1:n.getFullYear();});
   const [startMonth,setStartMonth]=React.useState(7);
   const [activeTab,setActiveTab]=React.useState("morning");
+  const [schedOpen,setSchedOpen]=React.useState(false);
 
   const months=getMonthsForPlanner(startYear,startMonth,12);
 
-  const STATUS_CYCLE=["class","holiday","exam"];
+  const STATUS_CYCLE=["class","holiday","exam","boys_jalsa","girls_jalsa","parents"];
   const STATUS_INFO={
-    class:   {bg:"#FFF7ED",color:"#92400E",border:"#B8934A",label:"Class day"},
-    holiday: {bg:"#FEE2E2",color:"#DC2626",border:"#DC2626",label:"Holiday"},
-    exam:    {bg:"#DCFCE7",color:"#16a34a",border:"#16a34a",label:"Exam / Revision"},
-    parents: {bg:"#FEF9C3",color:"#ca8a04",border:"#ca8a04",label:"Parents Evening"},
-    boys_jalsa:  {bg:"#FEF3C7",color:"#d97706",border:"#d97706",label:"Boys Jalsah"},
-    girls_jalsa: {bg:"#F3E8FF",color:"#7c3aed",border:"#7c3aed",label:"Girls Jalsah"},
+    class:      {bg:"#FFF7ED",color:"#92400E",border:"#B8934A",label:"Class"},
+    holiday:    {bg:"#FEE2E2",color:"#DC2626",border:"#DC2626",label:"Holiday"},
+    exam:       {bg:"#DCFCE7",color:"#16a34a",border:"#16a34a",label:"Exam / Revision"},
+    boys_jalsa: {bg:"#FEF3C7",color:"#d97706",border:"#d97706",label:"Boys Jalsah"},
+    girls_jalsa:{bg:"#F3E8FF",color:"#7c3aed",border:"#7c3aed",label:"Girls Jalsah"},
+    parents:    {bg:"#FEF9C3",color:"#ca8a04",border:"#ca8a04",label:"Parents Evening"},
   };
+  /* Distinct header color per calendar month (indexed by month-1, Jan=0) */
+  const MONTH_COLORS=["#4c1d95","#be185d","#14532d","#9a3412","#166534","#92400e","#1e3a5f","#065f46","#7c2d12","#312e81","#134e4a","#1e1b4b"];
   const DOW_LABELS=["M","T","W","T","F","S","S"];
+  const SPECIAL_TYPES=[
+    {key:"exam",label:"Exam / Revision",color:"#16a34a",bg:"#dcfce7",dot:"🟩"},
+    {key:"parents",label:"Parents Evening",color:"#ca8a04",bg:"#fef9c3",dot:"🟨"},
+    {key:"boys_jalsa",label:"Boys Jalsah",color:"#d97706",bg:"#fef3c7",dot:"🟧"},
+    {key:"girls_jalsa",label:"Girls Jalsah",color:"#7c3aed",bg:"#f3e8ff",dot:"🟪"},
+    {key:"holiday",label:"Holiday",color:"#dc2626",bg:"#fee2e2",dot:"🟥"},
+  ];
 
   function dayStatus(session,year,month,day){
     return getDayPlanStatus(yearPlan,session,year,month,day);
@@ -4454,18 +4464,17 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     const dow=new Date(year,month-1,day).getDay();
     const isScheduled=sched.includes(dow);
     let next;
-    if(cur===null){next="class";}
-    else{
+    if(cur===null){
+      next="class";
+    }else if(isScheduled&&cur==="class"){
+      next="holiday";
+    }else{
       const idx=STATUS_CYCLE.indexOf(cur);
-      if(idx===-1){next="class";}
-      else{
-        const nidx=(idx+1)%STATUS_CYCLE.length;
-        next=STATUS_CYCLE[nidx];
-        if(next==="class"&&isScheduled){next="__remove__";}
-      }
+      if(idx<0||idx===STATUS_CYCLE.length-1){next="__remove__";}
+      else{next=STATUS_CYCLE[idx+1];}
     }
     const ovs=getSessionOverrides(yearPlan,session).filter(o=>!(o.year===year&&o.month===month&&o.day===day));
-    if(next!=="__remove__"){ovs.push({year,month,day,status:next});}
+    if(next!=="__remove__")ovs.push({year,month,day,status:next});
     setSessionOverrides(setYearPlan,session,ovs);
   }
 
@@ -4476,7 +4485,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     if(status!=="class"){
       for(let d=1;d<=daysInMonth;d++){
         const dow=new Date(year,month-1,d).getDay();
-        if(sched.includes(dow)){ovs.push({year,month,day:d,status});}
+        if(sched.includes(dow))ovs.push({year,month,day:d,status});
       }
     }
     setSessionOverrides(setYearPlan,session,ovs);
@@ -4485,7 +4494,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
   function printPlanner(){
     const printWin=window.open("","_blank");
     if(!printWin){showToast("Pop-up blocked — allow pop-ups and try again.","warning");return;}
-    try{const html=buildPlannerPrintHTML(yearPlan,months,CLASSES[0],[]);printWin.document.write(html);printWin.document.close();printWin.print();}
+    try{const html=buildPlannerPrintHTML(yearPlan,months,CLASSES[0],SPECIAL_TYPES);printWin.document.write(html);printWin.document.close();printWin.print();}
     catch(e){try{printWin.close();}catch(ex){}showToast("Print failed: "+e.message,"error");}
   }
 
@@ -4493,26 +4502,32 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     const sched=getSessionSchedule(yearPlan,session);
     const accent=session==="morning"?"#B8934A":"#2563eb";
     const DAYS=[{dow:1,l:"Mon"},{dow:2,l:"Tue"},{dow:3,l:"Wed"},{dow:4,l:"Thu"},{dow:5,l:"Fri"},{dow:6,l:"Sat"},{dow:0,l:"Sun"}];
+
     return React.createElement('div',null,
-      /* Schedule picker */
-      React.createElement('div',{style:{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"14px 18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}},
-        React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:13,marginBottom:10}},"Teaching days for this session:"),
-        React.createElement('div',{style:{display:"flex",gap:8,flexWrap:"wrap"}},
-          DAYS.map(({dow,l})=>{
-            const active=sched.includes(dow);
-            return React.createElement('button',{key:dow,onClick:()=>{
-              const ns=active?sched.filter(d=>d!==dow):[...sched,dow].sort();
-              setSessionSchedule(setYearPlan,session,ns);
-            },style:{background:active?accent:"#F9FAFB",color:active?"#fff":"#6b7280",
-              border:"1px solid "+(active?accent:"#E5E7EB"),borderRadius:8,
-              padding:"6px 14px",cursor:"pointer",fontSize:13,fontWeight:active?"700":"400",
-              minWidth:52,textAlign:"center"}},l);
-          })
-        )
+
+      /* ── Collapsible schedule ── */
+      React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8,marginBottom:schedOpen?0:14}},
+        React.createElement('button',{
+          onClick:()=>setSchedOpen(o=>!o),
+          style:{background:"#F8F9FA",border:"1px solid #E5E7EB",borderRadius:20,padding:"5px 14px",cursor:"pointer",fontSize:12,color:"#6b7280",fontWeight:"600",display:"flex",alignItems:"center",gap:5}
+        },"⚙️ Teaching days "+(schedOpen?"▲":"▼"))
       ),
-      /* Calendar grid */
-      React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}},
+      schedOpen&&React.createElement('div',{style:{background:"#fff",borderRadius:10,border:"1px solid #E5E7EB",padding:"12px 16px",marginBottom:14,display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}},
+        DAYS.map(({dow,l})=>{
+          const active=sched.includes(dow);
+          return React.createElement('button',{key:dow,onClick:()=>{
+            const ns=active?sched.filter(d=>d!==dow):[...sched,dow].sort();
+            setSessionSchedule(setYearPlan,session,ns);
+          },style:{background:active?accent:"#F9FAFB",color:active?"#fff":"#9CA3AF",
+            border:"1px solid "+(active?accent:"#E5E7EB"),borderRadius:8,
+            padding:"5px 14px",cursor:"pointer",fontSize:13,fontWeight:active?"700":"500",minWidth:52,textAlign:"center"}},l);
+        })
+      ),
+
+      /* ── Month calendar grid ── */
+      React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:14}},
         months.map((m,mi)=>{
+          const hdrColor=MONTH_COLORS[(m.month-1)%12];
           const firstDow=new Date(m.year,m.month-1,1).getDay();
           const offset=(firstDow+6)%7;
           const daysInMonth=new Date(m.year,m.month,0).getDate();
@@ -4521,28 +4536,36 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
           for(let d=1;d<=daysInMonth;d++)cells.push(d);
           let classCt=0;
           for(let d=1;d<=daysInMonth;d++){if(dayStatus(session,m.year,m.month,d)==="class")classCt++;}
-          return React.createElement('div',{key:mi,style:{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}},
+
+          return React.createElement('div',{key:mi,style:{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",overflow:"hidden",boxShadow:"0 2px 6px rgba(0,0,0,0.06)"}},
+
             /* Month header */
-            React.createElement('div',{style:{background:"#1e2d3d",padding:"8px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}},
-              React.createElement('span',{style:{color:"#fff",fontWeight:"700",fontSize:13}},m.label),
-              React.createElement('span',{style:{color:"#94a3b8",fontSize:11}},classCt+" class days")
+            React.createElement('div',{style:{background:hdrColor,padding:"9px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}},
+              React.createElement('span',{style:{color:"#fff",fontWeight:"700",fontSize:13,letterSpacing:"0.3px"}},m.label),
+              React.createElement('span',{style:{color:"rgba(255,255,255,0.65)",fontSize:11,fontWeight:"600"}},classCt+" class days")
             ),
+
             /* Bulk buttons */
-            React.createElement('div',{style:{display:"flex",gap:4,padding:"5px 6px",borderBottom:"1px solid #F3F4F6",background:"#FAFAFA"}},
-              [["class","📚 All class","#FFF7ED","#92400E","#B8934A"],
+            React.createElement('div',{style:{display:"flex",borderBottom:"1px solid #F3F4F6"}},
+              [["class","📚 Reset","#FFF7ED","#92400E","#B8934A"],
                ["holiday","🏖 Holiday","#FEE2E2","#DC2626","#DC2626"],
-               ["exam","📝 Exam","#DCFCE7","#16a34a","#16a34a"]
+               ["exam","📝 Exam","#DCFCE7","#16a34a","#16a34a"],
+               ["boys_jalsa","👦 Boys","#FEF3C7","#d97706","#d97706"],
+               ["girls_jalsa","👧 Girls","#F3E8FF","#7c3aed","#7c3aed"]
               ].map(([st,lbl,bg,col,bdr])=>
-                React.createElement('button',{key:st,onClick:()=>markMonth(session,m.year,m.month,st),
-                  style:{flex:1,background:bg,color:col,border:"1px solid "+bdr+"44",borderRadius:6,
-                    padding:"4px 3px",cursor:"pointer",fontSize:10,fontWeight:"700",whiteSpace:"nowrap"}},lbl)
+                React.createElement('button',{key:st,
+                  onClick:function(e){e.stopPropagation();markMonth(session,m.year,m.month,st);},
+                  style:{flex:1,background:bg,color:col,border:"none",borderRight:"1px solid #F3F4F6",
+                    padding:"5px 2px",cursor:"pointer",fontSize:9,fontWeight:"700",lineHeight:1.3}},lbl)
               )
             ),
+
             /* DOW header */
             React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#F8F9FA",borderBottom:"1px solid #f3f4f6"}},
-              DOW_LABELS.map((l,i)=>React.createElement('div',{key:i,style:{textAlign:"center",fontSize:10,fontWeight:"700",color:i>=5?"#DC2626":"#6B7280",padding:"3px 2px"}},l))
+              DOW_LABELS.map((l,i)=>React.createElement('div',{key:i,style:{textAlign:"center",fontSize:10,fontWeight:"700",color:i>=5?"#ef4444":"#9CA3AF",padding:"3px 2px"}},l))
             ),
-            /* Days */
+
+            /* Day cells */
             React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,padding:4}},
               cells.map((day,ci)=>{
                 if(!day)return React.createElement('div',{key:ci,style:{minHeight:28}});
@@ -4551,14 +4574,14 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
                 const colIdx=ci%7;
                 const isWknd=colIdx>=5;
                 return React.createElement('button',{key:ci,
-                  onClick:()=>cycleDay(session,m.year,m.month,day),
-                  title:info?info.label:(isWknd?"Weekend":"No class"),
+                  onClick:function(e){e.stopPropagation();cycleDay(session,m.year,m.month,day);},
+                  title:info?info.label:(isWknd?"Weekend / no class":"No class scheduled"),
                   style:{
-                    background:info?info.bg:(isWknd?"#F3F4F6":"#F9FAFB"),
-                    color:info?info.color:(isWknd?"#D1D5DB":"#D1D5DB"),
-                    border:"1px solid "+(info?(info.border+"55"):"#F0F0F0"),
+                    background:info?info.bg:(isWknd?"#FEF2F2":"#F9FAFB"),
+                    color:info?info.color:(isWknd?"#FCA5A5":"#D1D5DB"),
+                    border:"1px solid "+(info?(info.border+"55"):"#F3F4F6"),
                     borderRadius:4,padding:"4px 2px",cursor:"pointer",
-                    fontSize:11,fontWeight:info?"700":"400",lineHeight:1.2,
+                    fontSize:11,fontWeight:info?"700":"400",
                     minHeight:28,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",
                   }
                 },day);
@@ -4570,82 +4593,51 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     );
   }
 
-  const holidayRanges=getHolidayRanges(yearPlan);
-  function addHolidayRange(){setHolidayRanges(yearPlan,setYearPlan,[...holidayRanges,{from:"",to:""}]);}
-  function removeHolidayRange(i){setHolidayRanges(yearPlan,setYearPlan,holidayRanges.filter((_,idx)=>idx!==i));}
-  function updateHolidayRange(i,field,val){setHolidayRanges(yearPlan,setYearPlan,holidayRanges.map((r,idx)=>idx===i?{...r,[field]:val}:r));}
-
   return React.createElement('div',{style:{padding:"20px 16px 48px",maxWidth:960,margin:"0 auto"}},
 
     /* ── Header ── */
-    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:10}},
-      React.createElement('div',null,
-        React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"800",fontSize:22}},"📅 Year Planner"),
-        React.createElement('div',{style:{color:"#9CA3AF",fontSize:12,marginTop:4,fontWeight:"500"}},
-          "All scheduled days are class days by default — tap a day to mark it as holiday or exam"
+    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:10}},
+      React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"800",fontSize:22}},"📅 Year Planner"),
+      React.createElement('div',{style:{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}},
+        React.createElement('select',{value:startMonth,onChange:e=>setStartMonth(parseInt(e.target.value)),style:{border:"1px solid #E5E7EB",borderRadius:7,padding:"6px 10px",fontSize:12,outline:"none",background:"#fff",color:"#374151"}},
+          [...Array(12)].map((_,i)=>{const d=new Date(2026,i,1);return React.createElement('option',{key:i+1,value:i+1},d.toLocaleString("default",{month:"short"}));})
+        ),
+        React.createElement('select',{value:startYear,onChange:e=>setStartYear(parseInt(e.target.value)),style:{border:"1px solid #E5E7EB",borderRadius:7,padding:"6px 10px",fontSize:12,outline:"none",background:"#fff",color:"#374151"}},
+          [2024,2025,2026,2027,2028].map(y=>React.createElement('option',{key:y,value:y},y))
         )
-      ),
-      React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:10,padding:"10px 20px",cursor:"pointer",fontWeight:"600",fontSize:13,whiteSpace:"nowrap"}},"🖨 Print / PDF")
-    ),
-
-    /* ── Academic year ── */
-    React.createElement('div',{style:{display:"flex",gap:10,marginBottom:20,alignItems:"center",flexWrap:"wrap",background:"#F8F9FA",border:"1px solid #E5E7EB",borderRadius:10,padding:"10px 14px"}},
-      React.createElement('span',{style:{color:"#374151",fontSize:13,fontWeight:"600"}},"Academic year starts:"),
-      React.createElement('select',{value:startMonth,onChange:e=>setStartMonth(parseInt(e.target.value)),style:{border:"1px solid #E5E7EB",borderRadius:7,padding:"6px 12px",fontSize:13,outline:"none",background:"#fff",color:"#374151"}},
-        [...Array(12)].map((_,i)=>{const d=new Date(2026,i,1);return React.createElement('option',{key:i+1,value:i+1},d.toLocaleString("default",{month:"long"}));})
-      ),
-      React.createElement('select',{value:startYear,onChange:e=>setStartYear(parseInt(e.target.value)),style:{border:"1px solid #E5E7EB",borderRadius:7,padding:"6px 12px",fontSize:13,outline:"none",background:"#fff",color:"#374151"}},
-        [2024,2025,2026,2027,2028].map(y=>React.createElement('option',{key:y,value:y},y))
       )
     ),
 
     /* ── Tabs ── */
     React.createElement('div',{style:{display:"flex",borderRadius:10,overflow:"hidden",border:"1px solid #E5E7EB",marginBottom:20,width:"fit-content",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}},
-      [["morning","☀️ Morning"],["evening","🌙 Evening"],["holidays","🗓 Holidays"]].map(([tab,label],ti)=>
-        React.createElement('button',{key:tab,onClick:()=>setActiveTab(tab),style:{background:activeTab===tab?"#1e2d3d":"#fff",color:activeTab===tab?"#fff":"#6b7280",border:"none",borderRight:ti<2?"1px solid #E5E7EB":"none",padding:"10px 18px",cursor:"pointer",fontSize:13,fontWeight:activeTab===tab?"700":"400"}},label)
+      [["morning","☀️ Morning"],["evening","🌙 Evening"]].map(([tab,label],ti)=>
+        React.createElement('button',{key:tab,onClick:()=>setActiveTab(tab),style:{background:activeTab===tab?"#1e2d3d":"#fff",color:activeTab===tab?"#fff":"#6b7280",border:"none",borderRight:ti<1?"1px solid #E5E7EB":"none",padding:"10px 22px",cursor:"pointer",fontSize:13,fontWeight:activeTab===tab?"700":"400"}},label)
       )
     ),
 
     activeTab==="morning"&&renderSession("morning"),
     activeTab==="evening"&&renderSession("evening"),
 
-    /* ══ HOLIDAYS TAB ══ */
-    activeTab==="holidays"&&React.createElement('div',null,
-      React.createElement('div',{style:{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}},
-        React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:14,marginBottom:6}},"📅 Holiday Date Ranges"),
-        React.createElement('div',{style:{color:"#6b7280",fontSize:12,marginBottom:14}},"These ranges apply globally — all scheduled days in the range become holidays in both sessions."),
-        holidayRanges.length===0&&React.createElement('div',{style:{color:"#9CA3AF",fontSize:13,marginBottom:12,fontStyle:"italic"}},"No date ranges added yet."),
-        holidayRanges.map((r,i)=>React.createElement('div',{key:i,style:{display:"flex",alignItems:"center",gap:10,marginBottom:10,flexWrap:"wrap"}},
-          React.createElement('span',{style:{color:"#6b7280",fontSize:13,fontWeight:"500",minWidth:36}},"From"),
-          React.createElement('input',{type:"date",value:r.from||"",onChange:e=>updateHolidayRange(i,"from",e.target.value),style:{border:"1px solid #E5E7EB",borderRadius:8,padding:"7px 12px",fontSize:13,outline:"none"}}),
-          React.createElement('span',{style:{color:"#6b7280",fontSize:13,fontWeight:"500"}},"To"),
-          React.createElement('input',{type:"date",value:r.to||"",onChange:e=>updateHolidayRange(i,"to",e.target.value),style:{border:"1px solid #E5E7EB",borderRadius:8,padding:"7px 12px",fontSize:13,outline:"none"}}),
-          React.createElement('button',{onClick:()=>removeHolidayRange(i),style:{background:"#DC2626",color:"#fff",border:"none",borderRadius:7,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:"700"}},"✕ Remove")
-        )),
-        React.createElement('button',{onClick:addHolidayRange,style:{background:"#F8F9FA",border:"1px solid #E5E7EB",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontSize:13,color:"#374151",fontWeight:"600"}},"+ Add Date Range")
-      )
-    ),
-
     /* ── Legend ── */
-    React.createElement('div',{style:{marginTop:24,background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"14px 18px",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}},
-      React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:13,marginBottom:10}},"Legend — tap a day to cycle its status"),
+    React.createElement('div',{style:{marginTop:24,background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"12px 16px"}},
+      React.createElement('div',{style:{color:"#6b7280",fontSize:11,fontWeight:"700",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}},"Tap a day to cycle its status"),
       React.createElement('div',{style:{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}},
-        Object.entries(STATUS_INFO).map(([k,v])=>React.createElement('div',{key:k,style:{display:"flex",alignItems:"center",gap:5}},
-          React.createElement('div',{style:{width:12,height:12,borderRadius:3,background:v.bg,border:"1.5px solid "+v.border,flexShrink:0}}),
-          React.createElement('span',{style:{color:"#6b7280",fontSize:12}},v.label)
+        Object.entries(STATUS_INFO).map(([k,v])=>React.createElement('div',{key:k,style:{display:"flex",alignItems:"center",gap:4}},
+          React.createElement('div',{style:{width:11,height:11,borderRadius:3,background:v.bg,border:"1.5px solid "+v.border,flexShrink:0}}),
+          React.createElement('span',{style:{color:"#6b7280",fontSize:11}},v.label)
         ))
       )
     ),
 
-    /* ── Calendar preview ── */
-    React.createElement('div',{style:{marginTop:24}},
-      React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:14,marginBottom:14}},"📋 Annual Overview"),
-      React.createElement(PlannerCalendarView,{yearPlan,months,cls:CLASSES[0],SPECIAL_TYPES:[]})
+    /* ── Annual overview ── */
+    React.createElement('div',{style:{marginTop:20}},
+      React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:13,marginBottom:12}},"Annual Overview"),
+      React.createElement(PlannerCalendarView,{yearPlan,months,cls:CLASSES[0],SPECIAL_TYPES})
     ),
 
     /* ── Print ── */
-    React.createElement('div',{style:{marginTop:20,display:"flex",gap:10,flexWrap:"wrap"}},
-      React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:10,padding:"12px 24px",cursor:"pointer",fontWeight:"700",fontSize:14}},"🖨 Print / Save as PDF")
+    React.createElement('div',{style:{marginTop:20}},
+      React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:"700",fontSize:14}},"🖨 Print / Save as PDF")
     )
   );
 }
