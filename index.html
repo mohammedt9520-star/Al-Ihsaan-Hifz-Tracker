@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260703-170000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260703-172000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -4460,7 +4460,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     exam:       {bg:"#DCFCE7",color:"#16a34a",border:"#16a34a",label:"Exam / Revision"},
     boys_jalsa: {bg:"#FEF3C7",color:"#d97706",border:"#d97706",label:"Boys Jalsah"},
     girls_jalsa:{bg:"#F3E8FF",color:"#7c3aed",border:"#7c3aed",label:"Girls Jalsah"},
-    parents:    {bg:"#FEF9C3",color:"#ca8a04",border:"#ca8a04",label:"Parents Evening"},
+    parents:    {bg:"#DBEAFE",color:"#1d4ed8",border:"#1d4ed8",label:"Parents Evening"},
   };
   const MONTH_COLORS=["#4c1d95","#be185d","#14532d","#9a3412","#166534","#92400e","#1e3a5f","#065f46","#7c2d12","#312e81","#134e4a","#1e1b4b"];
   const DOW_LABELS=["M","T","W","T","F","S","S"];
@@ -4524,6 +4524,13 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     const DAYS=[{dow:1,l:"Mon"},{dow:2,l:"Tue"},{dow:3,l:"Wed"},{dow:4,l:"Thu"},{dow:5,l:"Fri"},{dow:6,l:"Sat"},{dow:0,l:"Sun"}];
 
     return React.createElement('div',null,
+
+      session==="evening"&&React.createElement('div',{style:{marginBottom:10}},
+        React.createElement('button',{
+          onClick:function(){setSessionOverrides(setYearPlan,"evening",[...getSessionOverrides(yearPlan,"morning")]);},
+          style:{background:"#f0f9ff",color:"#0369a1",border:"1px solid #bae6fd",borderRadius:8,padding:"7px 16px",cursor:"pointer",fontSize:12,fontWeight:"600"}
+        },"📋 Copy plan from morning")
+      ),
 
       React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8,marginBottom:schedOpen?0:14}},
         React.createElement('button',{
@@ -4670,7 +4677,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 
     React.createElement('div',{style:{marginTop:20}},
       React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:13,marginBottom:12}},"Annual Overview"),
-      React.createElement(PlannerCalendarView,{yearPlan,months,cls:CLASSES[0],SPECIAL_TYPES})
+      React.createElement(PlannerCalendarView,{yearPlan,months,cls:CLASSES[0],SPECIAL_TYPES,termBounds})
     ),
 
     React.createElement('div',{style:{marginTop:20}},
@@ -4680,10 +4687,19 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 }
 
 // ─── PLANNER CALENDAR VIEW COMPONENT ──────────────────────────
-function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES}){
+function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES,termBounds}){
   const DOW=["Su","M","Tu","W","Th","F","S"];
 
+  function isExcluded(year,month,day){
+    if(!termBounds)return false;
+    const d=new Date(year,month-1,day);
+    if(termBounds.termStart){const s=new Date(termBounds.termStart);if(d<s)return true;}
+    if(termBounds.termEnd){const e=new Date(termBounds.termEnd);if(d>e)return true;}
+    return false;
+  }
+
   function getDayType(year,month,day){
+    if(isExcluded(year,month,day))return"excluded";
     const mornSt=getDayPlanStatus(yearPlan,"morning",year,month,day);
     const eveSt=getDayPlanStatus(yearPlan,"evening",year,month,day);
     if(mornSt&&mornSt!=="class")return mornSt;
@@ -4694,9 +4710,10 @@ function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES}){
   }
 
   const TYPE_COLORS={
+    excluded:{bg:"repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 3px,#e9eaec 3px,#e9eaec 6px)",text:"#d1d5db"},
     holiday:{bg:"#DC2626",text:"#fff"},
     exam:{bg:"#16a34a",text:"#fff"},
-    parents:{bg:"#ca8a04",text:"#fff"},
+    parents:{bg:"#1d4ed8",text:"#fff"},
     boys_jalsa:{bg:"#d97706",text:"#fff"},
     girls_jalsa:{bg:"#7c3aed",text:"#fff"},
     morning:{bg:"#B8934A",text:"#fff"},
@@ -4714,13 +4731,10 @@ function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES}){
         for(let d=1;d<=daysInMonth;d++)cells.push(d);
         while(cells.length%7!==0)cells.push(null);
         return React.createElement('div',{key:mi,style:{background:"#fff",borderRadius:12,border:"1px solid #e5e7eb",overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}},
-          /* Month header */
           React.createElement('div',{style:{background:"#1e2d3d",color:"#fff",padding:"8px 12px",fontWeight:"600",fontSize:13,textAlign:"center"}},m.label),
-          /* DOW header */
           React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#F8F9FA",borderBottom:"1px solid #e5e7eb"}},
             DOW.map(d=>React.createElement('div',{key:d,style:{textAlign:"center",fontSize:10,fontWeight:"600",color:"#9CA3AF",padding:"4px 2px"}},d))
           ),
-          /* Days */
           React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,padding:4}},
             cells.map((day,ci)=>{
               if(!day)return React.createElement('div',{key:ci});
@@ -4728,7 +4742,7 @@ function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES}){
               const tc=type?TYPE_COLORS[type]:null;
               const isSunOrSat=ci%7===0||ci%7===6;
               return React.createElement('div',{key:ci,style:{
-                textAlign:"center",fontSize:11,fontWeight:type?"700":"400",
+                textAlign:"center",fontSize:11,fontWeight:(type&&type!=="excluded")?"700":"400",
                 padding:"3px 2px",borderRadius:4,
                 background:tc?tc.bg:isSunOrSat?"#F3F4F6":"transparent",
                 color:tc?tc.text:isSunOrSat?"#9CA3AF":"#374151",
@@ -4745,7 +4759,7 @@ function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES}){
 function buildPlannerPrintHTML(yearPlan,months,cls,SPECIAL_TYPES){
   const DOW=["Su","M","Tu","W","Th","F","S"];
   const TYPE_COLORS={
-    holiday:"#DC2626",exam:"#16a34a",parents:"#ca8a04",
+    holiday:"#DC2626",exam:"#16a34a",parents:"#1d4ed8",
     boys_jalsa:"#d97706",girls_jalsa:"#7c3aed",
     morning:"#B8934A",evening:"#2563eb",
   };
