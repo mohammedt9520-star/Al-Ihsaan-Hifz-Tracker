@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260703-172000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260703-175000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -4335,24 +4335,26 @@ function setPlanDatesMulti(setYearPlan,updates){
 
 function getSessionSchedule(yearPlan,session){
   const e=yearPlan.find(p=>p.class==="__sched__"&&p.session===session);
-  if(e&&Array.isArray(e.days))return e.days;
+  const d=e&&(e.dates||e.days); // dates = synced field; days = old localStorage format
+  if(Array.isArray(d))return d;
   return session==="morning"?[1,2,3,4,5,6]:[1,2,3,4,5];
 }
 function setSessionSchedule(setYearPlan,session,days){
   setYearPlan(prev=>{
     const next=prev.filter(p=>!(p.class==="__sched__"&&p.session===session));
-    next.push({id:"__sched__"+session,class:"__sched__",session,days});
+    next.push({id:"__sched__"+session,class:"__sched__",session,dates:days});
     return next;
   });
 }
 function getSessionOverrides(yearPlan,session){
   const e=yearPlan.find(p=>p.class==="__ov__"&&p.session===session);
-  return(e&&Array.isArray(e.overrides))?e.overrides:[];
+  const d=e&&(e.dates||e.overrides); // dates = synced field; overrides = old localStorage format
+  return Array.isArray(d)?d:[];
 }
 function setSessionOverrides(setYearPlan,session,overrides){
   setYearPlan(prev=>{
     const next=prev.filter(p=>!(p.class==="__ov__"&&p.session===session));
-    next.push({id:"__ov__"+session,class:"__ov__",session,overrides});
+    next.push({id:"__ov__"+session,class:"__ov__",session,dates:overrides});
     return next;
   });
 }
@@ -4434,13 +4436,15 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 
   const termBounds=React.useMemo(()=>{
     const e=yearPlan.find(r=>r.id==="__term__");
-    return e?{termStart:e.termStart||null,termEnd:e.termEnd||null}:{termStart:null,termEnd:null};
+    // dates = synced field (object); termStart/termEnd = old localStorage format
+    const d=e&&(e.dates||(e.termStart?{termStart:e.termStart,termEnd:e.termEnd}:null));
+    return d?{termStart:d.termStart||null,termEnd:d.termEnd||null}:{termStart:null,termEnd:null};
   },[yearPlan]);
 
   function setTermDates(start,end){
     setYearPlan(prev=>{
       const rest=prev.filter(r=>r.id!=="__term__");
-      return [...rest,{id:"__term__",class:"__term__",termStart:start||null,termEnd:end||null}];
+      return [...rest,{id:"__term__",class:"__term__",session:"",dates:{termStart:start||null,termEnd:end||null}}];
     });
   }
 
@@ -4451,7 +4455,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     return false;
   }
 
-  const months=getMonthsForPlanner(startYear,startMonth,12);
+  const months=getMonthsForPlanner(startYear,startMonth,13);
 
   const STATUS_CYCLE=["class","holiday","exam","boys_jalsa","girls_jalsa","parents"];
   const STATUS_INFO={
