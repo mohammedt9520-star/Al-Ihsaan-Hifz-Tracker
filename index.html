@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260703-160000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260703-162000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -4547,11 +4547,9 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 
             /* Bulk buttons */
             React.createElement('div',{style:{display:"flex",borderBottom:"1px solid #F3F4F6"}},
-              [["class","📚 Reset","#FFF7ED","#92400E","#B8934A"],
+              [["class","📚 Class","#FFF7ED","#92400E","#B8934A"],
                ["holiday","🏖 Holiday","#FEE2E2","#DC2626","#DC2626"],
-               ["exam","📝 Exam","#DCFCE7","#16a34a","#16a34a"],
-               ["boys_jalsa","👦 Boys","#FEF3C7","#d97706","#d97706"],
-               ["girls_jalsa","👧 Girls","#F3E8FF","#7c3aed","#7c3aed"]
+               ["exam","📝 Exam","#DCFCE7","#16a34a","#16a34a"]
               ].map(([st,lbl,bg,col,bdr])=>
                 React.createElement('button',{key:st,
                   onClick:function(e){e.stopPropagation();markMonth(session,m.year,m.month,st);},
