@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260703-162000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260703-170000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -4432,6 +4432,25 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
   const [activeTab,setActiveTab]=React.useState("morning");
   const [schedOpen,setSchedOpen]=React.useState(false);
 
+  const termBounds=React.useMemo(()=>{
+    const e=yearPlan.find(r=>r.id==="__term__");
+    return e?{termStart:e.termStart||null,termEnd:e.termEnd||null}:{termStart:null,termEnd:null};
+  },[yearPlan]);
+
+  function setTermDates(start,end){
+    setYearPlan(prev=>{
+      const rest=prev.filter(r=>r.id!=="__term__");
+      return [...rest,{id:"__term__",class:"__term__",termStart:start||null,termEnd:end||null}];
+    });
+  }
+
+  function isExcluded(year,month,day){
+    const d=new Date(year,month-1,day);
+    if(termBounds.termStart){const s=new Date(termBounds.termStart);if(d<s)return true;}
+    if(termBounds.termEnd){const e=new Date(termBounds.termEnd);if(d>e)return true;}
+    return false;
+  }
+
   const months=getMonthsForPlanner(startYear,startMonth,12);
 
   const STATUS_CYCLE=["class","holiday","exam","boys_jalsa","girls_jalsa","parents"];
@@ -4443,7 +4462,6 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     girls_jalsa:{bg:"#F3E8FF",color:"#7c3aed",border:"#7c3aed",label:"Girls Jalsah"},
     parents:    {bg:"#FEF9C3",color:"#ca8a04",border:"#ca8a04",label:"Parents Evening"},
   };
-  /* Distinct header color per calendar month (indexed by month-1, Jan=0) */
   const MONTH_COLORS=["#4c1d95","#be185d","#14532d","#9a3412","#166534","#92400e","#1e3a5f","#065f46","#7c2d12","#312e81","#134e4a","#1e1b4b"];
   const DOW_LABELS=["M","T","W","T","F","S","S"];
   const SPECIAL_TYPES=[
@@ -4459,6 +4477,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
   }
 
   function cycleDay(session,year,month,day){
+    if(isExcluded(year,month,day))return;
     const cur=dayStatus(session,year,month,day);
     const sched=getSessionSchedule(yearPlan,session);
     const dow=new Date(year,month-1,day).getDay();
@@ -4484,6 +4503,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     let ovs=getSessionOverrides(yearPlan,session).filter(o=>!(o.year===year&&o.month===month));
     if(status!=="class"){
       for(let d=1;d<=daysInMonth;d++){
+        if(isExcluded(year,month,d))continue;
         const dow=new Date(year,month-1,d).getDay();
         if(sched.includes(dow))ovs.push({year,month,day:d,status});
       }
@@ -4505,7 +4525,6 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 
     return React.createElement('div',null,
 
-      /* ── Collapsible schedule ── */
       React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8,marginBottom:schedOpen?0:14}},
         React.createElement('button',{
           onClick:()=>setSchedOpen(o=>!o),
@@ -4524,7 +4543,6 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
         })
       ),
 
-      /* ── Month calendar grid ── */
       React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:14}},
         months.map((m,mi)=>{
           const hdrColor=MONTH_COLORS[(m.month-1)%12];
@@ -4535,17 +4553,17 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
           for(let i=0;i<offset;i++)cells.push(null);
           for(let d=1;d<=daysInMonth;d++)cells.push(d);
           let classCt=0;
-          for(let d=1;d<=daysInMonth;d++){if(dayStatus(session,m.year,m.month,d)==="class")classCt++;}
+          for(let d=1;d<=daysInMonth;d++){
+            if(!isExcluded(m.year,m.month,d)&&dayStatus(session,m.year,m.month,d)==="class")classCt++;
+          }
 
           return React.createElement('div',{key:mi,style:{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",overflow:"hidden",boxShadow:"0 2px 6px rgba(0,0,0,0.06)"}},
 
-            /* Month header */
             React.createElement('div',{style:{background:hdrColor,padding:"9px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}},
               React.createElement('span',{style:{color:"#fff",fontWeight:"700",fontSize:13,letterSpacing:"0.3px"}},m.label),
               React.createElement('span',{style:{color:"rgba(255,255,255,0.65)",fontSize:11,fontWeight:"600"}},classCt+" class days")
             ),
 
-            /* Bulk buttons */
             React.createElement('div',{style:{display:"flex",borderBottom:"1px solid #F3F4F6"}},
               [["class","📚 Class","#FFF7ED","#92400E","#B8934A"],
                ["holiday","🏖 Holiday","#FEE2E2","#DC2626","#DC2626"],
@@ -4558,15 +4576,25 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
               )
             ),
 
-            /* DOW header */
             React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#F8F9FA",borderBottom:"1px solid #f3f4f6"}},
               DOW_LABELS.map((l,i)=>React.createElement('div',{key:i,style:{textAlign:"center",fontSize:10,fontWeight:"700",color:i>=5?"#ef4444":"#9CA3AF",padding:"3px 2px"}},l))
             ),
 
-            /* Day cells */
             React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,padding:4}},
               cells.map((day,ci)=>{
                 if(!day)return React.createElement('div',{key:ci,style:{minHeight:28}});
+                const excl=isExcluded(m.year,m.month,day);
+                if(excl){
+                  return React.createElement('div',{key:ci,
+                    title:"Outside academic year",
+                    style:{
+                      background:"repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 3px,#e9eaec 3px,#e9eaec 6px)",
+                      borderRadius:4,minHeight:28,width:"100%",
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      fontSize:11,color:"#d1d5db",fontWeight:"400",
+                    }
+                  },day);
+                }
                 const st=dayStatus(session,m.year,m.month,day);
                 const info=st?(STATUS_INFO[st]||null):null;
                 const colIdx=ci%7;
@@ -4593,8 +4621,7 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 
   return React.createElement('div',{style:{padding:"20px 16px 48px",maxWidth:960,margin:"0 auto"}},
 
-    /* ── Header ── */
-    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:10}},
+    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:10}},
       React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"800",fontSize:22}},"📅 Year Planner"),
       React.createElement('div',{style:{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}},
         React.createElement('select',{value:startMonth,onChange:e=>setStartMonth(parseInt(e.target.value)),style:{border:"1px solid #E5E7EB",borderRadius:7,padding:"6px 10px",fontSize:12,outline:"none",background:"#fff",color:"#374151"}},
@@ -4606,7 +4633,18 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
       )
     ),
 
-    /* ── Tabs ── */
+    React.createElement('div',{style:{background:"#F8F9FA",border:"1px solid #E5E7EB",borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}},
+      React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#374151",whiteSpace:"nowrap"}},"Academic year:"),
+      React.createElement('input',{type:"date",value:termBounds.termStart||"",
+        onChange:function(e){setTermDates(e.target.value||null,termBounds.termEnd);},
+        style:{border:"1px solid #E5E7EB",borderRadius:7,padding:"5px 10px",fontSize:12,outline:"none",background:"#fff",color:"#374151"}}),
+      React.createElement('span',{style:{fontSize:12,color:"#6b7280"}},"→"),
+      React.createElement('input',{type:"date",value:termBounds.termEnd||"",
+        onChange:function(e){setTermDates(termBounds.termStart,e.target.value||null);},
+        style:{border:"1px solid #E5E7EB",borderRadius:7,padding:"5px 10px",fontSize:12,outline:"none",background:"#fff",color:"#374151"}}),
+      React.createElement('span',{style:{fontSize:11,color:"#9CA3AF"}},"Days outside this range are excluded (not counted)")
+    ),
+
     React.createElement('div',{style:{display:"flex",borderRadius:10,overflow:"hidden",border:"1px solid #E5E7EB",marginBottom:20,width:"fit-content",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}},
       [["morning","☀️ Morning"],["evening","🌙 Evening"]].map(([tab,label],ti)=>
         React.createElement('button',{key:tab,onClick:()=>setActiveTab(tab),style:{background:activeTab===tab?"#1e2d3d":"#fff",color:activeTab===tab?"#fff":"#6b7280",border:"none",borderRight:ti<1?"1px solid #E5E7EB":"none",padding:"10px 22px",cursor:"pointer",fontSize:13,fontWeight:activeTab===tab?"700":"400"}},label)
@@ -4616,10 +4654,13 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
     activeTab==="morning"&&renderSession("morning"),
     activeTab==="evening"&&renderSession("evening"),
 
-    /* ── Legend ── */
     React.createElement('div',{style:{marginTop:24,background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"12px 16px"}},
       React.createElement('div',{style:{color:"#6b7280",fontSize:11,fontWeight:"700",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:8}},"Tap a day to cycle its status"),
       React.createElement('div',{style:{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}},
+        React.createElement('div',{style:{display:"flex",alignItems:"center",gap:4}},
+          React.createElement('div',{style:{width:11,height:11,borderRadius:3,background:"repeating-linear-gradient(45deg,#f3f4f6,#f3f4f6 3px,#e9eaec 3px,#e9eaec 6px)",border:"1.5px solid #e5e7eb",flexShrink:0}}),
+          React.createElement('span',{style:{color:"#6b7280",fontSize:11}},"Outside term")
+        ),
         Object.entries(STATUS_INFO).map(([k,v])=>React.createElement('div',{key:k,style:{display:"flex",alignItems:"center",gap:4}},
           React.createElement('div',{style:{width:11,height:11,borderRadius:3,background:v.bg,border:"1.5px solid "+v.border,flexShrink:0}}),
           React.createElement('span',{style:{color:"#6b7280",fontSize:11}},v.label)
@@ -4627,13 +4668,11 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
       )
     ),
 
-    /* ── Annual overview ── */
     React.createElement('div',{style:{marginTop:20}},
       React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:13,marginBottom:12}},"Annual Overview"),
       React.createElement(PlannerCalendarView,{yearPlan,months,cls:CLASSES[0],SPECIAL_TYPES})
     ),
 
-    /* ── Print ── */
     React.createElement('div',{style:{marginTop:20}},
       React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:10,padding:"13px 28px",cursor:"pointer",fontWeight:"700",fontSize:14}},"🖨 Print / Save as PDF")
     )
