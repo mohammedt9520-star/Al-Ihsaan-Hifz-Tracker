@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260703-110000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260703-140000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -4333,6 +4333,47 @@ function setPlanDatesMulti(setYearPlan,updates){
   });
 }
 
+function getSessionSchedule(yearPlan,session){
+  const e=yearPlan.find(p=>p.class==="__sched__"&&p.session===session);
+  if(e&&Array.isArray(e.days))return e.days;
+  return session==="morning"?[1,2,3,4,5,6]:[1,2,3,4,5];
+}
+function setSessionSchedule(setYearPlan,session,days){
+  setYearPlan(prev=>{
+    const next=prev.filter(p=>!(p.class==="__sched__"&&p.session===session));
+    next.push({id:"__sched__"+session,class:"__sched__",session,days});
+    return next;
+  });
+}
+function getSessionOverrides(yearPlan,session){
+  const e=yearPlan.find(p=>p.class==="__ov__"&&p.session===session);
+  return(e&&Array.isArray(e.overrides))?e.overrides:[];
+}
+function setSessionOverrides(setYearPlan,session,overrides){
+  setYearPlan(prev=>{
+    const next=prev.filter(p=>!(p.class==="__ov__"&&p.session===session));
+    next.push({id:"__ov__"+session,class:"__ov__",session,overrides});
+    return next;
+  });
+}
+function getDayPlanStatus(yearPlan,session,year,month,day){
+  const ovs=getSessionOverrides(yearPlan,session);
+  const ov=ovs.find(o=>o.year===year&&o.month===month&&o.day===day);
+  if(ov)return ov.status;
+  const ranges=getHolidayRanges(yearPlan);
+  const holDates=getHolidayDates(yearPlan);
+  if(isDateInRanges(year,month,day,ranges))return"holiday";
+  if(holDates.some(d=>d.year===year&&d.month===month&&d.day===day))return"holiday";
+  for(const t of["exam","parents","boys_jalsa","girls_jalsa"]){
+    const dates=getSpecialDates(yearPlan,t);
+    if(dates.some(d=>d.year===year&&d.month===month&&d.day===day))return t;
+  }
+  const sched=getSessionSchedule(yearPlan,session);
+  const dow=new Date(year,month-1,day).getDay();
+  if(!sched.includes(dow))return null;
+  return"class";
+}
+
 function isDateInRanges(year,month,day,ranges){
   const ts=new Date(year,month-1,day).getTime();
   return ranges.some(r=>{
@@ -4388,119 +4429,166 @@ Head of Hifz | Madrasah Al-Ihsaan`;
 function YearPlannerPage({yearPlan,setYearPlan,records}){
   const [startYear,setStartYear]=React.useState(()=>{const n=new Date();return n.getMonth()<6?n.getFullYear()-1:n.getFullYear();});
   const [startMonth,setStartMonth]=React.useState(7);
-  const [activeTab,setActiveTab]=React.useState("dates");
-  const [lockEvening,setLockEvening]=React.useState(()=>{try{return localStorage.getItem("hifzLockEvening")==="1";}catch(e){return false;}});
+  const [activeTab,setActiveTab]=React.useState("morning");
 
   const months=getMonthsForPlanner(startYear,startMonth,12);
-  const readCls=CLASSES[0];
 
-  const SPECIAL_TYPES=[
-    {key:"exam",label:"Exam / Revision Days",color:"#16a34a",bg:"#dcfce7",dot:"🟩"},
-    {key:"parents",label:"Parents Evening",color:"#ca8a04",bg:"#fef9c3",dot:"🟨"},
-    {key:"boys_jalsa",label:"Boys Jalsah",color:"#d97706",bg:"#fef3c7",dot:"🟧"},
-    {key:"girls_jalsa",label:"Girls Jalsah",color:"#7c3aed",bg:"#f3e8ff",dot:"🟪"},
-    {key:"holiday",label:"Holidays",color:"#dc2626",bg:"#fee2e2",dot:"🟥"},
-  ];
+  const STATUS_CYCLE=["class","holiday","exam"];
+  const STATUS_INFO={
+    class:   {bg:"#FFF7ED",color:"#92400E",border:"#B8934A",label:"Class day"},
+    holiday: {bg:"#FEE2E2",color:"#DC2626",border:"#DC2626",label:"Holiday"},
+    exam:    {bg:"#DCFCE7",color:"#16a34a",border:"#16a34a",label:"Exam / Revision"},
+    parents: {bg:"#FEF9C3",color:"#ca8a04",border:"#ca8a04",label:"Parents Evening"},
+    boys_jalsa:  {bg:"#FEF3C7",color:"#d97706",border:"#d97706",label:"Boys Jalsah"},
+    girls_jalsa: {bg:"#F3E8FF",color:"#7c3aed",border:"#7c3aed",label:"Girls Jalsah"},
+  };
+  const DOW_LABELS=["M","T","W","T","F","S","S"];
 
-  function toggleLock(){
-    const nv=!lockEvening;setLockEvening(nv);
-    try{localStorage.setItem("hifzLockEvening",nv?"1":"0");}catch(e){}
+  function dayStatus(session,year,month,day){
+    return getDayPlanStatus(yearPlan,session,year,month,day);
   }
-  function syncEveningFromMorning(){
-    const mDates=getPlanDates(yearPlan,readCls,"morning");
-    setPlanDatesMulti(setYearPlan,CLASSES.map(c=>({cls:c,session:"evening",dates:[...mDates]})));
-  }
-  function updateDay(session,year,month,slotIdx,val){
-    const planDates=getPlanDates(yearPlan,readCls,session);
-    const num=parseInt(val);
-    const mDays=planDates.filter(d=>d.year===year&&d.month===month).sort((a,b)=>a.day-b.day);
-    const nM=[...mDays];
-    if(isNaN(num)||num<1){nM.splice(slotIdx,1);}
-    else{const cl=Math.min(num,new Date(year,month,0).getDate());if(nM[slotIdx])nM[slotIdx]={year,month,day:cl};else nM.push({year,month,day:cl});}
-    const other=planDates.filter(d=>!(d.year===year&&d.month===month));
-    const unique=[...new Map(nM.filter(d=>d.day>0).map(d=>[d.day,d])).values()];
-    const newDates=[...other,...unique];
-    const updates=CLASSES.map(c=>({cls:c,session,dates:newDates}));
-    if(session==="morning"&&!lockEvening){
-      const evePlan=getPlanDates(yearPlan,readCls,"evening");
-      const eveOther=evePlan.filter(d=>!(d.year===year&&d.month===month));
-      const newEve=[...eveOther,...unique];
-      CLASSES.forEach(c=>updates.push({cls:c,session:"evening",dates:newEve}));
+
+  function cycleDay(session,year,month,day){
+    const cur=dayStatus(session,year,month,day);
+    const sched=getSessionSchedule(yearPlan,session);
+    const dow=new Date(year,month-1,day).getDay();
+    const isScheduled=sched.includes(dow);
+    let next;
+    if(cur===null){next="class";}
+    else{
+      const idx=STATUS_CYCLE.indexOf(cur);
+      if(idx===-1){next="class";}
+      else{
+        const nidx=(idx+1)%STATUS_CYCLE.length;
+        next=STATUS_CYCLE[nidx];
+        if(next==="class"&&isScheduled){next="__remove__";}
+      }
     }
-    setPlanDatesMulti(setYearPlan,updates);
+    const ovs=getSessionOverrides(yearPlan,session).filter(o=>!(o.year===year&&o.month===month&&o.day===day));
+    if(next!=="__remove__"){ovs.push({year,month,day,status:next});}
+    setSessionOverrides(setYearPlan,session,ovs);
   }
 
-  const holidayRanges=getHolidayRanges(yearPlan);
-  const holidayDates=getHolidayDates(yearPlan);
-  function addHolidayRange(){setHolidayRanges(yearPlan,setYearPlan,[...holidayRanges,{from:"",to:""}]);}
-  function removeHolidayRange(i){setHolidayRanges(yearPlan,setYearPlan,holidayRanges.filter((_,idx)=>idx!==i));}
-  function updateHolidayRange(i,field,val){setHolidayRanges(yearPlan,setYearPlan,holidayRanges.map((r,idx)=>idx===i?{...r,[field]:val}:r));}
-  function updateHolidayDay(year,month,slotIdx,val){
-    const num=parseInt(val);
-    const mD=holidayDates.filter(d=>d.year===year&&d.month===month).sort((a,b)=>a.day-b.day);
-    const nD=[...mD];
-    if(isNaN(num)||num<1)nD.splice(slotIdx,1);
-    else{const cl=Math.min(num,new Date(year,month,0).getDate());if(nD[slotIdx])nD[slotIdx]={year,month,day:cl};else nD.push({year,month,day:cl});}
-    const other=holidayDates.filter(d=>!(d.year===year&&d.month===month));
-    setHolidayDates(yearPlan,setYearPlan,[...other,...new Map(nD.filter(d=>d.day>0).map(d=>[d.day,d])).values()]);
+  function markMonth(session,year,month,status){
+    const sched=getSessionSchedule(yearPlan,session);
+    const daysInMonth=new Date(year,month,0).getDate();
+    let ovs=getSessionOverrides(yearPlan,session).filter(o=>!(o.year===year&&o.month===month));
+    if(status!=="class"){
+      for(let d=1;d<=daysInMonth;d++){
+        const dow=new Date(year,month-1,d).getDay();
+        if(sched.includes(dow)){ovs.push({year,month,day:d,status});}
+      }
+    }
+    setSessionOverrides(setYearPlan,session,ovs);
   }
-  function updateSpecialDay(type,year,month,slotIdx,val){
-    const dates=getSpecialDates(yearPlan,type);
-    const num=parseInt(val);
-    const mD=dates.filter(d=>d.year===year&&d.month===month).sort((a,b)=>a.day-b.day);
-    const nD=[...mD];
-    if(isNaN(num)||num<1)nD.splice(slotIdx,1);
-    else{const cl=Math.min(num,new Date(year,month,0).getDate());if(nD[slotIdx])nD[slotIdx]={year,month,day:cl};else nD.push({year,month,day:cl});}
-    const other=dates.filter(d=>!(d.year===year&&d.month===month));
-    setSpecialDates(yearPlan,setYearPlan,type,[...other,...new Map(nD.filter(d=>d.day>0).map(d=>[d.day,d])).values()]);
-  }
+
   function printPlanner(){
     const printWin=window.open("","_blank");
     if(!printWin){showToast("Pop-up blocked — allow pop-ups and try again.","warning");return;}
-    try{const html=buildPlannerPrintHTML(yearPlan,months,readCls,SPECIAL_TYPES);printWin.document.write(html);printWin.document.close();printWin.print();}
+    try{const html=buildPlannerPrintHTML(yearPlan,months,CLASSES[0],[]);printWin.document.write(html);printWin.document.close();printWin.print();}
     catch(e){try{printWin.close();}catch(ex){}showToast("Print failed: "+e.message,"error");}
   }
 
-  const mornDates=getPlanDates(yearPlan,readCls,"morning");
-  const eveDates=getPlanDates(yearPlan,readCls,"evening");
-  const totalMorn=mornDates.length;
-  const totalEve=eveDates.length;
-  const acadLabel=months.length>0?(months[0].label+" – "+months[months.length-1].label):"";
-
-  const inS={background:"#F9FAFB",border:"1px solid #E5E7EB",borderRadius:6,padding:"5px 4px",fontSize:13,width:"100%",outline:"none",textAlign:"center",boxSizing:"border-box"};
-  const GRID="130px repeat(6,1fr)";
-  const MORN="#B8934A"; const MORN_BG="rgba(184,147,74,0.09)";
-  const EVE="#2563eb";  const EVE_BG="rgba(37,99,235,0.07)";
-
-  function sessionRows(session,planDates,accent,accentBg){
-    return months.map((m,mi)=>{
-      const mdArr=planDates.filter(d=>d.year===m.year&&d.month===m.month).sort((a,b)=>a.day-b.day);
-      return React.createElement('div',{key:session+mi,style:{display:"grid",gridTemplateColumns:GRID,gap:6,padding:"8px 14px",alignItems:"center",borderBottom:"1px solid #F3F4F6",background:mi%2===0?"#fff":"#FAFAFA",minWidth:480}},
-        React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},m.label),
-        ...[0,1,2,3,4,5].map(si=>{
-          const ex=mdArr[si];
-          return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",
-            onChange:e=>updateDay(session,m.year,m.month,si,e.target.value),
-            style:{...inS,background:ex?accentBg:"#F9FAFB",borderColor:ex?accent+"66":"#E5E7EB",color:ex?accent:"#9CA3AF",fontWeight:ex?"700":"400"}});
+  function renderSession(session){
+    const sched=getSessionSchedule(yearPlan,session);
+    const accent=session==="morning"?"#B8934A":"#2563eb";
+    const DAYS=[{dow:1,l:"Mon"},{dow:2,l:"Tue"},{dow:3,l:"Wed"},{dow:4,l:"Thu"},{dow:5,l:"Fri"},{dow:6,l:"Sat"},{dow:0,l:"Sun"}];
+    return React.createElement('div',null,
+      /* Schedule picker */
+      React.createElement('div',{style:{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"14px 18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}},
+        React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:13,marginBottom:10}},"Teaching days for this session:"),
+        React.createElement('div',{style:{display:"flex",gap:8,flexWrap:"wrap"}},
+          DAYS.map(({dow,l})=>{
+            const active=sched.includes(dow);
+            return React.createElement('button',{key:dow,onClick:()=>{
+              const ns=active?sched.filter(d=>d!==dow):[...sched,dow].sort();
+              setSessionSchedule(setYearPlan,session,ns);
+            },style:{background:active?accent:"#F9FAFB",color:active?"#fff":"#6b7280",
+              border:"1px solid "+(active?accent:"#E5E7EB"),borderRadius:8,
+              padding:"6px 14px",cursor:"pointer",fontSize:13,fontWeight:active?"700":"400",
+              minWidth:52,textAlign:"center"}},l);
+          })
+        )
+      ),
+      /* Calendar grid */
+      React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}},
+        months.map((m,mi)=>{
+          const firstDow=new Date(m.year,m.month-1,1).getDay();
+          const offset=(firstDow+6)%7;
+          const daysInMonth=new Date(m.year,m.month,0).getDate();
+          const cells=[];
+          for(let i=0;i<offset;i++)cells.push(null);
+          for(let d=1;d<=daysInMonth;d++)cells.push(d);
+          let classCt=0;
+          for(let d=1;d<=daysInMonth;d++){if(dayStatus(session,m.year,m.month,d)==="class")classCt++;}
+          return React.createElement('div',{key:mi,style:{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}},
+            /* Month header */
+            React.createElement('div',{style:{background:"#1e2d3d",padding:"8px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}},
+              React.createElement('span',{style:{color:"#fff",fontWeight:"700",fontSize:13}},m.label),
+              React.createElement('span',{style:{color:"#94a3b8",fontSize:11}},classCt+" class days")
+            ),
+            /* Bulk buttons */
+            React.createElement('div',{style:{display:"flex",gap:4,padding:"5px 6px",borderBottom:"1px solid #F3F4F6",background:"#FAFAFA"}},
+              [["class","📚 All class","#FFF7ED","#92400E","#B8934A"],
+               ["holiday","🏖 Holiday","#FEE2E2","#DC2626","#DC2626"],
+               ["exam","📝 Exam","#DCFCE7","#16a34a","#16a34a"]
+              ].map(([st,lbl,bg,col,bdr])=>
+                React.createElement('button',{key:st,onClick:()=>markMonth(session,m.year,m.month,st),
+                  style:{flex:1,background:bg,color:col,border:"1px solid "+bdr+"44",borderRadius:6,
+                    padding:"4px 3px",cursor:"pointer",fontSize:10,fontWeight:"700",whiteSpace:"nowrap"}},lbl)
+              )
+            ),
+            /* DOW header */
+            React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#F8F9FA",borderBottom:"1px solid #f3f4f6"}},
+              DOW_LABELS.map((l,i)=>React.createElement('div',{key:i,style:{textAlign:"center",fontSize:10,fontWeight:"700",color:i>=5?"#DC2626":"#6B7280",padding:"3px 2px"}},l))
+            ),
+            /* Days */
+            React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,padding:4}},
+              cells.map((day,ci)=>{
+                if(!day)return React.createElement('div',{key:ci,style:{minHeight:28}});
+                const st=dayStatus(session,m.year,m.month,day);
+                const info=st?(STATUS_INFO[st]||null):null;
+                const colIdx=ci%7;
+                const isWknd=colIdx>=5;
+                return React.createElement('button',{key:ci,
+                  onClick:()=>cycleDay(session,m.year,m.month,day),
+                  title:info?info.label:(isWknd?"Weekend":"No class"),
+                  style:{
+                    background:info?info.bg:(isWknd?"#F3F4F6":"#F9FAFB"),
+                    color:info?info.color:(isWknd?"#D1D5DB":"#D1D5DB"),
+                    border:"1px solid "+(info?(info.border+"55"):"#F0F0F0"),
+                    borderRadius:4,padding:"4px 2px",cursor:"pointer",
+                    fontSize:11,fontWeight:info?"700":"400",lineHeight:1.2,
+                    minHeight:28,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",
+                  }
+                },day);
+              })
+            )
+          );
         })
-      );
-    });
+      )
+    );
   }
 
-  return React.createElement('div',{style:{padding:"20px 16px 48px",maxWidth:860,margin:"0 auto"}},
+  const holidayRanges=getHolidayRanges(yearPlan);
+  function addHolidayRange(){setHolidayRanges(yearPlan,setYearPlan,[...holidayRanges,{from:"",to:""}]);}
+  function removeHolidayRange(i){setHolidayRanges(yearPlan,setYearPlan,holidayRanges.filter((_,idx)=>idx!==i));}
+  function updateHolidayRange(i,field,val){setHolidayRanges(yearPlan,setYearPlan,holidayRanges.map((r,idx)=>idx===i?{...r,[field]:val}:r));}
+
+  return React.createElement('div',{style:{padding:"20px 16px 48px",maxWidth:960,margin:"0 auto"}},
 
     /* ── Header ── */
-    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,flexWrap:"wrap",gap:10}},
+    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16,flexWrap:"wrap",gap:10}},
       React.createElement('div',null,
         React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"800",fontSize:22}},"📅 Year Planner"),
         React.createElement('div',{style:{color:"#9CA3AF",fontSize:12,marginTop:4,fontWeight:"500"}},
-          acadLabel+" · "+totalMorn+" AM days · "+totalEve+" PM days"
+          "All scheduled days are class days by default — tap a day to mark it as holiday or exam"
         )
       ),
       React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:10,padding:"10px 20px",cursor:"pointer",fontWeight:"600",fontSize:13,whiteSpace:"nowrap"}},"🖨 Print / PDF")
     ),
 
-    /* ── Academic year selector ── */
+    /* ── Academic year ── */
     React.createElement('div',{style:{display:"flex",gap:10,marginBottom:20,alignItems:"center",flexWrap:"wrap",background:"#F8F9FA",border:"1px solid #E5E7EB",borderRadius:10,padding:"10px 14px"}},
       React.createElement('span',{style:{color:"#374151",fontSize:13,fontWeight:"600"}},"Academic year starts:"),
       React.createElement('select',{value:startMonth,onChange:e=>setStartMonth(parseInt(e.target.value)),style:{border:"1px solid #E5E7EB",borderRadius:7,padding:"6px 12px",fontSize:13,outline:"none",background:"#fff",color:"#374151"}},
@@ -4513,43 +4601,19 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
 
     /* ── Tabs ── */
     React.createElement('div',{style:{display:"flex",borderRadius:10,overflow:"hidden",border:"1px solid #E5E7EB",marginBottom:20,width:"fit-content",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}},
-      [["dates","📋 Class Dates"],["holidays","🚫 Holidays"],["special","⭐ Special Dates"]].map(([tab,label],ti)=>
+      [["morning","☀️ Morning"],["evening","🌙 Evening"],["holidays","🗓 Holidays"]].map(([tab,label],ti)=>
         React.createElement('button',{key:tab,onClick:()=>setActiveTab(tab),style:{background:activeTab===tab?"#1e2d3d":"#fff",color:activeTab===tab?"#fff":"#6b7280",border:"none",borderRight:ti<2?"1px solid #E5E7EB":"none",padding:"10px 18px",cursor:"pointer",fontSize:13,fontWeight:activeTab===tab?"700":"400"}},label)
       )
     ),
 
-    /* ══ CLASS DATES TAB ══ */
-    activeTab==="dates"&&React.createElement('div',null,
-      React.createElement('div',{style:{background:"#fff",borderRadius:14,border:"1px solid #E5E7EB",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.05)"}},
-        React.createElement('div',{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},
-          React.createElement('div',{style:{display:"grid",gridTemplateColumns:GRID,gap:6,padding:"10px 14px",background:"#1e2d3d",minWidth:480}},
-            React.createElement('span',{style:{color:"#94a3b8",fontSize:11,fontWeight:"700",letterSpacing:"0.5px",textTransform:"uppercase"}},"MONTH"),
-            ...["D1","D2","D3","D4","D5","D6"].map(d=>React.createElement('span',{key:d,style:{color:"#94a3b8",fontSize:11,fontWeight:"700",textAlign:"center",letterSpacing:"0.5px"}},d))
-          ),
-          React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",background:MORN_BG,borderBottom:"1px solid rgba(184,147,74,0.25)",minWidth:480,flexWrap:"wrap"}},
-            React.createElement('span',{style:{fontSize:16}},"☀️"),
-            React.createElement('span',{style:{color:MORN,fontSize:11,fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase"}},"Morning Session"),
-            React.createElement('span',{style:{color:MORN,fontSize:11,fontWeight:"500",background:"rgba(184,147,74,0.15)",padding:"2px 9px",borderRadius:10,marginLeft:4}},totalMorn+" days")
-          ),
-          ...sessionRows("morning",mornDates,MORN,MORN_BG),
-          React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",background:EVE_BG,borderTop:"2px solid #E5E7EB",borderBottom:"1px solid rgba(37,99,235,0.18)",minWidth:480,flexWrap:"wrap"}},
-            React.createElement('span',{style:{fontSize:16}},"🌙"),
-            React.createElement('span',{style:{color:EVE,fontSize:11,fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase"}},"Evening Session"),
-            React.createElement('span',{style:{color:EVE,fontSize:11,fontWeight:"500",background:"rgba(37,99,235,0.12)",padding:"2px 9px",borderRadius:10,marginLeft:4}},totalEve+" days"),
-            React.createElement('div',{style:{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}},
-              React.createElement('button',{onClick:syncEveningFromMorning,style:{background:"rgba(37,99,235,0.1)",color:EVE,border:"1px solid rgba(37,99,235,0.25)",borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:"600"}},"↺ Sync from Morning"),
-              React.createElement('button',{onClick:toggleLock,style:{background:lockEvening?"rgba(37,99,235,0.1)":"transparent",color:lockEvening?EVE:"#9CA3AF",border:"1px solid "+(lockEvening?"rgba(37,99,235,0.3)":"#E5E7EB"),borderRadius:7,padding:"5px 12px",cursor:"pointer",fontSize:11,fontWeight:"600"}},lockEvening?"🔒 Locked":"🔓 Auto-sync")
-            )
-          ),
-          ...sessionRows("evening",eveDates,EVE,EVE_BG)
-        )
-      )
-    ),
+    activeTab==="morning"&&renderSession("morning"),
+    activeTab==="evening"&&renderSession("evening"),
 
     /* ══ HOLIDAYS TAB ══ */
     activeTab==="holidays"&&React.createElement('div',null,
       React.createElement('div',{style:{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"18px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}},
-        React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:14,marginBottom:14,display:"flex",alignItems:"center",gap:6}},"📅 Holiday Date Ranges"),
+        React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:14,marginBottom:6}},"📅 Holiday Date Ranges"),
+        React.createElement('div',{style:{color:"#6b7280",fontSize:12,marginBottom:14}},"These ranges apply globally — all scheduled days in the range become holidays in both sessions."),
         holidayRanges.length===0&&React.createElement('div',{style:{color:"#9CA3AF",fontSize:13,marginBottom:12,fontStyle:"italic"}},"No date ranges added yet."),
         holidayRanges.map((r,i)=>React.createElement('div',{key:i,style:{display:"flex",alignItems:"center",gap:10,marginBottom:10,flexWrap:"wrap"}},
           React.createElement('span',{style:{color:"#6b7280",fontSize:13,fontWeight:"500",minWidth:36}},"From"),
@@ -4559,83 +4623,27 @@ function YearPlannerPage({yearPlan,setYearPlan,records}){
           React.createElement('button',{onClick:()=>removeHolidayRange(i),style:{background:"#DC2626",color:"#fff",border:"none",borderRadius:7,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:"700"}},"✕ Remove")
         )),
         React.createElement('button',{onClick:addHolidayRange,style:{background:"#F8F9FA",border:"1px solid #E5E7EB",borderRadius:8,padding:"8px 18px",cursor:"pointer",fontSize:13,color:"#374151",fontWeight:"600"}},"+ Add Date Range")
-      ),
-      React.createElement('div',{style:{background:"#fff",borderRadius:14,border:"1px solid rgba(220,38,38,0.2)",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}},
-        React.createElement('div',{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},
-          React.createElement('div',{style:{display:"grid",gridTemplateColumns:"130px repeat(5,1fr)",gap:6,padding:"10px 14px",background:"#DC2626",minWidth:400}},
-            React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700",letterSpacing:"0.5px",textTransform:"uppercase"}},"MONTH"),
-            ...["D1","D2","D3","D4","D5"].map(d=>React.createElement('span',{key:d,style:{color:"#fff",fontSize:11,fontWeight:"700",textAlign:"center",letterSpacing:"0.5px"}},d))
-          ),
-          months.map((m,mi)=>{
-            const mD=holidayDates.filter(d=>d.year===m.year&&d.month===m.month).sort((a,b)=>a.day-b.day);
-            return React.createElement('div',{key:mi,style:{display:"grid",gridTemplateColumns:"130px repeat(5,1fr)",gap:6,padding:"8px 14px",alignItems:"center",borderBottom:"1px solid #FEE2E2",background:mi%2===0?"#fff":"#FFF5F5",minWidth:400}},
-              React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500"}},m.label),
-              ...[0,1,2,3,4].map(si=>{
-                const ex=mD[si];
-                return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",onChange:e=>updateHolidayDay(m.year,m.month,si,e.target.value),style:{...inS,background:ex?"#FEE2E2":"#FFF5F5",borderColor:ex?"#FECACA":"#FEE2E2",color:ex?"#DC2626":"#FCA5A5",fontWeight:ex?"700":"400"}});
-              })
-            );
-          })
-        )
-      )
-    ),
-
-    /* ══ SPECIAL DATES TAB ══ */
-    activeTab==="special"&&React.createElement('div',null,
-      SPECIAL_TYPES.filter(st=>st.key!=="holiday").map(st=>
-        React.createElement('div',{key:st.key,style:{marginBottom:20}},
-          React.createElement('div',{style:{color:st.color,fontWeight:"700",fontSize:14,background:st.bg,padding:"10px 14px",borderRadius:"10px 10px 0 0",border:"1px solid "+st.color+"44",display:"flex",alignItems:"center",gap:6}},
-            st.dot," ",st.label
-          ),
-          React.createElement('div',{style:{background:"#fff",border:"1px solid "+st.color+"33",borderTop:"none",borderRadius:"0 0 10px 10px",overflow:"hidden",boxShadow:"0 2px 6px rgba(0,0,0,0.04)"}},
-            React.createElement('div',{style:{overflowX:"auto",WebkitOverflowScrolling:"touch"}},
-              React.createElement('div',{style:{display:"grid",gridTemplateColumns:"130px repeat(5,1fr)",gap:6,padding:"10px 14px",background:st.color,minWidth:400}},
-                React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700",letterSpacing:"0.5px",textTransform:"uppercase"}},"MONTH"),
-                ...["D1","D2","D3","D4","D5"].map(d=>React.createElement('span',{key:d,style:{color:"#fff",fontSize:11,fontWeight:"700",textAlign:"center",letterSpacing:"0.5px"}},d))
-              ),
-              months.map((m,mi)=>{
-                const dates=getSpecialDates(yearPlan,st.key);
-                const mD=dates.filter(d=>d.year===m.year&&d.month===m.month).sort((a,b)=>a.day-b.day);
-                return React.createElement('div',{key:mi,style:{display:"grid",gridTemplateColumns:"130px repeat(5,1fr)",gap:6,padding:"8px 14px",alignItems:"center",borderBottom:"1px solid "+st.color+"22",background:mi%2===0?"#fff":st.bg+"99",minWidth:400}},
-                  React.createElement('div',{style:{color:"#374151",fontSize:13,fontWeight:"500"}},m.label),
-                  ...[0,1,2,3,4].map(si=>{
-                    const ex=mD[si];
-                    return React.createElement('input',{key:si,type:"number",min:"1",max:"31",value:ex?ex.day:"",placeholder:"—",onChange:e=>updateSpecialDay(st.key,m.year,m.month,si,e.target.value),style:{...inS,background:ex?st.bg:"#FAFAFA",borderColor:ex?st.color+"66":"#E5E7EB",color:ex?st.color:"#9CA3AF",fontWeight:ex?"700":"400"}});
-                  })
-                );
-              })
-            )
-          )
-        )
       )
     ),
 
     /* ── Legend ── */
     React.createElement('div',{style:{marginTop:24,background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"14px 18px",boxShadow:"0 1px 4px rgba(0,0,0,0.04)"}},
-      React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:13,marginBottom:10}},"Legend"),
-      React.createElement('div',{style:{display:"flex",gap:16,flexWrap:"wrap",alignItems:"center"}},
-        SPECIAL_TYPES.map(st=>React.createElement('div',{key:st.key,style:{display:"flex",alignItems:"center",gap:6}},
-          React.createElement('div',{style:{width:12,height:12,borderRadius:3,background:st.color,flexShrink:0}}),
-          React.createElement('span',{style:{color:"#6b7280",fontSize:12}},st.label)
-        )),
-        React.createElement('div',{style:{display:"flex",alignItems:"center",gap:6}},
-          React.createElement('div',{style:{width:12,height:12,borderRadius:3,background:MORN,flexShrink:0}}),
-          React.createElement('span',{style:{color:"#6b7280",fontSize:12}},"AM Session")
-        ),
-        React.createElement('div',{style:{display:"flex",alignItems:"center",gap:6}},
-          React.createElement('div',{style:{width:12,height:12,borderRadius:3,background:EVE,flexShrink:0}}),
-          React.createElement('span',{style:{color:"#6b7280",fontSize:12}},"PM Session")
-        )
+      React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:13,marginBottom:10}},"Legend — tap a day to cycle its status"),
+      React.createElement('div',{style:{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}},
+        Object.entries(STATUS_INFO).map(([k,v])=>React.createElement('div',{key:k,style:{display:"flex",alignItems:"center",gap:5}},
+          React.createElement('div',{style:{width:12,height:12,borderRadius:3,background:v.bg,border:"1.5px solid "+v.border,flexShrink:0}}),
+          React.createElement('span',{style:{color:"#6b7280",fontSize:12}},v.label)
+        ))
       )
     ),
 
     /* ── Calendar preview ── */
     React.createElement('div',{style:{marginTop:24}},
-      React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:14,marginBottom:14}},"📋 Planner Preview"),
-      React.createElement(PlannerCalendarView,{yearPlan,months,cls:readCls,SPECIAL_TYPES})
+      React.createElement('div',{style:{color:"#374151",fontWeight:"700",fontSize:14,marginBottom:14}},"📋 Annual Overview"),
+      React.createElement(PlannerCalendarView,{yearPlan,months,cls:CLASSES[0],SPECIAL_TYPES:[]})
     ),
 
-    /* ── Print button ── */
+    /* ── Print ── */
     React.createElement('div',{style:{marginTop:20,display:"flex",gap:10,flexWrap:"wrap"}},
       React.createElement('button',{onClick:printPlanner,style:{background:"#1e2d3d",color:"#fff",border:"none",borderRadius:10,padding:"12px 24px",cursor:"pointer",fontWeight:"700",fontSize:14}},"🖨 Print / Save as PDF")
     )
@@ -4647,18 +4655,12 @@ function PlannerCalendarView({yearPlan,months,cls,SPECIAL_TYPES}){
   const DOW=["Su","M","Tu","W","Th","F","S"];
 
   function getDayType(year,month,day){
-    const ranges=getHolidayRanges(yearPlan);
-    const holDates=getHolidayDates(yearPlan);
-    if(isDateInRanges(year,month,day,ranges))return"holiday";
-    if(holDates.some(d=>d.year===year&&d.month===month&&d.day===day))return"holiday";
-    for(const st of SPECIAL_TYPES.filter(s=>s.key!=="holiday")){
-      const dates=getSpecialDates(yearPlan,st.key);
-      if(dates.some(d=>d.year===year&&d.month===month&&d.day===day))return st.key;
-    }
-    const morn=getPlanDates(yearPlan,cls,"morning");
-    if(morn.some(d=>d.year===year&&d.month===month&&d.day===day))return"morning";
-    const eve=getPlanDates(yearPlan,cls,"evening");
-    if(eve.some(d=>d.year===year&&d.month===month&&d.day===day))return"evening";
+    const mornSt=getDayPlanStatus(yearPlan,"morning",year,month,day);
+    const eveSt=getDayPlanStatus(yearPlan,"evening",year,month,day);
+    if(mornSt&&mornSt!=="class")return mornSt;
+    if(eveSt&&eveSt!=="class")return eveSt;
+    if(mornSt==="class")return"morning";
+    if(eveSt==="class")return"evening";
     return null;
   }
 
@@ -4720,18 +4722,12 @@ function buildPlannerPrintHTML(yearPlan,months,cls,SPECIAL_TYPES){
   };
 
   function getDayType(year,month,day){
-    const ranges=getHolidayRanges(yearPlan);
-    const holDates=getHolidayDates(yearPlan);
-    if(isDateInRanges(year,month,day,ranges))return"holiday";
-    if(holDates.some(d=>d.year===year&&d.month===month&&d.day===day))return"holiday";
-    for(const st of SPECIAL_TYPES.filter(s=>s.key!=="holiday")){
-      const dates=getSpecialDates(yearPlan,st.key);
-      if(dates.some(d=>d.year===year&&d.month===month&&d.day===day))return st.key;
-    }
-    const morn=getPlanDates(yearPlan,cls,"morning");
-    if(morn.some(d=>d.year===year&&d.month===month&&d.day===day))return"morning";
-    const eve=getPlanDates(yearPlan,cls,"evening");
-    if(eve.some(d=>d.year===year&&d.month===month&&d.day===day))return"evening";
+    const mornSt=getDayPlanStatus(yearPlan,"morning",year,month,day);
+    const eveSt=getDayPlanStatus(yearPlan,"evening",year,month,day);
+    if(mornSt&&mornSt!=="class")return mornSt;
+    if(eveSt&&eveSt!=="class")return eveSt;
+    if(mornSt==="class")return"morning";
+    if(eveSt==="class")return"evening";
     return null;
   }
 
