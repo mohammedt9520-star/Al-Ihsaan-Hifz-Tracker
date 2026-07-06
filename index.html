@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-232000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-240000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -3924,6 +3924,11 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   function QueueCard({rows,updRow,tab,onPrev,onNext,onDone,idx,total,hafidhSet}){
     const row=rows[idx];
     if(!row)return null;
+    // Local state for the "Other" lines input — never triggers parent re-render
+    // on each keystroke, which caused snapping on mobile.
+    var _initCL=LINE_QUICK.includes(Number(row.sabaqLines))?"":row.sabaqLines||"";
+    var _clPair=React.useState(_initCL);
+    var linesCustom=_clPair[0],setLinesCustom=_clPair[1];
     const hadKaccha=kachhaYesterday.has(row.name);
     const isAM=tab==="am";
 
@@ -4161,22 +4166,24 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               React.createElement('label',{style:{...secLabel,color:"#059669"}},"Lines"),
               React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:6,marginTop:4,alignItems:"center"}},
                 LINE_QUICK.map(function(l){
-                  var isLSel=String(row.sabaqLines||"13")===String(l);
+                  var isLSel=linesCustom===""&&String(row.sabaqLines||"13")===String(l);
                   return React.createElement('button',{key:l,
-                    onClick:function(){updRow(idx,"sabaqLines",String(l));},
+                    onClick:function(){updRow(idx,"sabaqLines",String(l));setLinesCustom("");},
                     style:{padding:"8px 11px",borderRadius:9,cursor:"pointer",fontSize:14,fontWeight:"700",
                       minWidth:42,border:"1.5px solid "+(isLSel?"#059669":"#E5E7EB"),
                       background:isLSel?"#059669":"#fff",color:isLSel?"#fff":"#059669"}},String(l));
                 }),
                 React.createElement('input',{
                   type:"text",inputMode:"decimal",
-                  value:row.sabaqLines||"",
+                  value:linesCustom,
                   placeholder:"Other",
-                  onChange:function(e){updRow(idx,"sabaqLines",e.target.value);},
+                  autoComplete:"off",autoCorrect:"off",autoCapitalize:"none",spellCheck:false,
+                  onChange:function(e){setLinesCustom(e.target.value);},
+                  onBlur:function(){if(linesCustom)updRow(idx,"sabaqLines",linesCustom);},
                   style:{width:68,padding:"8px 6px",borderRadius:9,
-                    border:"1.5px solid "+(LINE_QUICK.includes(Number(row.sabaqLines))?"#E5E7EB":"#059669"),
+                    border:"1.5px solid "+(linesCustom?"#059669":"#E5E7EB"),
                     fontSize:13,fontWeight:"600",
-                    color:LINE_QUICK.includes(Number(row.sabaqLines))?TEXT:"#059669",
+                    color:linesCustom?"#059669":TEXT,
                     textAlign:"center",outline:"none"}
                 })
               )
@@ -4454,6 +4461,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
 
         /* Queue popup */
     queueIdx!==null&&students.length>0&&React.createElement(QueueCard,{
+      key:queueIdx,
       rows,updRow,tab,
       idx:queueIdx,total:students.length,
       onPrev:()=>setQueueIdx(q=>Math.max(0,q-1)),
