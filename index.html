@@ -2,33 +2,33 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260705-103000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-120000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Hifz Tracker"/>
-<meta name="theme-color" content="#1a3a3a"/>
+<meta name="theme-color" content="#0D2318"/>
 <link rel="manifest" href="/manifest.json"/>
 <link rel="apple-touch-icon" href="/icon-192.png"/>
 <title>Al-Ihsaan Hifz Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <style>
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@500;600;700&display=swap");
 *{box-sizing:border-box;margin:0;padding:0;}html{height:100%;}
-body{background:#F7F8FA;font-family:"Inter","Segoe UI",system-ui,sans-serif;color:#1a1f2e;-webkit-font-smoothing:antialiased;height:100%;overflow-x:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
+body{background:#F5F2EB;font-family:"Inter","Segoe UI",system-ui,sans-serif;color:#1C2B3A;-webkit-font-smoothing:antialiased;height:100%;overflow-x:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
 input,select,textarea,button{font-family:inherit;font-size:16px;}
-input:focus,select:focus,textarea:focus{outline:none;border-color:#C4963F !important;box-shadow:0 0 0 3px rgba(196,150,63,0.12) !important;}
-::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:#C4963F33;border-radius:2px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#C9963A !important;box-shadow:0 0 0 3px rgba(196,150,57,0.15) !important;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(196,150,57,0.32);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:rgba(196,150,57,0.55);}
 .profile-chart{width:100%;}table{border-collapse:collapse;}
-#pwa-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:#1a3a3a;color:#fff;padding:12px 20px;font-size:13px;align-items:center;gap:10px;z-index:9999;box-shadow:0 -2px 12px rgba(0,0,0,0.3);}
+#pwa-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:#0D2318;color:#fff;padding:12px 20px;font-size:13px;align-items:center;gap:10px;z-index:9999;box-shadow:0 -2px 12px rgba(0,0,0,0.3);}
 #pwa-bar.show{display:flex;}
 </style>
 </head>
 <body>
 <div id="root"></div>
-<div id="pwa-bar"><span style="flex:1">Install for the best experience</span><button id="pwa-install" style="background:#C4963F;color:#fff;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-weight:600;font-size:12px;white-space:nowrap;flex-shrink:0;">Install</button><button id="pwa-close" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:0 4px;flex-shrink:0;">&#x2715;</button></div>
+<div id="pwa-bar"><span style="flex:1">Install for the best experience</span><button id="pwa-install" style="background:#C9963A;color:#fff;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-weight:600;font-size:12px;white-space:nowrap;flex-shrink:0;">Install</button><button id="pwa-close" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:0 4px;flex-shrink:0;">&#x2715;</button></div>
 <script>window.LOGO_SRC="/icon-192.png";</script>
 <script>
 if("serviceWorker"in navigator){
@@ -90,21 +90,21 @@ async function sbFetchAll(q){
 }
 
 async function sbGetToken(){return SUPABASE_KEY;}
-const GOLD="#C4963F";
-const DARK="#F7F8FA";
+const GOLD="#C9963A";
+const DARK="#F5F2EB";
 const CARD="#FFFFFF";
-const ACCENT="#F0F4FF";
-const TEXT="#1a1f2e";
-const MUTED="#6b7280";
+const ACCENT="#FBF7EE";
+const TEXT="#1C2B3A";
+const MUTED="#6B7688";
 const GREEN="#16a34a";
 const BLUE="#2563eb";
 const RED="#dc2626";
 const ORANGE="#d97706";
-const SIDEBAR_BG="#1a3a3a";
-const SIDEBAR_TEXT="#cbd5e1";
-const SIDEBAR_MUTED="#64748b";
-const TOPBAR_BG="#1a3a3a";
-const BORDER="rgba(16,32,64,0.13)";
+const SIDEBAR_BG="#0D2318";
+const SIDEBAR_TEXT="#c8d8cc";
+const SIDEBAR_MUTED="#5E7A68";
+const TOPBAR_BG="#0D2318";
+const BORDER="rgba(20,40,28,0.11)";
 function lsGetClasses(){try{const v=JSON.parse(localStorage.getItem("hifzClasses")||"null");return Array.isArray(v)&&v.length?v:["HIFZ CLASS A","HIFZ CLASS B"];}catch(e){return ["HIFZ CLASS A","HIFZ CLASS B"];}}
 let CLASSES=lsGetClasses();
 const BEHAVIOUR_LABELS={1:"Very Poor",2:"Poor",3:"Average",4:"Good",5:"Very Good"};
@@ -117,7 +117,7 @@ const DOR_COLOR_MAP={
   grey:{bg:"#555566",label:"Record Missing"},
 };
 
-const inputStyle={width:"100%",background:"#fff",color:TEXT,border:"1px solid rgba(0,0,0,0.10)",borderRadius:10,padding:"11px 14px",fontSize:14,outline:"none",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"};
+const inputStyle={width:"100%",background:"#fff",color:TEXT,border:"1px solid rgba(0,0,0,0.10)",borderRadius:12,padding:"12px 16px",fontSize:14,outline:"none",boxShadow:"0 1px 4px rgba(0,0,0,0.04)",transition:"border-color 0.2s,box-shadow 0.2s"};
 
 const MISTAKE_OPTIONS=[];
 for(let m=0.5;m<=5;m+=0.5) MISTAKE_OPTIONS.push(m);
@@ -291,9 +291,9 @@ function InputModal(){
         ? React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8,marginBottom:20}},
             state.choices.map(function(c,i){
               return React.createElement("button",{key:i,onClick:function(){respond(c.value);},
-                style:{background:"#F7F8FA",border:"1px solid rgba(0,0,0,0.1)",borderRadius:10,
+                style:{background:"#FAF8F3",border:"1px solid rgba(0,0,0,0.08)",borderRadius:12,
                   padding:"12px 16px",cursor:"pointer",fontSize:14,fontWeight:"500",
-                  color:"#1a1f2e",textAlign:"left",transition:"background 0.1s"}
+                  color:"#1C2B3A",textAlign:"left",transition:"background 0.15s"}
               },c.label);
             })
           )
@@ -1265,7 +1265,7 @@ function DorEntryPage({studentNames,dorRecords,setDorRecords,records,yearPlan,re
 
     /* Queue overlay */
     queueIdx!==null&&q&&React.createElement('div',{style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(15,23,42,0.55)",zIndex:1000,display:"flex",alignItems:"flex-start",justifyContent:"center",overflowY:"auto",padding:"24px 12px"}},
-      React.createElement('div',{style:{background:"#F7F8FA",borderRadius:20,maxWidth:560,width:"100%",padding:"18px 16px 16px",boxShadow:"0 20px 50px rgba(0,0,0,0.35)"}},
+      React.createElement('div',{style:{background:"#FAF8F3",borderRadius:20,maxWidth:560,width:"100%",padding:"18px 16px 16px",boxShadow:"0 20px 50px rgba(0,0,0,0.35)"}},
         React.createElement('div',{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}},
           React.createElement('button',{onClick:()=>setQueueIdx(null),style:{background:"transparent",border:"none",color:"#6b7280",fontSize:13,fontWeight:"700",cursor:"pointer",padding:"4px 6px"}},"\u2715 Close"),
           React.createElement('div',{style:{display:"flex",alignItems:"center",gap:10}},
@@ -2092,7 +2092,7 @@ function App(){
   React.createElement('div',{style:{minHeight:"100vh",background:DARK,display:"flex",flexDirection:"column",fontFamily:"'Inter','Segoe UI',Georgia,sans-serif",paddingTop:swUpdate?"44px":"0"}},
 
     /* ── TOP BAR ── */
-    React.createElement('div',{style:{background:"linear-gradient(90deg,#1a3a3a 0%,#1f4040 100%)",height:58,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",flexShrink:0,position:"sticky",top:0,zIndex:200,boxShadow:"0 2px 12px rgba(0,0,0,0.2)"}},
+    React.createElement('div',{style:{background:"linear-gradient(90deg,#071410 0%,#0D2318 50%,#122A1C 100%)",height:58,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",flexShrink:0,position:"sticky",top:0,zIndex:200,boxShadow:"0 2px 16px rgba(0,0,0,0.28),0 1px 0 rgba(196,150,57,0.1) inset"}},
       React.createElement('div',{style:{display:"flex",alignItems:"center",gap:12}},
         view!=="menu"&&React.createElement('button',{
           onClick:goBack,
@@ -2162,7 +2162,7 @@ function App(){
               },
               style:{
                 display:"flex",alignItems:"center",gap:11,width:"100%",
-                background:isActive?(item.danger?"rgba(220,38,38,0.15)":"rgba(184,147,74,0.12)"):"transparent",
+                background:isActive?(item.danger?"rgba(220,38,38,0.15)":"rgba(196,150,57,0.16)"):"transparent",
                 color:isActive?(item.danger?RED:GOLD):(item.danger?"#f87171":SIDEBAR_TEXT),
                 border:"none",
                 borderRadius:10,
@@ -2184,45 +2184,45 @@ function App(){
       ),
 
       /* ── MAIN CONTENT ── */
-      React.createElement('div',{style:{flex:1,overflowY:"auto",minWidth:0,background:"#F7F8FA"}},
+      React.createElement('div',{style:{flex:1,overflowY:"auto",minWidth:0,background:DARK}},
 
     /* HOME MENU */
-      view==="menu"&&(React.createElement('div',{style:{minHeight:"100vh",background:"#F7F8FA",display:"flex",flexDirection:"column"}},
+      view==="menu"&&(React.createElement('div',{style:{minHeight:"100vh",background:DARK,display:"flex",flexDirection:"column"}},
 
   /* ── HERO HEADER ── */
   React.createElement('div',{style:{
-    background:"linear-gradient(160deg,#0f2027 0%,#1a3a3a 50%,#203a43 100%)",
-    padding:"44px 24px 36px",display:"flex",flexDirection:"column",
+    background:"linear-gradient(165deg,#071410 0%,#0D2318 40%,#152E22 75%,#0A1D12 100%)",
+    padding:"52px 24px 44px",display:"flex",flexDirection:"column",
     alignItems:"center",textAlign:"center",
-    boxShadow:"0 4px 24px rgba(0,0,0,0.18)"
+    boxShadow:"0 6px 36px rgba(0,0,0,0.3),0 1px 0 rgba(196,150,57,0.14) inset"
   }},
     /* Logo */
     React.createElement('div',{style:{
-      width:108,height:108,borderRadius:24,overflow:"hidden",
-      border:"2.5px solid "+GOLD,
+      width:112,height:112,borderRadius:26,overflow:"hidden",
+      border:"2px solid rgba(196,150,57,0.55)",
       background:"#fff",
-      boxShadow:"0 0 0 6px rgba(32,180,160,0.18), 0 8px 32px rgba(0,0,0,0.32)",
-      marginBottom:18,flexShrink:0,
+      boxShadow:"0 0 0 1px rgba(196,150,57,0.22), 0 0 0 9px rgba(196,150,57,0.1), 0 14px 44px rgba(0,0,0,0.45)",
+      marginBottom:22,flexShrink:0,
       display:"flex",alignItems:"center",justifyContent:"center"
     }},
       React.createElement('img',{src:window.LOGO_SRC,
         style:{width:"100%",height:"100%",objectFit:"contain",padding:8},
         onError:e=>{e.target.parentElement.style.display="none";}})
     ),
-    React.createElement('div',{style:{color:"#fff",fontSize:26,fontWeight:"700",
-      letterSpacing:"0.5px",fontFamily:"Georgia,serif",marginBottom:4}},
+    React.createElement('div',{style:{color:"#fff",fontSize:28,fontWeight:"600",
+      letterSpacing:"0.2px",fontFamily:"'Cormorant Garamond',Georgia,serif",marginBottom:5,textShadow:"0 2px 16px rgba(0,0,0,0.35)"}},
       "Al-Ihsaan Academy"
     ),
-    React.createElement('div',{style:{color:"rgba(255,255,255,0.55)",fontSize:12,
-      letterSpacing:"2.5px",textTransform:"uppercase",marginBottom:20}},
+    React.createElement('div',{style:{color:"rgba(196,150,57,0.88)",fontSize:11,
+      letterSpacing:"3.2px",textTransform:"uppercase",marginBottom:22,fontWeight:"500"}},
       "Hifz Management System"
     ),
     /* Sync pill */
     React.createElement('div',{style:{
       display:"flex",alignItems:"center",gap:7,
-      padding:"7px 16px",
-      background:"rgba(255,255,255,0.08)",
-      borderRadius:20,border:"1px solid rgba(255,255,255,0.12)"
+      padding:"7px 18px",
+      background:"rgba(255,255,255,0.07)",
+      borderRadius:20,border:"1px solid rgba(196,150,57,0.18)"
     }},
       React.createElement('div',{style:{
         width:7,height:7,borderRadius:"50%",flexShrink:0,
@@ -2240,7 +2240,7 @@ function App(){
   ),
 
   /* ── MENU GROUPS ── */
-  React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"20px 16px 40px",background:"#F7F8FA"}},
+  React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"20px 16px 40px",background:DARK}},
 
     React.createElement(HomeSearch,{studentNames:studentNames,onSelect:n=>{setProfileName(n);setView("profile");}}),
 
@@ -2277,16 +2277,16 @@ function App(){
       return GROUPS.map(group=>React.createElement('div',{key:group.label,style:{marginBottom:24}},
         /* Group label */
         React.createElement('div',{style:{
-          color:"#8B95A5",fontSize:11,fontWeight:"700",
-          letterSpacing:"1.5px",textTransform:"uppercase",
-          marginBottom:8,paddingLeft:4
+          color:"#8A9BA8",fontSize:10,fontWeight:"700",
+          letterSpacing:"2.2px",textTransform:"uppercase",
+          marginBottom:10,paddingLeft:2
         }},group.label),
         /* Group card */
         React.createElement('div',{style:{
           background:"#fff",
-          borderRadius:16,
-          border:"1px solid rgba(0,0,0,0.07)",
-          boxShadow:"0 1px 6px rgba(0,0,0,0.05)",
+          borderRadius:18,
+          border:"1px solid rgba(0,0,0,0.055)",
+          boxShadow:"0 4px 22px rgba(0,0,0,0.065),0 0 0 1px rgba(0,0,0,0.03)",
           overflow:"hidden"
         }},
           group.items.map((item,i)=>React.createElement('div',{
@@ -2294,23 +2294,24 @@ function App(){
             onClick:()=>{if(item.view==="addEntry"){setForm(defaultEntry);setEditingId(null);}if(item.session){if(item.view==="viewRegister"){setViewRegSession(item.session);}else{setRegisterSession(item.session);}}setView(item.view);},
             style:{
               display:"flex",alignItems:"center",gap:14,
-              padding:"15px 18px",
+              padding:"16px 20px",
               cursor:"pointer",
-              borderBottom:i<group.items.length-1?"1px solid rgba(0,0,0,0.05)":"none",
+              borderBottom:i<group.items.length-1?"1px solid rgba(0,0,0,0.045)":"none",
               background:item.danger?"rgba(220,38,38,0.02)":"#fff",
               position:"relative"
             }
           },
             /* Left accent bar */
             React.createElement('div',{style:{
-              width:3,height:36,borderRadius:2,
-              background:item.accent,
+              width:3,height:40,borderRadius:2,
+              background:"linear-gradient(180deg,"+item.accent+","+item.accent+"99)",
               flexShrink:0
             }}),
             /* Icon circle */
             React.createElement('div',{style:{
-              width:42,height:42,borderRadius:12,
-              background:item.accent+"14",
+              width:44,height:44,borderRadius:13,
+              background:"linear-gradient(140deg,"+item.accent+"26,"+item.accent+"0E)",
+              border:"1px solid "+item.accent+"22",
               display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:20,flexShrink:0
             }},item.icon),
@@ -3046,7 +3047,7 @@ function App(){
                         style:{...inputStyle,fontSize:17,fontWeight:"700",padding:"8px 12px",marginBottom:8}})
                     : React.createElement('div',{style:{display:"flex",alignItems:"center",gap:14,marginBottom:10}},
                       React.createElement('div',{style:{width:52,height:52,borderRadius:16,flexShrink:0,
-                        background:"linear-gradient(135deg,#1a3a3a,#2a5a55)",color:"#fff",
+                        background:"linear-gradient(135deg,#0D2318,#1A3828)",color:"#fff",
                         display:"flex",alignItems:"center",justifyContent:"center",
                         fontSize:21,fontWeight:"800",boxShadow:"0 4px 12px rgba(26,58,58,0.3)"}},
                         String(profileName).charAt(0).toUpperCase()),
@@ -4915,7 +4916,7 @@ function DatePill({value,onChange,planDates}){
   );
 }
 function SaveBar({onClick,label,color}){
-  return React.createElement('div',{style:{position:"sticky",bottom:0,padding:"12px 0 4px",background:"linear-gradient(transparent,#F7F8FA 30%)",marginTop:14}},
+  return React.createElement('div',{style:{position:"sticky",bottom:0,padding:"12px 0 4px",background:"linear-gradient(transparent,#F5F2EB 30%)",marginTop:14}},
     React.createElement('button',{onClick,
       style:{width:"100%",height:54,borderRadius:14,border:"none",cursor:"pointer",
         background:color||"linear-gradient(135deg,#C4963F,#D4A855)",color:"#fff",
@@ -4949,9 +4950,9 @@ function HomeSearch({studentNames,onSelect}){
         onFocus:()=>setFocus(true),
         onBlur:()=>setTimeout(()=>setFocus(false),180),
         placeholder:"Search student profiles...",
-        style:{width:"100%",height:52,border:"1px solid rgba(0,0,0,0.08)",borderRadius:14,
-          padding:"0 42px 0 44px",fontSize:15,background:"#fff",color:"#1a1f2e",
-          boxShadow:"0 1px 6px rgba(0,0,0,0.05)",outline:"none"}
+        style:{width:"100%",height:52,border:"1px solid rgba(0,0,0,0.07)",borderRadius:15,
+          padding:"0 42px 0 44px",fontSize:15,background:"#fff",color:"#1C2B3A",
+          boxShadow:"0 2px 10px rgba(0,0,0,0.055)",outline:"none"}
       }),
       q&&React.createElement('span',{
         onMouseDown:e=>{e.preventDefault();setQ("");},
@@ -4959,8 +4960,8 @@ function HomeSearch({studentNames,onSelect}){
           color:"#9CA3AF",fontSize:14,fontWeight:"700",padding:"6px",lineHeight:1,zIndex:1}},"\u2715")
     ),
     focus&&query.length>0&&React.createElement('div',{style:{position:"absolute",top:58,left:0,right:0,
-      background:"#fff",border:"1px solid rgba(0,0,0,0.08)",borderRadius:14,
-      boxShadow:"0 10px 32px rgba(0,0,0,0.16)",zIndex:300,overflow:"hidden"}},
+      background:"#fff",border:"1px solid rgba(0,0,0,0.07)",borderRadius:15,
+      boxShadow:"0 12px 36px rgba(0,0,0,0.14)",zIndex:300,overflow:"hidden"}},
       matches.length===0
         ?React.createElement('div',{style:{padding:"14px 16px",color:"#9CA3AF",fontSize:13}},"No students found")
         :matches.map((n,i)=>React.createElement('div',{key:n,
@@ -4968,7 +4969,7 @@ function HomeSearch({studentNames,onSelect}){
             style:{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",cursor:"pointer",
               borderBottom:i<matches.length-1?"1px solid #F3F4F6":"none",background:"#fff"}},
             React.createElement('div',{style:{width:34,height:34,borderRadius:"50%",
-              background:"linear-gradient(135deg,#1a3a3a,#2a5a55)",color:"#fff",
+              background:"linear-gradient(135deg,#0D2318,#1A3828)",color:"#fff",
               display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:13,fontWeight:"800",flexShrink:0}},String(n).charAt(0).toUpperCase()),
             React.createElement('div',{style:{flex:1,minWidth:0}},
