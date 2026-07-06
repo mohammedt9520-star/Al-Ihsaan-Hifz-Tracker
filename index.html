@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-220000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-230000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -3774,7 +3774,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     name,absent:false,
     spMistakes:"",spScrape:false,spKaccha:false,
     sp2Done:false,sp2Mistakes:"",sp2Scrape:false,sp2Kaccha:false,
-    sabaqLines:"13",sabaqWeak:false,sabaqLessLines:false,
+    sabaqLines:"",sabaqWeak:false,sabaqLessLines:false,
     dorDone:false,dorJuz:"",dorQuarter:"",dorMistakes:"",dorKaccha:false,dorScrape:false,dorNoTime:false,dorParaDor:false,
   });
   function bufFromSaved(sv){
@@ -3848,7 +3848,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
 
   // Save handlers
   function saveAM(){
-    const hasAny=amRows.some(r=>r.absent||r.spMistakes||r.sabaqLines||r.dorDone||(hafidhStudents&&hafidhStudents.has(r.name)&&!!r.dorJuz));
+    const hasAny=amRows.length>0;
     if(!hasAny){showToast("Nothing entered yet.","warning",2200);return;}
     const daily=[],dors=[];
     amRows.forEach(row=>{
@@ -3864,7 +3864,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
         sp2Mistakes:row.absent?0:(parseFloat(row.sp2Mistakes)||0),
         sp2Scrape:!row.absent&&row.sp2Scrape,
         sp2Kaccha:!row.absent&&row.sp2Kaccha,
-        sabaqLines:row.absent?0:(parseFloat(row.sabaqLines)||0),
+        sabaqLines:row.absent?0:((hafidhStudents&&hafidhStudents.has(row.name))?0:(parseFloat(row.sabaqLines)||13)),
         sabaqMistakes:0,
         sabaqWeak:!row.absent&&row.sabaqWeak,
         sabaqLessLines:!row.absent&&row.sabaqLessLines,
@@ -4161,7 +4161,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               React.createElement('label',{style:{...secLabel,color:"#059669"}},"Lines"),
               React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:6,marginTop:4,alignItems:"center"}},
                 LINE_QUICK.map(function(l){
-                  var isLSel=String(row.sabaqLines)===String(l);
+                  var isLSel=String(row.sabaqLines||"13")===String(l);
                   return React.createElement('button',{key:l,
                     onClick:function(){updRow(idx,"sabaqLines",String(l));},
                     style:{padding:"8px 11px",borderRadius:9,cursor:"pointer",fontSize:14,fontWeight:"700",
