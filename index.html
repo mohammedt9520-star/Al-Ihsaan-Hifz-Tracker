@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-140000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-160000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -174,10 +174,10 @@ function Toast(){
   _toastSetState=setToasts;
   if(!toasts.length)return null;
   var STYLES={
-    success:{bg:"#16a34a",icon:"✅"},
-    error:{bg:"#dc2626",icon:"❌"},
-    warning:{bg:"#d97706",icon:"⚠️"},
-    info:{bg:"#1a3a3a",icon:"ℹ️"},
+    success:{bg:"#07150e",border:"rgba(201,165,83,0.4)",icon:"✓",ic:"#c9a553"},
+    error:{bg:"#1a0505",border:"rgba(220,38,38,0.45)",icon:"✕",ic:"#f87171"},
+    warning:{bg:"#120c01",border:"rgba(217,119,6,0.45)",icon:"!",ic:"#fbbf24"},
+    info:{bg:"#07150e",border:"rgba(201,165,83,0.28)",icon:"i",ic:"#c9a553"},
   };
   return React.createElement("div",{
     style:{position:"fixed",bottom:"calc(env(safe-area-inset-bottom,0px) + 88px)",
@@ -187,14 +187,16 @@ function Toast(){
     toasts.map(function(t){
       var s=STYLES[t.type]||STYLES.info;
       return React.createElement("div",{key:t.id,
-        style:{background:s.bg,color:"#fff",padding:"12px 18px",borderRadius:14,
+        style:{background:s.bg,color:"#f7f4ec",padding:"13px 18px",borderRadius:16,
           maxWidth:520,width:"100%",fontSize:13,fontWeight:"600",
-          boxShadow:"0 8px 30px rgba(0,0,0,0.28)",
-          display:"flex",alignItems:"flex-start",gap:10,
-          animation:"none",pointerEvents:"auto"}
+          border:"1px solid "+s.border,
+          boxShadow:"0 12px 40px rgba(0,0,0,0.5),inset 0 1px 0 rgba(201,165,83,0.08)",
+          display:"flex",alignItems:"center",gap:12,
+          animation:"hl-in 0.28s cubic-bezier(0.2,0.8,0.3,1) both",pointerEvents:"auto"}
       },
-        React.createElement("span",{style:{fontSize:16,flexShrink:0}},s.icon),
-        React.createElement("span",{style:{flex:1,lineHeight:1.5}},t.msg)
+        React.createElement("span",{style:{fontSize:13,fontWeight:"800",color:s.ic,
+          fontFamily:"Manrope,sans-serif",flexShrink:0,width:18,textAlign:"center"}},s.icon),
+        React.createElement("span",{style:{flex:1,lineHeight:1.5,fontFamily:"Manrope,sans-serif"}},t.msg)
       );
     })
   );
@@ -1100,7 +1102,7 @@ function DorEntryPage({studentNames,dorRecords,setDorRecords,records,yearPlan,re
   function saveEvening(){
     const toSave=rows.filter(r=>!r.absent&&(evHasD1(r)||evHasD2(r)||evHasPT(r)||r.d1ParaDor));
     const hasAny=toSave.length>0||rows.some(r=>r.absent);
-    if(!hasAny){setStatus("\u274C Nothing entered yet.");setTimeout(()=>setStatus(""),2000);return;}
+    if(!hasAny){showToast("Nothing entered yet.","warning",2200);return;}
     const recs=toSave.map(r=>({
       id:uid(),studentName:r.name,date:date,
       dor1Juz:evHasD1(r)?String(r.d1Juz):"",
@@ -1129,9 +1131,8 @@ function DorEntryPage({studentNames,dorRecords,setDorRecords,records,yearPlan,re
       const n=[...f,...recs];lsSaveDor(n);return n;
     });
     scheduleSync();
-    setStatus("\u2705 Saved "+recs.length+" evening records \u2014 syncing\u2026");
-    if(typeof syncNow==="function"){syncNow().then(()=>setStatus("\u2705 Evening records saved & synced")).catch(()=>setStatus("\u2705 Saved locally \u2014 will sync when online"));}
-    setTimeout(()=>setStatus(""),3500);
+    showToast("Saved","success");
+    if(typeof syncNow==="function"){syncNow().catch(()=>{});}
   }
 
   const students=getClassStudents(cls);
@@ -1180,12 +1181,7 @@ function DorEntryPage({studentNames,dorRecords,setDorRecords,records,yearPlan,re
     React.createElement(DatePill,{value:date,onChange:setDate,planDates:getPlanDates(yearPlan||[],cls,"evening")}),
     React.createElement(ClassPills,{value:cls,onChange:setCls}),
 
-    status&&React.createElement('div',{style:{position:"fixed",left:16,right:16,
-      bottom:"calc(env(safe-area-inset-bottom,0px) + 80px)",zIndex:1500,maxWidth:560,margin:"0 auto",
-      padding:"13px 18px",borderRadius:14,textAlign:"center",fontSize:13,fontWeight:"700",
-      boxShadow:"0 8px 30px rgba(0,0,0,0.25)",
-      background:status.startsWith("\u2705")?"linear-gradient(135deg,#4F46E5,#6366F1)":(status.startsWith("\u274C")?"#B91C1C":"#1a3a3a"),
-      color:"#fff"}},status),
+
 
     students.length===0
       ?React.createElement('div',{style:{textAlign:"center",padding:60,color:"#9CA3AF"}},"No students in "+cls+". Add students via the Classes page.")
@@ -1914,6 +1910,7 @@ function App(){
       if(hasDup){const _dup=await showConfirm("A record for "+savedForm.name+" in "+newMonth+" already exists.","Save Duplicate?");if(!_dup)return;}
       setRecords(prev=>[...prev,{...savedForm,id:uid()}]);
     }
+    showToast(editingId?"Changes saved":"Entry saved","success");
     setView("menu");setEditingId(null);setForm(defaultEntry);setAddNewStudent(false);
   }
   async function clearAllData(){
@@ -3024,6 +3021,7 @@ function App(){
                       setProfileName(newName);
                     }
                     setEditingProfile(false);
+                    showToast("Profile saved","success");
                     syncNow().catch(()=>{});
                   },
                   style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,
@@ -3646,7 +3644,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   // Save handlers
   function saveAM(){
     const hasAny=amRows.some(r=>r.absent||r.spMistakes||r.sabaqLines||r.dorDone);
-    if(!hasAny){setStatus("❌ Nothing entered yet.");return;}
+    if(!hasAny){showToast("Nothing entered yet.","warning",2200);return;}
     const daily=[],dors=[];
     amRows.forEach(row=>{
       daily.push({
@@ -3700,11 +3698,9 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       });
     }
     setQueueIdx(null);
-    setStatus("Saving morning records\u2026");
     scheduleSync();
-    setStatus("\u2705 Saved "+daily.length+" morning records \u2014 syncing\u2026");
-    if(typeof syncNow==="function"){syncNow().then(()=>setStatus("\u2705 Morning records saved & synced")).catch(()=>setStatus("\u2705 Saved locally \u2014 will sync when online"));}
-    setTimeout(()=>setStatus(""),3500);
+    showToast("Saved","success");
+    if(typeof syncNow==="function"){syncNow().catch(()=>{});}
   }
 
 
@@ -4130,12 +4126,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     React.createElement(ClassPills,{value:cls,onChange:setCls}),
 
     /* Status */
-    status&&React.createElement('div',{style:{position:"fixed",left:16,right:16,
-      bottom:"calc(env(safe-area-inset-bottom,0px) + 80px)",zIndex:1500,maxWidth:560,margin:"0 auto",
-      padding:"13px 18px",borderRadius:14,textAlign:"center",fontSize:13,fontWeight:"700",
-      boxShadow:"0 8px 30px rgba(0,0,0,0.25)",
-      background:status.startsWith("✅")?"linear-gradient(135deg,#0d6b5e,#15806f)":(status.startsWith("❌")?"#B91C1C":"#1a3a3a"),
-      color:"#fff"}},status),
+
 
     /* Empty */
     students.length===0
@@ -5020,7 +5011,6 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
     setUnsaved(true);
   }
   function saveRegister(){
-    setSaveMsg("Saving...");
     const key=getRegisterKey(registerClass,registerSession,registerDate);
     setRegisterData(prev=>{
       const next=[...prev];
@@ -5033,10 +5023,9 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
       return next;
     });
     setUnsaved(false);
-    setSaveMsg("✅ Saved & syncing...");
+    showToast("Register saved","success");
     scheduleSync();
-    syncNow().then(()=>setSaveMsg("✅ Saved & synced!")).catch(()=>setSaveMsg("✅ Saved locally"));
-    setTimeout(()=>setSaveMsg(""),3000);
+    syncNow().catch(()=>{});
   }
 
   const isPlannedDate=planDates.some(d=>(d.year+"-"+String(d.month).padStart(2,"0")+"-"+String(d.day).padStart(2,"0"))===registerDate);
@@ -5063,9 +5052,7 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
         forcePwdErr&&React.createElement('span',{style:{color:"#DC2626",fontSize:11}},forcePwdErr)
       ),
 
-      saveMsg&&React.createElement('div',{style:{padding:"10px 16px",borderRadius:10,marginBottom:12,textAlign:"center",
-        background:String(saveMsg).startsWith("✅")?"rgba(22,163,74,0.08)":"rgba(37,99,235,0.05)",
-        color:String(saveMsg).startsWith("✅")?"#16a34a":"#2563eb",fontSize:13,fontWeight:"600"}},saveMsg),
+
 
       !canTakeRegister&&React.createElement('div',{style:{textAlign:"center",padding:40,color:"#9CA3AF",fontSize:14}},
         React.createElement('div',null,"No class scheduled on this date. Enter admin password above to force open the register.")
@@ -5236,11 +5223,10 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
   }
 
   function saveChanges(){
-    setSaveMsg("Syncing...");
     lsSaveRegister(registerData);
     setUnsaved(false);
-    syncNow().then(()=>setSaveMsg("Synced!")).catch(()=>setSaveMsg("Saved locally"));
-    setTimeout(()=>setSaveMsg(""),3000);
+    showToast("Saved","success");
+    syncNow().catch(()=>{});
   }
 
   const QUICK_REASONS=["Unwell","Abroad","Work","Hajj","Family","Childcare"];
@@ -5260,7 +5246,7 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
     React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}},
       React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18}},"📋 View Register"),
       React.createElement('div',{style:{display:"flex",gap:8,alignItems:"center"}},
-        saveMsg&&React.createElement('span',{style:{color:"#16a34a",fontSize:12,fontWeight:"600"}},saveMsg),
+
         unsaved&&React.createElement('button',{onClick:saveChanges,style:{background:"#B8934A",color:"#fff",border:"none",borderRadius:10,padding:"8px 18px",cursor:"pointer",fontWeight:"600",fontSize:13}},"Save")
       )
     ),
