@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-231000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-232000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -4406,8 +4406,8 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               const rb=amRowBg(info);
               const attempt=(a,n,showLabel)=>React.createElement('span',{key:n,style:{marginRight:10}},
                 showLabel&&React.createElement('span',{style:{fontSize:9.5,fontWeight:"800",color:"#9CA3AF"}},"#"+n+"  "),
+                (a.mk!==""&&a.mk!==undefined)?React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#374151"}},String(a.mk),React.createElement('span',{style:{fontSize:8.5,fontWeight:"700",color:"#9CA3AF",marginLeft:3,letterSpacing:"0.3px"}},"Mistakes")):null,
                 a.kaccha?amBadge("Kaccha","#DC2626","#FEE2E2"):null,
-                (a.mk!==""&&a.mk!==undefined)?React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#374151",marginLeft:a.kaccha?5:0}},String(a.mk),React.createElement('span',{style:{fontSize:8.5,fontWeight:"700",color:"#9CA3AF",marginLeft:3,letterSpacing:"0.3px"}},"Mistakes")):null,
                 a.scrape?amBadge("Scrape","#D97706","#FEF3C7"):null
               );
               return React.createElement('div',{key:row.name,
