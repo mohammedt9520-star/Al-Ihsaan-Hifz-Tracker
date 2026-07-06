@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-120000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-140000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -15,20 +15,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <style>
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Marcellus&family=Manrope:wght@400;500;600;700;800&display=swap");
 *{box-sizing:border-box;margin:0;padding:0;}html{height:100%;}
-body{background:#F5F2EB;font-family:"Inter","Segoe UI",system-ui,sans-serif;color:#1C2B3A;-webkit-font-smoothing:antialiased;height:100%;overflow-x:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
+body{background:#f7f4ec;font-family:"Manrope","Inter","Segoe UI",system-ui,sans-serif;color:#1b241d;-webkit-font-smoothing:antialiased;height:100%;overflow-x:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);}
 input,select,textarea,button{font-family:inherit;font-size:16px;}
-input:focus,select:focus,textarea:focus{outline:none;border-color:#C9963A !important;box-shadow:0 0 0 3px rgba(196,150,57,0.15) !important;}
-::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(196,150,57,0.32);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:rgba(196,150,57,0.55);}
-.profile-chart{width:100%;}table{border-collapse:collapse;}
-#pwa-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:#0D2318;color:#fff;padding:12px 20px;font-size:13px;align-items:center;gap:10px;z-index:9999;box-shadow:0 -2px 12px rgba(0,0,0,0.3);}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !important;box-shadow:0 0 0 3px rgba(201,165,83,0.18) !important;}
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(201,165,83,0.3);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:rgba(201,165,83,0.55);}
+.profile-chart{width:100%;}table{border-collapse:collapse;}button{transition:filter 0.15s cubic-bezier(0.2,0.8,0.3,1),transform 0.12s cubic-bezier(0.2,0.8,0.3,1);}button:hover{filter:brightness(1.08);}button:active{transform:scale(0.96);}.hl-entrance{animation:hl-in 0.32s cubic-bezier(0.2,0.8,0.3,1) both;}@keyframes hl-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}.hl-section-label::after{content:'';display:inline-block;width:80px;height:1px;background:linear-gradient(90deg,rgba(201,165,83,0.45),transparent);margin-left:10px;vertical-align:middle;}
+#pwa-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:#07150e;color:#fff;padding:12px 20px;font-size:13px;align-items:center;gap:10px;z-index:9999;box-shadow:0 -2px 12px rgba(0,0,0,0.3);}
 #pwa-bar.show{display:flex;}
 </style>
 </head>
 <body>
 <div id="root"></div>
-<div id="pwa-bar"><span style="flex:1">Install for the best experience</span><button id="pwa-install" style="background:#C9963A;color:#fff;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-weight:600;font-size:12px;white-space:nowrap;flex-shrink:0;">Install</button><button id="pwa-close" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:0 4px;flex-shrink:0;">&#x2715;</button></div>
+<div id="pwa-bar"><span style="flex:1">Install for the best experience</span><button id="pwa-install" style="background:linear-gradient(180deg,#dcbc6e,#c9a553);color:#2a1f06;border:none;border-radius:100px;padding:7px 16px;cursor:pointer;font-weight:800;font-size:12px;white-space:nowrap;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),0 4px 12px rgba(201,165,83,0.3);">Install</button><button id="pwa-close" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:0 4px;flex-shrink:0;">&#x2715;</button></div>
 <script>window.LOGO_SRC="/icon-192.png";</script>
 <script>
 if("serviceWorker"in navigator){
@@ -90,21 +90,21 @@ async function sbFetchAll(q){
 }
 
 async function sbGetToken(){return SUPABASE_KEY;}
-const GOLD="#C9963A";
-const DARK="#F5F2EB";
+const GOLD="#c9a553";
+const DARK="#f7f4ec";
 const CARD="#FFFFFF";
-const ACCENT="#FBF7EE";
-const TEXT="#1C2B3A";
-const MUTED="#6B7688";
+const ACCENT="#f0ece0";
+const TEXT="#1b241d";
+const MUTED="#6d7a6e";
 const GREEN="#16a34a";
 const BLUE="#2563eb";
 const RED="#dc2626";
 const ORANGE="#d97706";
-const SIDEBAR_BG="#0D2318";
-const SIDEBAR_TEXT="#c8d8cc";
-const SIDEBAR_MUTED="#5E7A68";
-const TOPBAR_BG="#0D2318";
-const BORDER="rgba(20,40,28,0.11)";
+const SIDEBAR_BG="#07150e";
+const SIDEBAR_TEXT="#c5d4c9";
+const SIDEBAR_MUTED="#4d6657";
+const TOPBAR_BG="#07150e";
+const BORDER="#e6e1d3";
 function lsGetClasses(){try{const v=JSON.parse(localStorage.getItem("hifzClasses")||"null");return Array.isArray(v)&&v.length?v:["HIFZ CLASS A","HIFZ CLASS B"];}catch(e){return ["HIFZ CLASS A","HIFZ CLASS B"];}}
 let CLASSES=lsGetClasses();
 const BEHAVIOUR_LABELS={1:"Very Poor",2:"Poor",3:"Average",4:"Good",5:"Very Good"};
@@ -117,7 +117,7 @@ const DOR_COLOR_MAP={
   grey:{bg:"#555566",label:"Record Missing"},
 };
 
-const inputStyle={width:"100%",background:"#fff",color:TEXT,border:"1px solid rgba(0,0,0,0.10)",borderRadius:12,padding:"12px 16px",fontSize:14,outline:"none",boxShadow:"0 1px 4px rgba(0,0,0,0.04)",transition:"border-color 0.2s,box-shadow 0.2s"};
+const inputStyle={width:"100%",background:"#fff",color:TEXT,border:"1px solid rgba(0,0,0,0.10)",borderRadius:"14px 14px 6px 6px",padding:"12px 16px",fontSize:14,outline:"none",boxShadow:"0 1px 3px rgba(13,26,18,0.05)",transition:"border-color 0.18s cubic-bezier(0.2,0.8,0.3,1),box-shadow 0.18s cubic-bezier(0.2,0.8,0.3,1)"};
 
 const MISTAKE_OPTIONS=[];
 for(let m=0.5;m<=5;m+=0.5) MISTAKE_OPTIONS.push(m);
@@ -221,12 +221,12 @@ function ConfirmModal(){
     if(_confirmResolve){_confirmResolve(yes);_confirmResolve=null;}
   }
   return React.createElement("div",{
-    style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",
-      zIndex:8000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}
+    style:{position:"fixed",inset:0,background:"rgba(5,14,9,0.65)",backdropFilter:"blur(6px)",
+      WebkitBackdropFilter:"blur(6px)",zIndex:8000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}
   },
     React.createElement("div",{
-      style:{background:"#fff",borderRadius:20,padding:28,maxWidth:420,width:"100%",
-        boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}
+      style:{background:"#fff",borderRadius:26,padding:28,maxWidth:420,width:"100%",
+        boxShadow:"0 30px 90px rgba(0,0,0,0.3)",border:"1px solid rgba(201,165,83,0.18)"}
     },
       React.createElement("div",{style:{color:"#1a1f2e",fontWeight:"700",fontSize:17,marginBottom:12}},
         state.title),
@@ -235,15 +235,16 @@ function ConfirmModal(){
       React.createElement("div",{style:{display:"flex",gap:12,justifyContent:"flex-end"}},
         React.createElement("button",{
           onClick:function(){respond(false);},
-          style:{background:"transparent",border:"1px solid rgba(0,0,0,0.15)",
-            borderRadius:10,padding:"10px 20px",cursor:"pointer",fontSize:14,
-            color:"#6b7280",fontWeight:"600"}
+          style:{background:"transparent",border:"1.5px solid #cfc7b2",
+            borderRadius:100,padding:"11px 24px",cursor:"pointer",fontSize:13,
+            color:"#6d7a6e",fontWeight:"700",letterSpacing:"0.04em"}
         },"Cancel"),
         React.createElement("button",{
           onClick:function(){respond(true);},
-          style:{background:"#dc2626",border:"none",
-            borderRadius:10,padding:"10px 20px",cursor:"pointer",fontSize:14,
-            color:"#fff",fontWeight:"700"}
+          style:{background:"linear-gradient(180deg,#bb463b,#ad3a30)",border:"none",
+            borderRadius:100,padding:"11px 24px",cursor:"pointer",fontSize:13,
+            color:"#fff",fontWeight:"800",letterSpacing:"0.04em",
+            boxShadow:"0 8px 22px rgba(173,58,48,0.3)"}
         },"Confirm")
       )
     )
@@ -276,12 +277,12 @@ function InputModal(){
     if(_inputResolve){_inputResolve(val);_inputResolve=null;}
   }
   return React.createElement("div",{
-    style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",
-      zIndex:8000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}
+    style:{position:"fixed",inset:0,background:"rgba(5,14,9,0.65)",backdropFilter:"blur(6px)",
+      WebkitBackdropFilter:"blur(6px)",zIndex:8000,display:"flex",alignItems:"center",justifyContent:"center",padding:24}
   },
     React.createElement("div",{
-      style:{background:"#fff",borderRadius:20,padding:28,maxWidth:420,width:"100%",
-        boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}
+      style:{background:"#fff",borderRadius:26,padding:28,maxWidth:420,width:"100%",
+        boxShadow:"0 30px 90px rgba(0,0,0,0.3)",border:"1px solid rgba(201,165,83,0.18)"}
     },
       React.createElement("div",{style:{color:"#1a1f2e",fontWeight:"700",fontSize:17,marginBottom:8}},
         state.title),
@@ -291,9 +292,9 @@ function InputModal(){
         ? React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8,marginBottom:20}},
             state.choices.map(function(c,i){
               return React.createElement("button",{key:i,onClick:function(){respond(c.value);},
-                style:{background:"#FAF8F3",border:"1px solid rgba(0,0,0,0.08)",borderRadius:12,
-                  padding:"12px 16px",cursor:"pointer",fontSize:14,fontWeight:"500",
-                  color:"#1C2B3A",textAlign:"left",transition:"background 0.15s"}
+                style:{background:"#f0ece0",border:"1px solid #e6e1d3",borderRadius:16,
+                  padding:"12px 16px",cursor:"pointer",fontSize:14,fontWeight:"600",
+                  color:"#1b241d",textAlign:"left",transition:"background 0.15s cubic-bezier(0.2,0.8,0.3,1)"}
               },c.label);
             })
           )
@@ -307,12 +308,13 @@ function InputModal(){
           }),
       React.createElement("div",{style:{display:"flex",gap:12,justifyContent:"flex-end"}},
         React.createElement("button",{onClick:function(){respond(null);},
-          style:{background:"transparent",border:"1px solid rgba(0,0,0,0.15)",
-            borderRadius:10,padding:"10px 20px",cursor:"pointer",fontSize:14,color:"#6b7280",fontWeight:"600"}
+          style:{background:"transparent",border:"1.5px solid #cfc7b2",
+            borderRadius:100,padding:"11px 24px",cursor:"pointer",fontSize:13,color:"#6d7a6e",fontWeight:"700",letterSpacing:"0.04em"}
         },"Cancel"),
         state.type!=="select"&&React.createElement("button",{onClick:function(){respond(state.value);},
-          style:{background:"#C4963F",border:"none",borderRadius:10,
-            padding:"10px 20px",cursor:"pointer",fontSize:14,color:"#fff",fontWeight:"700"}
+          style:{background:"linear-gradient(180deg,#145b3a,#0e4d31)",border:"none",borderRadius:100,
+            padding:"11px 24px",cursor:"pointer",fontSize:13,color:"#f3efe1",fontWeight:"800",
+            letterSpacing:"0.04em",boxShadow:"inset 0 0 0 1px rgba(201,165,83,0.3), 0 8px 22px rgba(7,41,26,0.3)"}
         },"OK")
       )
     )
@@ -2092,7 +2094,7 @@ function App(){
   React.createElement('div',{style:{minHeight:"100vh",background:DARK,display:"flex",flexDirection:"column",fontFamily:"'Inter','Segoe UI',Georgia,sans-serif",paddingTop:swUpdate?"44px":"0"}},
 
     /* ── TOP BAR ── */
-    React.createElement('div',{style:{background:"linear-gradient(90deg,#071410 0%,#0D2318 50%,#122A1C 100%)",height:58,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",flexShrink:0,position:"sticky",top:0,zIndex:200,boxShadow:"0 2px 16px rgba(0,0,0,0.28),0 1px 0 rgba(196,150,57,0.1) inset"}},
+    React.createElement('div',{style:{background:"radial-gradient(250% 300% at 50% -20%, rgba(23,106,69,0.5) 0%, transparent 55%), #07150e",height:60,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 18px",flexShrink:0,position:"sticky",top:0,zIndex:200,boxShadow:"0 2px 20px rgba(0,0,0,0.35),0 1px 0 rgba(201,165,83,0.12) inset"}},
       React.createElement('div',{style:{display:"flex",alignItems:"center",gap:12}},
         view!=="menu"&&React.createElement('button',{
           onClick:goBack,
@@ -2112,8 +2114,8 @@ function App(){
         ),
         view!=="menu"&&React.createElement('button',{onClick:()=>{setSidebarOpen(false);setView("menu");},style:{background:"transparent",border:"none",color:SIDEBAR_MUTED,cursor:"pointer",fontSize:18,lineHeight:1,padding:"4px 6px",borderRadius:4}},"⌂"),
         React.createElement('div',{style:{borderLeft:showSidebar?"1px solid rgba(255,255,255,0.1)":"none",paddingLeft:showSidebar?12:0,marginLeft:showSidebar?4:0}},
-          React.createElement('div',{style:{color:"#ffffff",fontSize:14,fontWeight:"700",letterSpacing:"0.3px",lineHeight:1.2}},"Al-Ihsaan Academy"),
-          React.createElement('div',{style:{color:"rgba(255,255,255,0.45)",fontSize:10,letterSpacing:"1.8px",marginTop:1,textTransform:"uppercase"}},"Hifz Management")
+          React.createElement('div',{style:{color:"#f7f4ec",fontSize:14,fontWeight:"400",letterSpacing:"0.4px",lineHeight:1.2,fontFamily:"Marcellus,serif"}},"Al-Ihsaan Academy"),
+          React.createElement('div',{style:{color:"#c9a553",fontSize:9,letterSpacing:"0.18em",marginTop:2,textTransform:"uppercase",fontWeight:"800",fontFamily:"Manrope,sans-serif"}},"Hifz Management")
         )
       ),
       React.createElement('div',{style:{display:"flex",alignItems:"center",gap:10}},
@@ -2149,7 +2151,7 @@ function App(){
         overflowY:"auto",
       }},
         React.createElement('div',{style:{padding:"20px 12px 12px"}},
-          React.createElement('div',{style:{color:SIDEBAR_MUTED,fontSize:9,letterSpacing:"2px",textTransform:"uppercase",padding:"0 8px",marginBottom:8}},"Navigation"),
+          React.createElement('div',{style:{color:SIDEBAR_MUTED,fontSize:9,letterSpacing:"0.18em",textTransform:"uppercase",padding:"0 8px",marginBottom:12,fontWeight:"800",fontFamily:"Manrope,sans-serif"}},"Navigation"),
           NAV_ITEMS.map(item=>{
             const isActive=view===item.view||(item.view==="addEntry"&&view==="addEntry");
             return React.createElement('button',{
@@ -2162,7 +2164,7 @@ function App(){
               },
               style:{
                 display:"flex",alignItems:"center",gap:11,width:"100%",
-                background:isActive?(item.danger?"rgba(220,38,38,0.15)":"rgba(196,150,57,0.16)"):"transparent",
+                background:isActive?(item.danger?"rgba(220,38,38,0.15)":"rgba(201,165,83,0.14)"):"transparent",
                 color:isActive?(item.danger?RED:GOLD):(item.danger?"#f87171":SIDEBAR_TEXT),
                 border:"none",
                 borderRadius:10,
@@ -2187,21 +2189,21 @@ function App(){
       React.createElement('div',{style:{flex:1,overflowY:"auto",minWidth:0,background:DARK}},
 
     /* HOME MENU */
-      view==="menu"&&(React.createElement('div',{style:{minHeight:"100vh",background:DARK,display:"flex",flexDirection:"column"}},
+      view==="menu"&&(React.createElement('div',{style:{minHeight:"100vh",background:"radial-gradient(140% 70% at 50% -5%, rgba(23,106,69,0.28) 0%, transparent 55%), #07150e",display:"flex",flexDirection:"column"}},
 
   /* ── HERO HEADER ── */
   React.createElement('div',{style:{
-    background:"linear-gradient(165deg,#071410 0%,#0D2318 40%,#152E22 75%,#0A1D12 100%)",
-    padding:"52px 24px 44px",display:"flex",flexDirection:"column",
+    background:"radial-gradient(140% 70% at 50% -10%, rgba(23,106,69,0.35) 0%, transparent 60%), #07150e",
+    padding:"56px 24px 48px",display:"flex",flexDirection:"column",
     alignItems:"center",textAlign:"center",
-    boxShadow:"0 6px 36px rgba(0,0,0,0.3),0 1px 0 rgba(196,150,57,0.14) inset"
+    position:"relative"
   }},
     /* Logo */
     React.createElement('div',{style:{
       width:112,height:112,borderRadius:26,overflow:"hidden",
-      border:"2px solid rgba(196,150,57,0.55)",
+      border:"2px solid #c9a553",
       background:"#fff",
-      boxShadow:"0 0 0 1px rgba(196,150,57,0.22), 0 0 0 9px rgba(196,150,57,0.1), 0 14px 44px rgba(0,0,0,0.45)",
+      boxShadow:"0 0 0 2px #c9a553, 0 0 0 8px rgba(201,165,83,0.12), 0 14px 36px rgba(7,21,14,0.4)",
       marginBottom:22,flexShrink:0,
       display:"flex",alignItems:"center",justifyContent:"center"
     }},
@@ -2209,27 +2211,29 @@ function App(){
         style:{width:"100%",height:"100%",objectFit:"contain",padding:8},
         onError:e=>{e.target.parentElement.style.display="none";}})
     ),
-    React.createElement('div',{style:{color:"#fff",fontSize:28,fontWeight:"600",
-      letterSpacing:"0.2px",fontFamily:"'Cormorant Garamond',Georgia,serif",marginBottom:5,textShadow:"0 2px 16px rgba(0,0,0,0.35)"}},
+    React.createElement('div',{style:{color:"#f7f4ec",fontSize:30,fontWeight:"400",
+      letterSpacing:"0.5px",fontFamily:"Marcellus,'Palatino Linotype',Georgia,serif",marginBottom:6,
+      textShadow:"0 2px 16px rgba(0,0,0,0.4)",textWrap:"balance"}},
       "Al-Ihsaan Academy"
     ),
-    React.createElement('div',{style:{color:"rgba(196,150,57,0.88)",fontSize:11,
-      letterSpacing:"3.2px",textTransform:"uppercase",marginBottom:22,fontWeight:"500"}},
+    React.createElement('div',{style:{color:"#c9a553",fontSize:10,
+      letterSpacing:"0.20em",textTransform:"uppercase",marginBottom:24,fontWeight:"800",
+      fontFamily:"Manrope,'Inter',sans-serif"}},
       "Hifz Management System"
     ),
     /* Sync pill */
     React.createElement('div',{style:{
       display:"flex",alignItems:"center",gap:7,
       padding:"7px 18px",
-      background:"rgba(255,255,255,0.07)",
-      borderRadius:20,border:"1px solid rgba(196,150,57,0.18)"
+      background:"rgba(201,165,83,0.07)",
+      borderRadius:100,border:"1px solid rgba(201,165,83,0.22)"
     }},
       React.createElement('div',{style:{
         width:7,height:7,borderRadius:"50%",flexShrink:0,
         background:syncStatus==="live"?"#22c55e":syncStatus==="saving"||syncStatus==="loading"?"#f59e0b":"#ef4444",
         boxShadow:syncStatus==="live"?"0 0 6px #22c55e44":syncStatus==="saving"||syncStatus==="loading"?"0 0 6px #f59e0b44":"0 0 6px #ef444444"
       }}),
-      React.createElement('span',{style:{color:"rgba(255,255,255,0.65)",fontSize:12}},
+      React.createElement('span',{style:{color:"rgba(201,165,83,0.85)",fontSize:11,fontWeight:"500",letterSpacing:"0.03em"}},
         syncStatus==="live"?"Connected — data up to date"
         :syncStatus==="saving"?"Saving to cloud..."
         :syncStatus==="loading"?"Loading data..."
@@ -2240,7 +2244,7 @@ function App(){
   ),
 
   /* ── MENU GROUPS ── */
-  React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"20px 16px 40px",background:DARK}},
+  React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"24px 16px 48px",background:DARK,borderRadius:"30px 30px 0 0",marginTop:"-2px",boxShadow:"0 -10px 40px rgba(0,0,0,0.35)"}},
 
     React.createElement(HomeSearch,{studentNames:studentNames,onSelect:n=>{setProfileName(n);setView("profile");}}),
 
@@ -2277,16 +2281,17 @@ function App(){
       return GROUPS.map(group=>React.createElement('div',{key:group.label,style:{marginBottom:24}},
         /* Group label */
         React.createElement('div',{style:{
-          color:"#8A9BA8",fontSize:10,fontWeight:"700",
-          letterSpacing:"2.2px",textTransform:"uppercase",
-          marginBottom:10,paddingLeft:2
+          color:"#c9a553",fontSize:10,fontWeight:"800",
+          letterSpacing:"0.18em",textTransform:"uppercase",
+          marginBottom:12,paddingLeft:2,
+          fontFamily:"Manrope,'Inter',sans-serif"
         }},group.label),
         /* Group card */
         React.createElement('div',{style:{
           background:"#fff",
-          borderRadius:18,
-          border:"1px solid rgba(0,0,0,0.055)",
-          boxShadow:"0 4px 22px rgba(0,0,0,0.065),0 0 0 1px rgba(0,0,0,0.03)",
+          borderRadius:24,
+          border:"1px solid rgba(230,225,211,0.9)",
+          boxShadow:"0 1px 2px rgba(13,26,18,0.06), 0 8px 26px rgba(13,26,18,0.07)",
           overflow:"hidden"
         }},
           group.items.map((item,i)=>React.createElement('div',{
@@ -2296,7 +2301,7 @@ function App(){
               display:"flex",alignItems:"center",gap:14,
               padding:"16px 20px",
               cursor:"pointer",
-              borderBottom:i<group.items.length-1?"1px solid rgba(0,0,0,0.045)":"none",
+              borderBottom:i<group.items.length-1?"1px solid "+BORDER:"none",
               background:item.danger?"rgba(220,38,38,0.02)":"#fff",
               position:"relative"
             }
@@ -2309,9 +2314,9 @@ function App(){
             }}),
             /* Icon circle */
             React.createElement('div',{style:{
-              width:44,height:44,borderRadius:13,
-              background:"linear-gradient(140deg,"+item.accent+"26,"+item.accent+"0E)",
-              border:"1px solid "+item.accent+"22",
+              width:44,height:44,borderRadius:14,
+              background:"linear-gradient(140deg,"+item.accent+"28,"+item.accent+"10)",
+              border:"1px solid "+item.accent+"28",
               display:"flex",alignItems:"center",justifyContent:"center",
               fontSize:20,flexShrink:0
             }},item.icon),
@@ -2320,7 +2325,7 @@ function App(){
               React.createElement('div',{style:{
                 color:item.danger?"#DC2626":TEXT,
                 fontWeight:"600",fontSize:14,
-                lineHeight:1.3,marginBottom:2
+                lineHeight:1.4,marginBottom:2,fontFamily:"Manrope,'Inter',sans-serif"
               }},item.label),
               React.createElement('div',{style:{
                 color:MUTED,fontSize:12,lineHeight:1.3
@@ -2375,7 +2380,7 @@ function App(){
     /* ADD/EDIT */
     , view==="addEntry"&&(
     React.createElement('div', { style: {maxWidth:740,margin:"28px auto",padding:"0 20px 40px"},}
-      , React.createElement('div', { style: {background:CARD,borderRadius:20,padding:28,border:"1px solid rgba(0,0,0,0.07)",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"},}
+      , React.createElement('div', { style: {background:CARD,borderRadius:24,padding:28,border:"1px solid "+BORDER,boxShadow:"0 1px 2px rgba(13,26,18,0.06), 0 8px 26px rgba(13,26,18,0.07)"},}
         , React.createElement('div', { style: {display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24,flexWrap:"wrap",gap:12},}
           , React.createElement('h2', { style: {color:GOLD},}, editingId?"✏️ Edit Record":"➕ Add Monthly Entry")
           , !editingId&&React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8}},
@@ -4916,7 +4921,7 @@ function DatePill({value,onChange,planDates}){
   );
 }
 function SaveBar({onClick,label,color}){
-  return React.createElement('div',{style:{position:"sticky",bottom:0,padding:"12px 0 4px",background:"linear-gradient(transparent,#F5F2EB 30%)",marginTop:14}},
+  return React.createElement('div',{style:{position:"sticky",bottom:0,padding:"12px 0 4px",background:"linear-gradient(transparent,#f7f4ec 30%)",marginTop:14}},
     React.createElement('button',{onClick,
       style:{width:"100%",height:54,borderRadius:14,border:"none",cursor:"pointer",
         background:color||"linear-gradient(135deg,#C4963F,#D4A855)",color:"#fff",
@@ -4950,9 +4955,9 @@ function HomeSearch({studentNames,onSelect}){
         onFocus:()=>setFocus(true),
         onBlur:()=>setTimeout(()=>setFocus(false),180),
         placeholder:"Search student profiles...",
-        style:{width:"100%",height:52,border:"1px solid rgba(0,0,0,0.07)",borderRadius:15,
-          padding:"0 42px 0 44px",fontSize:15,background:"#fff",color:"#1C2B3A",
-          boxShadow:"0 2px 10px rgba(0,0,0,0.055)",outline:"none"}
+        style:{width:"100%",height:52,border:"1px solid #e6e1d3",borderRadius:"14px 14px 6px 6px",
+          padding:"0 42px 0 44px",fontSize:15,background:"#fff",color:"#1b241d",
+          boxShadow:"0 1px 3px rgba(13,26,18,0.05)",outline:"none"}
       }),
       q&&React.createElement('span',{
         onMouseDown:e=>{e.preventDefault();setQ("");},
