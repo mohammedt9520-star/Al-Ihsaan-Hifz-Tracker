@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260705-100000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260705-103000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -4260,8 +4260,25 @@ function getWeekNumber(d){
 }
 
 function getPlanDates(yearPlan,cls,session){
+  // Try old format first
   const entry=yearPlan.find(p=>p.class===cls&&p.session===session);
-  return(entry&&Array.isArray(entry.dates))?entry.dates:[];
+  if(entry&&Array.isArray(entry.dates)&&entry.dates.length>0)return entry.dates;
+  // Fall back to new year planner model (schedule + overrides + term bounds)
+  const bounds=getTermBoundsFromPlan(yearPlan);
+  const startD=bounds.termStart?new Date(bounds.termStart):new Date(new Date().getFullYear(),new Date().getMonth()-1,1);
+  const endD=bounds.termEnd?new Date(bounds.termEnd):new Date(new Date().getFullYear(),new Date().getMonth()+14,0);
+  const result=[];
+  const cur=new Date(startD.getFullYear(),startD.getMonth(),1);
+  while(cur<=endD){
+    const y=cur.getFullYear(),m=cur.getMonth()+1;
+    const dim=new Date(y,m,0).getDate();
+    for(let d=1;d<=dim;d++){
+      if(!isTermExcluded(yearPlan,y,m,d)&&getDayPlanStatus(yearPlan,session,y,m,d)==="class")
+        result.push({year:y,month:m,day:d});
+    }
+    cur.setMonth(cur.getMonth()+1);
+  }
+  return result;
 }
 
 function setPlanDates(yearPlan,setYearPlan,cls,session,dates){
