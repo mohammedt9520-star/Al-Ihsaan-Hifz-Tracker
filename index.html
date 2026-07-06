@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-210000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-220000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -3774,7 +3774,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     name,absent:false,
     spMistakes:"",spScrape:false,spKaccha:false,
     sp2Done:false,sp2Mistakes:"",sp2Scrape:false,sp2Kaccha:false,
-    sabaqLines:"",sabaqWeak:false,sabaqLessLines:false,
+    sabaqLines:"13",sabaqWeak:false,sabaqLessLines:false,
     dorDone:false,dorJuz:"",dorQuarter:"",dorMistakes:"",dorKaccha:false,dorScrape:false,dorNoTime:false,dorParaDor:false,
   });
   function bufFromSaved(sv){
@@ -4169,13 +4169,15 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                       background:isLSel?"#059669":"#fff",color:isLSel?"#fff":"#059669"}},String(l));
                 }),
                 React.createElement('input',{
-                  type:"number",min:1,max:150,
-                  value:LINE_QUICK.includes(Number(row.sabaqLines))?"":row.sabaqLines,
+                  type:"text",inputMode:"decimal",
+                  value:row.sabaqLines||"",
                   placeholder:"Other",
-                  onChange:function(e){var v=parseInt(e.target.value)||"";updRow(idx,"sabaqLines",v?String(v):"");},
-                  style:{width:64,padding:"8px 6px",borderRadius:9,border:"1.5px solid #E5E7EB",
-                    fontSize:13,fontWeight:"600",color:TEXT,textAlign:"center",outline:"none",
-                    WebkitAppearance:"none",MozAppearance:"textfield"}
+                  onChange:function(e){updRow(idx,"sabaqLines",e.target.value);},
+                  style:{width:68,padding:"8px 6px",borderRadius:9,
+                    border:"1.5px solid "+(LINE_QUICK.includes(Number(row.sabaqLines))?"#E5E7EB":"#059669"),
+                    fontSize:13,fontWeight:"600",
+                    color:LINE_QUICK.includes(Number(row.sabaqLines))?TEXT:"#059669",
+                    textAlign:"center",outline:"none"}
                 })
               )
             ),
