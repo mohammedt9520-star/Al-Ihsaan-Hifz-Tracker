@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-240000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-250000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -1643,10 +1643,19 @@ function App(){
     return function(){window.removeEventListener('swupdateavailable',onSwUpdate);};
   },[]);
 
+  // Reset date states to today whenever the tab regains focus
+  React.useEffect(function(){
+    function onVisible(){if(document.visibilityState==="visible"){setSabaqEntryDate(getTodayStr());setRegisterDate(getTodayStr());}}
+    document.addEventListener("visibilitychange",onVisible);
+    return function(){document.removeEventListener("visibilitychange",onVisible);};
+  },[]);
+
   // Auto-load from Supabase on first open
   // Reset form/editingId when navigating away from addEntry
   React.useEffect(()=>{
     if(view!=="addEntry"){setForm(defaultEntry);setEditingId(null);}
+    if(view==="sabaqEntry")setSabaqEntryDate(getTodayStr());
+    if(view==="takeRegister")setRegisterDate(getTodayStr());
   },[view]);
   React.useEffect(()=>{loadCloud().catch(e=>{console.error("loadCloud failed:",e);setSyncStatus("offline");scheduleRetry();});},[]);
   // Reconnect detection: when network comes back, sync pending writes
@@ -3811,6 +3820,9 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
 
   // Queue mode — one student at a time
   const [queueIdx,setQueueIdx] = React.useState(null); // null = list view, number = queue mode
+
+  // Sync local date state when parent navigates to a new date
+  React.useEffect(function(){if(selectedDate)setDate(selectedDate);},[selectedDate]);
 
   React.useEffect(()=>{
     setAmRows(getClassStudents(cls).map(initAM));
