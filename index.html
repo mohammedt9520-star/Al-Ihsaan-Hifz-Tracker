@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-180000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-200000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -616,8 +616,8 @@ function calcEntry(s){
     sabaqDays,average,trueAverage,adjustedLines,championTotalSides,championDailyAverage};
 }
 
-function sbMapSabaqOut(r){return{id:r.id||uid(),name:r.name,class:r.class,from_page:r.fromPage||"",to_page:r.toPage||"",total_full_sides:r.totalFullSides||"",plus_lines:r.plusLines||"",absences:r.absences||"",para_dor_mornings:r.paraDorMornings||"",total_days_of_sabaq:r.totalDaysOfSabaq||"",date_from:r.dateFrom||"",date_to:r.dateTo||"",target_given:r.targetGiven||13,upcoming_target:r.upcomingTarget||13,parent_email1:r.parentEmail1||"",parent_email2:r.parentEmail2||"",father_phone:r.fatherPhone||"",mother_phone:r.motherPhone||"",weak_sabaq_instances:r.weakSabaqInstances||"N/A",weak_dor_instances:r.weakDorInstances||"N/A",teacher_comments:r.teacherComments||"",behaviour:r.behaviour||5,evening_possible_days:r.eveningPossibleDays||"",evening_absences:r.eveningAbsences||"",is_student_profile:r.isStudentProfile||false,updated_at:new Date().toISOString()};}
-function sbMapSabaqIn(r){return{id:r.id,name:r.name,class:r.class,fromPage:r.from_page||"",toPage:r.to_page||"",totalFullSides:r.total_full_sides||"",plusLines:r.plus_lines||"",absences:r.absences||"",paraDorMornings:r.para_dor_mornings||"",totalDaysOfSabaq:r.total_days_of_sabaq||"",dateFrom:r.date_from||"",dateTo:r.date_to||"",targetGiven:r.target_given||13,upcomingTarget:r.upcoming_target||13,parentEmail1:r.parent_email1||"",parentEmail2:r.parent_email2||"",fatherPhone:r.father_phone||"",motherPhone:r.mother_phone||"",weakSabaqInstances:r.weak_sabaq_instances||"N/A",weakDorInstances:r.weak_dor_instances||"N/A",teacherComments:r.teacher_comments||"",behaviour:r.behaviour||5,eveningPossibleDays:r.evening_possible_days||"",eveningAbsences:r.evening_absences||"",isStudentProfile:r.is_student_profile||false};}
+function sbMapSabaqOut(r){return{id:r.id||uid(),name:r.name,class:r.class,from_page:r.fromPage||"",to_page:r.toPage||"",total_full_sides:r.totalFullSides||"",plus_lines:r.plusLines||"",absences:r.absences||"",para_dor_mornings:r.paraDorMornings||"",total_days_of_sabaq:r.totalDaysOfSabaq||"",date_from:r.dateFrom||"",date_to:r.dateTo||"",target_given:r.targetGiven||13,upcoming_target:r.upcomingTarget||13,parent_email1:r.parentEmail1||"",parent_email2:r.parentEmail2||"",father_phone:r.fatherPhone||"",mother_phone:r.motherPhone||"",weak_sabaq_instances:r.weakSabaqInstances||"N/A",weak_dor_instances:r.weakDorInstances||"N/A",teacher_comments:r.teacherComments||"",behaviour:r.behaviour||5,evening_possible_days:r.eveningPossibleDays||"",evening_absences:r.eveningAbsences||"",is_hafidh:r.isHafidh||false,is_student_profile:r.isStudentProfile||false,updated_at:new Date().toISOString()};}
+function sbMapSabaqIn(r){return{id:r.id,name:r.name,class:r.class,fromPage:r.from_page||"",toPage:r.to_page||"",totalFullSides:r.total_full_sides||"",plusLines:r.plus_lines||"",absences:r.absences||"",paraDorMornings:r.para_dor_mornings||"",totalDaysOfSabaq:r.total_days_of_sabaq||"",dateFrom:r.date_from||"",dateTo:r.date_to||"",targetGiven:r.target_given||13,upcomingTarget:r.upcoming_target||13,parentEmail1:r.parent_email1||"",parentEmail2:r.parent_email2||"",fatherPhone:r.father_phone||"",motherPhone:r.mother_phone||"",weakSabaqInstances:r.weak_sabaq_instances||"N/A",weakDorInstances:r.weak_dor_instances||"N/A",teacherComments:r.teacher_comments||"",behaviour:r.behaviour||5,eveningPossibleDays:r.evening_possible_days||"",eveningAbsences:r.evening_absences||"",isHafidh:r.is_hafidh||false,isStudentProfile:r.is_student_profile||false};}
 function sbMapDorOut(r){return{id:r.id||uid(),student_name:r.studentName,date:r.date,dor1_juz:r.dor1Juz||"",dor1_quarter:r.dor1Quarter||"",dor1_mistakes:r.dor1Mistakes||"",dor1_repeated:r.dor1Repeated||false,dor2_juz:r.dor2Juz||"",dor2_quarter:r.dor2Quarter||"",dor2_mistakes:r.dor2Mistakes||"",dor2_repeated:r.dor2Repeated||false,dor1_scrape:r.dor1Scrape||false,dor1_no_time:r.dor1NoTime||false,dor2_scrape:r.dor2Scrape||false,dor2_no_time:r.dor2NoTime||false,dor2_exempt:r.dor2Exempt||false,dor2_para_dor:r.dor2ParaDor||false,morning_dor:r.morningDor||false,para_dor:r.paraDor||false,para_test:r.paraTest||false,para_test_juz:r.paraTestJuz||"",para_test_total_mistakes:r.paraTestTotalMistakes||"",para_test_result:r.paraTestResult||"Passed"};}
 function sbMapDorIn(r){return{id:r.id,studentName:r.student_name,date:r.date,dor1Juz:r.dor1_juz||"",dor1Quarter:r.dor1_quarter||"",dor1Mistakes:r.dor1_mistakes||"",dor1Repeated:r.dor1_repeated||false,dor2Juz:r.dor2_juz||"",dor2Quarter:r.dor2_quarter||"",dor2Mistakes:r.dor2_mistakes||"",dor2Repeated:r.dor2_repeated||false,dor1Scrape:r.dor1_scrape||false,dor1NoTime:r.dor1_no_time||false,dor2Scrape:r.dor2_scrape||false,dor2NoTime:r.dor2_no_time||false,dor2Exempt:r.dor2_exempt||false,dor2ParaDor:r.dor2_para_dor||false,morningDor:r.morning_dor||false,paraDor:r.para_dor||false,paraTest:r.para_test||false,paraTestJuz:r.para_test_juz||"",paraTestTotalMistakes:r.para_test_total_mistakes||"",paraTestResult:r.para_test_result||"Passed"};}
 function sbMapDailyOut(r){return{id:r.id||uid(),student_name:r.studentName,class:r.class,date:r.date,absent:r.absent||false,sabaq_para:r.sabaqPara||false,sp_lines:r.spLines||0,sp_mistakes:r.spMistakes||0,sp_scrape:r.spScrape||false,sp_kaccha2:r.spKaccha2||false,sp2_done:r.sp2Done||false,sp2_mistakes:r.sp2Mistakes||0,sp2_scrape:r.sp2Scrape||false,sp2_kaccha:r.sp2Kaccha||false,sabaq_lines:r.sabaqLines||0,sabaq_mistakes:r.sabaqMistakes||0,sabaq_weak:r.sabaqWeak||false,sabaq_less_lines:r.sabaqLessLines||false,sabaq_kaccha:r.sabaqKaccha||false,para_dor:r.paraDor||false,pd_juz:r.pdJuz||"",pd_quarter:r.pdQuarter||"",pd_mistakes:r.pdMistakes||0,pd_scrape:r.pdScrape||false,pd_kaccha:r.pdKaccha||false,pd_no_time:r.pdNoTime||false,pd_is_para_dor:r.pdIsParaDor||false,morning_dor:r.morningDor||false,has_dor:r.hasDor||false,dor_juz:r.dorJuz||"",dor_quarter:r.dorQuarter||"",dor_mistakes:r.dorMistakes||0,dor_scrape:r.dorScrape||false};}
@@ -680,6 +680,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
       (!entry.dateTo||d.date<=entry.dateTo);
   });
 
+  var isHafidh=(allRecords||[]).some(function(rec){return rec.isStudentProfile&&rec.name===entry.name&&rec.isHafidh;});
   // ── Dor Heatmap builder ──────────────────────────────────
   function hmDot(color){
     var c=color==="green"?"#22c55e":color==="orange"?"#f59e0b":color==="red"?"#ef4444":"#c0c0c0";
@@ -859,6 +860,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
     h+=attBlock("Attendance Overview",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue");
   }
 
+  if(!isHafidh){
   // ── 2. Sabaq Target Given ─────────────────────────────────
   h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Sabaq Target Given</div>';
   h+='<div class="sec-body sec-body-teal"><table class="dtbl"><tr>';
@@ -905,6 +907,57 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='<td style="text-align:left;"><div class="val" style="font-size:22px;">'+calc.Q+'</div></td>';
   h+='</tr></table></div></div>';
 
+  } // end !isHafidh sabaq sections
+  if(isHafidh){
+    var _hdr=(dorRecords||[]).filter(function(d){return d.studentName===entry.name&&(!entry.dateFrom||d.date>=entry.dateFrom)&&(!entry.dateTo||d.date<=entry.dateTo);});
+    var _jm={};
+    _hdr.forEach(function(d){
+      [[d.dor1Juz,d.dor1Quarter,d.dor1Mistakes],[d.dor2Juz,d.dor2Quarter,d.dor2Mistakes]].forEach(function(e){
+        if(!e[0])return;
+        var j=String(e[0]);
+        if(!_jm[j])_jm[j]={q1:0,q2:0,q3:0,q4:0,mistakes:0};
+        var qn=parseInt(e[1])||0;
+        if(qn>=1&&qn<=4)_jm[j]['q'+qn]++;
+        _jm[j].mistakes+=Number(e[2])||0;
+      });
+    });
+    var _jns=Object.keys(_jm).map(Number).sort(function(a,b){return a-b;});
+    var _tq1=0,_tq2=0,_tq3=0,_tq4=0,_tmk=0;
+    _jns.forEach(function(n){var rw=_jm[n];_tq1+=rw.q1;_tq2+=rw.q2;_tq3+=rw.q3;_tq4+=rw.q4;_tmk+=rw.mistakes;});
+    h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Hafidh Dor Record This Month</div>';
+    h+='<div class="sec-body"><table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;">';
+    h+='<thead><tr style="background:#f0f4ff;">';
+    ['Juz','Q1','Q2','Q3','Q4','Mistakes'].forEach(function(lbl){
+      h+='<th style="padding:10px 12px;font-size:11px;font-weight:700;color:#1a3a6b;border:1.5px solid #c8d0e0;text-transform:uppercase;letter-spacing:0.5px;">'+lbl+'</th>';
+    });
+    h+='</tr></thead><tbody>';
+    if(_jns.length===0){
+      h+='<tr><td colspan="6" style="padding:20px;color:#888;font-style:italic;">No Dor sessions recorded for this period.</td></tr>';
+    } else {
+      _jns.forEach(function(n,i){
+        var rw=_jm[n];
+        var bg=i%2===0?'#fff':'#f9fafb';
+        var mkC=rw.mistakes>10?'#e74c3c':rw.mistakes>5?'#e67e22':'#27ae60';
+        h+='<tr style="background:'+bg+';">';
+        h+='<td style="padding:9px 12px;font-weight:700;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+n+'</td>';
+        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q1+'</td>';
+        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q2+'</td>';
+        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q3+'</td>';
+        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q4+'</td>';
+        h+='<td style="padding:9px 12px;font-weight:700;color:'+mkC+';border:1.5px solid #c8d0e0;">'+rw.mistakes+'</td>';
+        h+='</tr>';
+      });
+      h+='<tr style="background:#f0f4ff;font-weight:700;">';
+      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;font-size:11px;letter-spacing:0.5px;">TOTAL</td>';
+      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq1+'</td>';
+      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq2+'</td>';
+      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq3+'</td>';
+      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq4+'</td>';
+      h+='<td style="padding:10px 12px;color:#e74c3c;border:1.5px solid #c8d0e0;">'+_tmk+'</td>';
+      h+='</tr>';
+    }
+    h+='</tbody></table></div></div>';
+  }
   // Page 1 number
   h+='<div class="pg-num"><div class="pg-num-line"></div>Page 1<div class="pg-num-line"></div></div>';
 
@@ -935,7 +988,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='</div>';
 
   // ── Daily Sabaq Analysis (if data exists) ─────────────────
-  if(hasQuality){
+  if(hasQuality&&!isHafidh){
     h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">6</span> Daily Sabaq Analysis</div>';
     h+='<div class="sec-body sec-body-teal"><table class="dtbl"><tr>';
     const mkColor=avgSpM>3?"#e74c3c":avgSpM>1.5?"#e67e22":"#27ae60";
@@ -1521,13 +1574,17 @@ function App(){
   // Year Planner & Register
   const [yearPlan,setYearPlan]=React.useState(()=>lsGetYearPlan());
   const [registerData,setRegisterData]=React.useState(()=>lsGetRegister());
-  const [hafidhStudents,setHafidhStudents]=React.useState(()=>lsGetHafidh());
+  const hafidhStudents=React.useMemo(function(){
+    return new Set(records.filter(function(rec){return rec.isStudentProfile&&rec.isHafidh;}).map(function(rec){return rec.name;}));
+  },[records]);
   function toggleHafidh(name){
-    setHafidhStudents(function(prev){
-      var next=new Set(prev);
-      if(next.has(name))next.delete(name);else next.add(name);
-      lsSaveHafidh(next);return next;
+    setRecords(function(prev){
+      var next=prev.map(function(rec){
+        return (rec.isStudentProfile&&rec.name===name)?Object.assign({},rec,{isHafidh:!rec.isHafidh}):rec;
+      });
+      lsSave(next);return next;
     });
+    scheduleSync();
   }
   const [registerClass,setRegisterClass]=React.useState("HIFZ CLASS A");
   const [registerSession,setRegisterSession]=React.useState("morning");
@@ -3789,7 +3846,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
 
   // Save handlers
   function saveAM(){
-    const hasAny=amRows.some(r=>r.absent||r.spMistakes||r.sabaqLines||r.dorDone);
+    const hasAny=amRows.some(r=>r.absent||r.spMistakes||r.sabaqLines||r.dorDone||(hafidhStudents&&hafidhStudents.has(r.name)&&!!r.dorJuz));
     if(!hasAny){showToast("Nothing entered yet.","warning",2200);return;}
     const daily=[],dors=[];
     amRows.forEach(row=>{
@@ -3810,18 +3867,18 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
         sabaqWeak:!row.absent&&row.sabaqWeak,
         sabaqLessLines:!row.absent&&row.sabaqLessLines,
         sabaqKaccha:!row.absent&&(row.sabaqWeak||row.sabaqLessLines),
-        paraDor:!row.absent&&row.dorDone&&row.dorParaDor,
-        morningDor:!row.absent&&row.dorDone,
+        paraDor:!row.absent&&(row.dorDone||(hafidhStudents&&hafidhStudents.has(row.name)))&&row.dorParaDor,
+        morningDor:!row.absent&&(row.dorDone||(hafidhStudents&&hafidhStudents.has(row.name)&&!!row.dorJuz)),
         pdJuz:row.absent?"":row.dorJuz,
         pdQuarter:row.absent?"":normQuarter(row.dorQuarter),
         pdMistakes:row.absent?0:(parseFloat(row.dorMistakes)||0),
-        pdScrape:!row.absent&&row.dorDone&&row.dorScrape,
-        pdKaccha:!row.absent&&row.dorDone&&row.dorKaccha,
-        pdNoTime:!row.absent&&row.dorDone&&row.dorNoTime,
-        pdIsParaDor:!row.absent&&row.dorDone&&row.dorParaDor,
+        pdScrape:!row.absent&&(row.dorDone||(hafidhStudents&&hafidhStudents.has(row.name)))&&row.dorScrape,
+        pdKaccha:!row.absent&&(row.dorDone||(hafidhStudents&&hafidhStudents.has(row.name)))&&row.dorKaccha,
+        pdNoTime:!row.absent&&(row.dorDone||(hafidhStudents&&hafidhStudents.has(row.name)))&&row.dorNoTime,
+        pdIsParaDor:!row.absent&&(row.dorDone||(hafidhStudents&&hafidhStudents.has(row.name)))&&row.dorParaDor,
         hasDor:false,dorJuz:"",dorQuarter:"",dorMistakes:0,dorScrape:false,
       });
-      if(!row.absent&&row.dorDone&&row.dorJuz){
+      if(!row.absent&&(row.dorDone||(hafidhStudents&&hafidhStudents.has(row.name)))&&row.dorJuz){
         dors.push({id:uid(),studentName:row.name,date,morningDor:true,
           dor1Juz:row.dorJuz,dor1Quarter:normQuarter(row.dorQuarter||"1"),
           dor1Mistakes:row.dorNoTime?"":String(parseFloat(row.dorMistakes)||0),dor1Repeated:!!row.dorKaccha,
