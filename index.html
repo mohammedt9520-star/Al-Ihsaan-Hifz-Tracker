@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-300000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-310000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -37,6 +37,8 @@ if("serviceWorker"in navigator){
       var nw=reg.installing;
       nw.addEventListener('statechange',function(){
         if(nw.state==='installed'&&navigator.serviceWorker.controller){
+          // Auto-activate new SW — no user tap needed
+          setTimeout(function(){nw.postMessage({type:'SKIP_WAITING'});},2000);
           window.__swWaiting=nw;
           window.dispatchEvent(new CustomEvent('swupdateavailable',{detail:nw}));
         }
@@ -1675,6 +1677,8 @@ function App(){
       setSwUpdate(true);
     }
     window.addEventListener('swupdateavailable',onSwUpdate);
+    // Force SW update check so new versions are detected on every session
+    if('serviceWorker'in navigator){navigator.serviceWorker.ready.then(function(reg){reg.update().catch(function(){});});}
     return function(){window.removeEventListener('swupdateavailable',onSwUpdate);};
   },[]);
 
@@ -1718,6 +1722,7 @@ function App(){
   const syncTimer=React.useRef(null);
   const retryTimer=React.useRef(null);
   const isFirstLoad=React.useRef(true);
+  const loadRetries=React.useRef(0);
   const isSyncing=React.useRef(false);
   // Pending-writes queue: stores writes that failed while offline
   const pendingSync=React.useRef(false);
@@ -1731,7 +1736,7 @@ function App(){
     retryTimer.current=setTimeout(function(){
       if(!navigator.onLine){scheduleRetry();return;}
       loadCloud().catch(function(){}).finally(function(){syncNow().catch(function(){});});
-    },10000);
+    },5000);
   }
   React.useEffect(()=>{lsSave(records);scheduleSync();},[records]);
   React.useEffect(()=>{lsSaveDor(dorRecords);scheduleSync();},[dorRecords]);
@@ -2250,8 +2255,8 @@ function App(){
     }
     isFirstLoad.current=false;
     var anyLoaded=sR.ok||dR.ok||dlR.ok||rR.ok||pR.ok||stR.ok;
-    if(anyLoaded){setSyncStatus("live");scheduleSync();}
-    else{setSyncStatus("offline");scheduleRetry();}
+    if(anyLoaded){loadRetries.current=0;setSyncStatus("live");scheduleSync();}
+    else{loadRetries.current++;if(loadRetries.current>=3){setSyncStatus("offline");}else{setSyncStatus("loading");}scheduleRetry();}
   }
 
   const NAV_ITEMS=[
