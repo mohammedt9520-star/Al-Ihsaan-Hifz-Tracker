@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-280000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-290000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -63,7 +63,11 @@ async function sbFetch(path,method,body){
   if(method==="DELETE")h["Prefer"]="return=minimal";
   const opts={method:method||"GET",headers:h};
   if(body)opts.body=JSON.stringify(body);
-  const r=await fetch(SUPABASE_URL+"/rest/v1/"+path,opts);
+  var _ctrl=new AbortController();
+  var _sbT=setTimeout(function(){_ctrl.abort();},15000);
+  opts.signal=_ctrl.signal;
+  var r;
+  try{r=await fetch(SUPABASE_URL+"/rest/v1/"+path,opts);}finally{clearTimeout(_sbT);}
   if(!r.ok){
     const e=typeof r.text==="function"?await r.text().catch(()=>""):String(r.status||"error");
     throw new Error(r.status+": "+e.substring(0,100));
@@ -1676,7 +1680,13 @@ function App(){
 
   // Reset date states to today whenever the tab regains focus
   React.useEffect(function(){
-    function onVisible(){if(document.visibilityState==="visible"){setSabaqEntryDate(getTodayStr());setRegisterDate(getTodayStr());}}
+    function onVisible(){
+      if(document.visibilityState==="visible"){
+        setSabaqEntryDate(getTodayStr());
+        setRegisterDate(getTodayStr());
+        if(navigator.onLine&&!isFirstLoad.current){scheduleSync();}
+      }
+    }
     document.addEventListener("visibilitychange",onVisible);
     return function(){document.removeEventListener("visibilitychange",onVisible);};
   },[]);
@@ -1717,7 +1727,10 @@ function App(){
   }
   function scheduleRetry(){
     if(retryTimer.current)clearTimeout(retryTimer.current);
-    retryTimer.current=setTimeout(function(){syncNow().catch(function(){});},30000);
+    retryTimer.current=setTimeout(function(){
+      if(navigator.onLine){syncNow().catch(function(){});}
+      else{scheduleRetry();}
+    },10000);
   }
   React.useEffect(()=>{lsSave(records);scheduleSync();},[records]);
   React.useEffect(()=>{lsSaveDor(dorRecords);scheduleSync();},[dorRecords]);

@@ -1,4 +1,4 @@
-const CACHE='hifz-20260706-280000';
+const CACHE='hifz-20260706-290000';
 const CDN=['https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js','https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(CDN.map(u=>c.add(u).catch(()=>{})))));
@@ -18,7 +18,13 @@ self.addEventListener('fetch',e=>{
     return;
   }
   if(u.origin===self.location.origin){
-    e.respondWith(fetch(e.request).then(r=>{if(r&&r.status===200)caches.open(CACHE).then(cc=>cc.put(e.request,r.clone()));return r;}).catch(()=>caches.match(e.request)));
+    // Stale-while-revalidate: serve cache instantly, refresh in background
+    e.respondWith(caches.open(CACHE).then(function(cache){
+      return cache.match(e.request).then(function(cached){
+        var networkUpdate=fetch(e.request).then(function(r){if(r&&r.status===200)cache.put(e.request,r.clone());return r;}).catch(function(){return cached;});
+        return cached||networkUpdate;
+      });
+    }));
     return;
   }
   e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
