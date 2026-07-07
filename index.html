@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-270000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-280000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -3821,9 +3821,10 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     dorDone:false,dorJuz:"",dorQuarter:"",dorMistakes:"",dorKaccha:false,dorScrape:false,dorNoTime:false,dorParaDor:false,
     dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",
   });
-  function bufFromSaved(sv){
+  function bufFromSaved(sv,dorRecs){
     const base=EMPTY_AM(sv.studentName);
     if(sv.absent)return{...base,absent:true};
+    var _dr2=(dorRecs||[]).find(function(d){return d.studentName===sv.studentName&&d.date===sv.date&&d.morningDor;});
     return{...base,absent:false,
       spMistakes:(sv.spMistakes!==undefined&&sv.spMistakes!==null)?String(sv.spMistakes):"",
       spScrape:!!sv.spScrape,spKaccha:!!sv.spKaccha2,
@@ -3837,11 +3838,15 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       dorScrape:!!(sv.pdKaccha!==undefined&&sv.pdScrape),
       dorNoTime:!!sv.pdNoTime,
       dorParaDor:sv.pdIsParaDor!==undefined?!!sv.pdIsParaDor:!!sv.paraDor,
-      dor2Juz:sv.pd2Juz||"",dor2Quarter:normQuarter(sv.pd2Quarter||""),dor2Mistakes:sv.pd2Mistakes?String(sv.pd2Mistakes):"",};
+      // dor2 lives in dor_records (not in daily_sabaq), so look it up by studentName+date
+      dor2Juz:(_dr2&&_dr2.dor2Juz)||"",
+      dor2Quarter:normQuarter((_dr2&&_dr2.dor2Quarter)||""),
+      dor2Mistakes:(_dr2&&_dr2.dor2Mistakes)?String(_dr2.dor2Mistakes):"",
+    };
   }
   function initAM(name){
     const sv=(dailySabaqEntries||[]).find(e=>e.class===cls&&e.date===date&&e.studentName===name);
-    if(sv)return bufFromSaved(sv);
+    if(sv)return bufFromSaved(sv,dorRecords);
     const rk=getRegisterKey(cls,"morning",date);
     const reg=(registerData||[]).find(r=>r.key===rk&&r.studentName===name);
     // Auto-prefill next Dor quarter for Hafidh students from yesterday's last record
@@ -3895,15 +3900,6 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     setAmRows(prev=>prev.map(r=>kachhaYesterday.has(r.name)?{...r,dorDone:true}:r));
   },[kachhaYesterday]);
 
-  // Students whose SP was Kaccha yesterday → no new Sabaq today
-  const sabaqKachhaYesterday=React.useMemo(function(){
-    if(!date||!Array.isArray(dailySabaqEntries))return new Set();
-    var _p=new Date(date);_p.setDate(_p.getDate()-1);
-    var _ps=_p.toISOString().slice(0,10);
-    var _s=new Set();
-    dailySabaqEntries.forEach(function(d){if(d.date===_ps&&d.class===cls&&(d.spKaccha2||d.spKaccha))_s.add(d.studentName);});
-    return _s;
-  },[dailySabaqEntries,date,cls]);
 
   function updAM(i,f,v){
     setAmRows(prev=>{
@@ -3997,7 +3993,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // QUEUE CARD — single student popup view
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  function QueueCard({rows,updRow,tab,onPrev,onNext,onDone,idx,total,hafidhSet,sabaqKachhaSet}){
+  function QueueCard({rows,updRow,tab,onPrev,onNext,onDone,idx,total,hafidhSet}){
     const row=rows[idx];
     if(!row)return null;
     // Local state for the "Other" lines input — never triggers parent re-render
@@ -4588,7 +4584,6 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       onNext:()=>setQueueIdx(q=>Math.min(students.length-1,q+1)),
       onDone:saveAM,
       hafidhSet:hafidhStudents||new Set(),
-      sabaqKachhaSet:sabaqKachhaYesterday,
     })
   );
 }
