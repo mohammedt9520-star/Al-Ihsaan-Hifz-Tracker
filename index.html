@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-290000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-300000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -1703,9 +1703,10 @@ function App(){
   React.useEffect(()=>{
     function onOnline(){
       if(syncStatus==="offline"||syncStatus===""){
-        // Sync our pending changes first, then reload from server
-        syncNow().catch(()=>{}).finally(()=>{
-          loadCloud().catch(()=>{});
+        // Pull latest first so we get any changes from other devices,
+        // then push local pending writes on top
+        loadCloud().catch(function(){}).finally(function(){
+          syncNow().catch(function(){});
         });
       }
     }
@@ -1728,8 +1729,8 @@ function App(){
   function scheduleRetry(){
     if(retryTimer.current)clearTimeout(retryTimer.current);
     retryTimer.current=setTimeout(function(){
-      if(navigator.onLine){syncNow().catch(function(){});}
-      else{scheduleRetry();}
+      if(!navigator.onLine){scheduleRetry();return;}
+      loadCloud().catch(function(){}).finally(function(){syncNow().catch(function(){});});
     },10000);
   }
   React.useEffect(()=>{lsSave(records);scheduleSync();},[records]);
@@ -2248,9 +2249,9 @@ function App(){
       if(ht&&ht.value!==undefined){setHtEmail(ht.value);lsSaveHT(ht.value);}
     }
     isFirstLoad.current=false;
-    setSyncStatus("live");
-    // Flush any writes that were blocked by isFirstLoad guard during load
-    scheduleSync();
+    var anyLoaded=sR.ok||dR.ok||dlR.ok||rR.ok||pR.ok||stR.ok;
+    if(anyLoaded){setSyncStatus("live");scheduleSync();}
+    else{setSyncStatus("offline");scheduleRetry();}
   }
 
   const NAV_ITEMS=[
