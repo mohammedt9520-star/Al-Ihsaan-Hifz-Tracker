@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-260000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-270000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -4006,7 +4006,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     var _clPair=React.useState(_initCL);
     var linesCustom=_clPair[0],setLinesCustom=_clPair[1];
     const hadKaccha=kachhaYesterday.has(row.name);
-    const isKachhaDay=!!(sabaqKachhaSet&&sabaqKachhaSet.has(row.name))&&tab==="am";
+    const isKachhaDay=!!row.spKaccha&&tab==="am";
     const isAM=tab==="am";
 
     // Colour for SP mistakes
@@ -4053,7 +4053,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               color:"#DC2626",fontSize:11,fontWeight:"700",
               background:"#FEE2E2",borderRadius:4,padding:"3px 10px",
               display:"inline-block",marginTop:3
-            }},"🔴 Kaccha yesterday — repeat lesson, no new Sabaq")
+            }},"🔴 SP Kaccha — no new Sabaq today (student repeats lesson)")
           ),
           React.createElement('div',{style:{textAlign:"right"}},
             React.createElement('div',{style:{color:MUTED,fontSize:11}},
