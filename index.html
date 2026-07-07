@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-310000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-320000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -1669,6 +1669,7 @@ function App(){
   const [classListVer,setClassListVer]=React.useState(0);
   const [swUpdate,setSwUpdate]=React.useState(false);
   const swWaitingRef=React.useRef(null);
+  const [deviceOnline,setDeviceOnline]=React.useState(navigator.onLine);
 
   // Service worker update banner
   React.useEffect(function(){
@@ -1679,7 +1680,16 @@ function App(){
     window.addEventListener('swupdateavailable',onSwUpdate);
     // Force SW update check so new versions are detected on every session
     if('serviceWorker'in navigator){navigator.serviceWorker.ready.then(function(reg){reg.update().catch(function(){});});}
-    return function(){window.removeEventListener('swupdateavailable',onSwUpdate);};
+    // Track real device connectivity so we can distinguish "Supabase blip" from "no internet"
+    function onDeviceOnline(){setDeviceOnline(true);}
+    function onDeviceOffline(){setDeviceOnline(false);setSyncStatus("offline");}
+    window.addEventListener("online",onDeviceOnline);
+    window.addEventListener("offline",onDeviceOffline);
+    return function(){
+      window.removeEventListener('swupdateavailable',onSwUpdate);
+      window.removeEventListener("online",onDeviceOnline);
+      window.removeEventListener("offline",onDeviceOffline);
+    };
   },[]);
 
   // Reset date states to today whenever the tab regains focus
@@ -2324,9 +2334,9 @@ function App(){
       React.createElement('div',{style:{display:"flex",alignItems:"center",gap:10}},
         React.createElement('img',{src:window.LOGO_SRC,style:{width:30,height:30,borderRadius:8,objectFit:"contain",background:"#fff",padding:2,flexShrink:0},onError:function(e){e.target.style.display="none";}}),
         React.createElement('div',{style:{display:"flex",alignItems:"center",gap:5}},
-          React.createElement('div',{style:{width:7,height:7,borderRadius:"50%",background:syncStatus==="live"?"#22c55e":syncStatus==="saving"||syncStatus==="loading"?"#f59e0b":"#ef4444",boxShadow:syncStatus==="live"?"0 0 5px #22c55e66":syncStatus==="saving"||syncStatus==="loading"?"0 0 5px #f59e0b66":"0 0 5px #ef444466",transition:"all 0.3s"}}),
+          React.createElement('div',{style:{width:7,height:7,borderRadius:"50%",background:syncStatus==="live"?"#22c55e":syncStatus==="saving"||syncStatus==="loading"||(syncStatus==="offline"&&deviceOnline)?"#f59e0b":"#ef4444",boxShadow:syncStatus==="live"?"0 0 5px #22c55e66":syncStatus==="saving"||syncStatus==="loading"||(syncStatus==="offline"&&deviceOnline)?"0 0 5px #f59e0b66":"0 0 5px #ef444466",transition:"all 0.3s"}}),
           React.createElement('span',{style:{color:"#94a3b8",fontSize:10,fontWeight:"500",letterSpacing:"0.2px"}},
-            syncStatus==="live"?"Live":syncStatus==="saving"?"Saving":syncStatus==="loading"?"Loading":syncStatus==="offline"?"Offline":"..."
+            syncStatus==="live"?"Live":syncStatus==="saving"?"Saving":syncStatus==="loading"||( syncStatus==="offline"&&deviceOnline)?"Loading":syncStatus==="offline"?"Offline":"..."
           )
         )
       )
@@ -2433,14 +2443,14 @@ function App(){
     }},
       React.createElement('div',{style:{
         width:7,height:7,borderRadius:"50%",flexShrink:0,
-        background:syncStatus==="live"?"#22c55e":syncStatus==="saving"||syncStatus==="loading"?"#f59e0b":"#ef4444",
-        boxShadow:syncStatus==="live"?"0 0 6px #22c55e44":syncStatus==="saving"||syncStatus==="loading"?"0 0 6px #f59e0b44":"0 0 6px #ef444444"
+        background:syncStatus==="live"?"#22c55e":syncStatus==="saving"||syncStatus==="loading"||(syncStatus==="offline"&&deviceOnline)?"#f59e0b":"#ef4444",
+        boxShadow:syncStatus==="live"?"0 0 6px #22c55e44":syncStatus==="saving"||syncStatus==="loading"||(syncStatus==="offline"&&deviceOnline)?"0 0 6px #f59e0b44":"0 0 6px #ef444444"
       }}),
       React.createElement('span',{style:{color:"rgba(201,165,83,0.85)",fontSize:11,fontWeight:"500",letterSpacing:"0.03em"}},
         syncStatus==="live"?"Connected — data up to date"
         :syncStatus==="saving"?"Saving to cloud..."
-        :syncStatus==="loading"?"Loading data..."
-        :syncStatus==="offline"?"Offline — working locally"
+        :syncStatus==="loading"||( syncStatus==="offline"&&deviceOnline)?"Connecting to cloud..."
+        :syncStatus==="offline"?"Offline — no internet"
         :"Connecting..."
       )
     )
