@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-250000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-260000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -1466,71 +1466,102 @@ function getLatesForMonth(registerData,month){
     if(!map[key])map[key]={studentName:rec.studentName,cls:rec.class,totalMinutes:0};
     map[key].totalMinutes+=mins;
   });
-  return Object.values(map).filter(function(x){return x.totalMinutes>=60;}).sort(function(a,b){return b.totalMinutes-a.totalMinutes;});
+  return Object.values(map).sort(function(a,b){return b.totalMinutes-a.totalMinutes;});
 }
-function LatesPage({registerData,setView}){
+function LatesPage({registerData,setView,records}){
   var today=getTodayStr().substring(0,7);
   var [month,setMonth]=React.useState(today);
-  var lates=React.useMemo(function(){return getLatesForMonth(registerData,month);},[registerData,month]);
-  var byClass={};
-  lates.forEach(function(l){if(!byClass[l.cls])byClass[l.cls]=[];byClass[l.cls].push(l);});
+  var [activeTab,setActiveTab]=React.useState("HIFZ CLASS A");
+  // Get ALL students with any late minutes this month
+  var allLates=React.useMemo(function(){return getLatesForMonth(registerData,month);},[registerData,month]);
+  // Get all known students per class from records
+  var allStudents=React.useMemo(function(){
+    var m={};
+    (records||[]).forEach(function(rec){
+      if(rec.isStudentProfile&&rec.class&&rec.name&&!rec.name.startsWith("(")){
+        if(!m[rec.class])m[rec.class]=new Set();
+        m[rec.class].add(rec.name);
+      }
+    });
+    return m;
+  },[records]);
+  // Merge: students with no lates get totalMinutes:0
+  var latesByClass=React.useMemo(function(){
+    var lateMap={};
+    allLates.forEach(function(l){lateMap[l.studentName+"||"+l.cls]=l.totalMinutes;});
+    var res={};
+    Object.keys(allStudents).forEach(function(cls){
+      res[cls]=[...allStudents[cls]].map(function(name){
+        return{studentName:name,cls:cls,totalMinutes:lateMap[name+"||"+cls]||0};
+      }).sort(function(a,b){return b.totalMinutes-a.totalMinutes;});
+    });
+    return res;
+  },[allStudents,allLates]);
+  var classes=["HIFZ CLASS A","HIFZ CLASS B"];
+  var students=latesByClass[activeTab]||[];
+  var flagged=students.filter(function(s){return s.totalMinutes>=60;}).length;
+  var warning=students.filter(function(s){return s.totalMinutes>=50&&s.totalMinutes<60;}).length;
   return React.createElement("div",{style:{padding:24,maxWidth:700,margin:"0 auto"}},
-    React.createElement("div",{style:{display:"flex",alignItems:"center",gap:14,marginBottom:24,flexWrap:"wrap"}},
-      React.createElement("h2",{style:{color:GOLD,fontFamily:"Marcellus,serif",fontSize:22,margin:0,flex:1}},"⏰ Lates Report"),
+    React.createElement("div",{style:{display:"flex",alignItems:"center",gap:14,marginBottom:20,flexWrap:"wrap"}},
+      React.createElement("h2",{style:{color:GOLD,fontFamily:"Marcellus,serif",fontSize:22,margin:0,flex:1}},"⏰ Lates Tracker"),
       React.createElement("input",{type:"month",value:month,onChange:function(e){setMonth(e.target.value);},
         style:{...inputStyle,maxWidth:170,padding:"8px 12px"}})
     ),
-    lates.length===0?React.createElement("div",{style:{textAlign:"center",padding:60,color:MUTED,fontSize:15}},
-      "No students with 60+ minutes late in "+month+"."
-    ):
-    React.createElement("div",null,
-      React.createElement("div",{style:{
-        background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.3)",
-        borderRadius:14,padding:"14px 18px",marginBottom:20,
-        display:"flex",alignItems:"center",gap:12
-      }},
-        React.createElement("span",{style:{fontSize:22}},"⚠️"),
-        React.createElement("div",null,
-          React.createElement("div",{style:{color:GOLD,fontWeight:"700",fontSize:14}},
-            lates.length+" student"+(lates.length!==1?"s":"")+" requiring action in "+month
-          ),
-          React.createElement("div",{style:{color:MUTED,fontSize:12,marginTop:2}},"Students accumulating 60+ minutes late this month")
-        )
-      ),
-      Object.entries(byClass).map(function([cls,students]){
-        return React.createElement("div",{key:cls,style:{marginBottom:20}},
-          React.createElement("div",{style:{color:GOLD,fontSize:10,fontWeight:"800",
-            letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10,
-            fontFamily:"Manrope,sans-serif"
-          }},cls),
-          React.createElement("div",{style:{
-            background:"#fff",borderRadius:16,
-            border:"1px solid rgba(230,225,211,0.9)",
-            overflow:"hidden",
-            boxShadow:"0 1px 2px rgba(13,26,18,0.06)"
-          }},
-            students.map(function(s,i){
-              return React.createElement("div",{key:s.studentName,
-                style:{
-                  display:"flex",alignItems:"center",justifyContent:"space-between",
-                  padding:"14px 20px",
-                  borderBottom:i<students.length-1?"1px solid #F0F0F0":"none"
-                }},
-                React.createElement("div",null,
-                  React.createElement("div",{style:{color:TEXT,fontWeight:"600",fontSize:14}},s.studentName),
-                  React.createElement("div",{style:{color:MUTED,fontSize:12,marginTop:2}},"Total: "+s.totalMinutes+" min late")
-                ),
-                React.createElement("div",{style:{
-                  background:s.totalMinutes>=120?"#FEE2E2":s.totalMinutes>=90?"#FEF3C7":"#FFF7ED",
-                  color:s.totalMinutes>=120?"#DC2626":s.totalMinutes>=90?"#D97706":"#EA580C",
-                  borderRadius:20,padding:"4px 14px",fontSize:13,fontWeight:"700"
-                }},s.totalMinutes+" min")
-              );
-            })
-          )
-        );
+    // Class tabs
+    React.createElement("div",{style:{display:"flex",gap:8,marginBottom:16}},
+      classes.map(function(cls){
+        var isSel=activeTab===cls;
+        return React.createElement("button",{key:cls,onClick:function(){setActiveTab(cls);},
+          style:{padding:"8px 18px",borderRadius:20,border:"1.5px solid "+(isSel?GOLD:"#E5E7EB"),
+            background:isSel?GOLD:"#fff",color:isSel?"#fff":TEXT,
+            cursor:"pointer",fontWeight:"700",fontSize:13,transition:"all 0.15s"}},
+          cls.replace("HIFZ CLASS ","Class "));
       })
-    )
+    ),
+    // Summary banner
+    (flagged>0||warning>0)&&React.createElement("div",{style:{
+      background:flagged>0?"rgba(220,38,38,0.06)":"rgba(217,119,6,0.06)",
+      border:"1px solid "+(flagged>0?"rgba(220,38,38,0.3)":"rgba(217,119,6,0.3)"),
+      borderRadius:12,padding:"12px 16px",marginBottom:16,
+      display:"flex",gap:12,alignItems:"center"
+    }},
+      React.createElement("span",{style:{fontSize:20}},flagged>0?"🚨":"⚠️"),
+      React.createElement("div",null,
+        flagged>0&&React.createElement("div",{style:{color:"#DC2626",fontWeight:"700",fontSize:13}},
+          flagged+" student"+(flagged!==1?"s":"")+" at 60+ min — follow-up required"),
+        warning>0&&React.createElement("div",{style:{color:"#D97706",fontWeight:"600",fontSize:12,marginTop:2}},
+          warning+" student"+(warning!==1?"s":"")+" approaching 60 min threshold")
+      )
+    ),
+    // Student list
+    students.length===0
+      ? React.createElement("div",{style:{textAlign:"center",padding:48,color:MUTED}},"No students found in "+activeTab+".")
+      : React.createElement("div",{style:{background:"#fff",borderRadius:16,border:"1px solid rgba(230,225,211,0.9)",overflow:"hidden",boxShadow:"0 1px 2px rgba(13,26,18,0.06)"}},
+          students.map(function(s,i){
+            var isFlag=s.totalMinutes>=60;
+            var isWarn=s.totalMinutes>=50&&s.totalMinutes<60;
+            var pct=Math.min(100,Math.round(s.totalMinutes/60*100));
+            return React.createElement("div",{key:s.studentName,
+              style:{padding:"13px 18px",borderBottom:i<students.length-1?"1px solid #F5F5F5":"none",
+                background:isFlag?"#FFF5F5":isWarn?"#FFFBF0":"#fff"}},
+              React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:s.totalMinutes>0?6:0}},
+                React.createElement("div",{style:{color:isFlag?"#DC2626":isWarn?"#D97706":TEXT,fontWeight:isFlag||isWarn?"700":"600",fontSize:14}},
+                  s.studentName),
+                React.createElement("div",{style:{
+                  background:isFlag?"#FEE2E2":isWarn?"#FEF3C7":s.totalMinutes>0?"#F3F4F6":"transparent",
+                  color:isFlag?"#DC2626":isWarn?"#D97706":s.totalMinutes>0?MUTED:"#D1D5DB",
+                  borderRadius:20,padding:"3px 12px",fontSize:12.5,fontWeight:"700",
+                  border:isFlag?"1px solid #FECACA":isWarn?"1px solid #FDE68A":"1px solid transparent"
+                }},s.totalMinutes>0?s.totalMinutes+" min":"0 min")
+              ),
+              s.totalMinutes>0&&React.createElement("div",{style:{height:4,borderRadius:2,background:"#F3F4F6",overflow:"hidden"}},
+                React.createElement("div",{style:{height:"100%",width:pct+"%",borderRadius:2,
+                  background:isFlag?"#EF4444":isWarn?"#F59E0B":"#D1D5DB",
+                  transition:"width 0.4s ease"}})
+              )
+            );
+          })
+        )
   );
 }
 function App(){
@@ -2219,6 +2250,7 @@ function App(){
     {icon:"\uD83C\uDF19",label:"View Register (PM)",view:"viewRegister",session:"evening"},
     {icon:"⚠️",label:"Absences",view:"absences"},
     {icon:"⏰",label:"Lates",view:"lates"},
+    {icon:"📊",label:"Monthly Report",view:"monthlyReport"},
     {icon:"🏫",label:"Classes",view:"classes"},
     {icon:"📅",label:"Year Planner",view:"yearPlanner"},
     {icon:"➕",label:"Add Monthly Entry",view:"addEntry"},
@@ -2421,6 +2453,7 @@ function App(){
         ]},
         {label:"Records & Reports",items:[
           {icon:"➕",label:"Add Monthly Entry",sub:"Collate & save monthly record",view:"addEntry",accent:"#B8934A"},
+          {icon:"📊",label:"Monthly Report",sub:"Class summary · Dor heat map",view:"monthlyReport",accent:"#7C3AED"},
           {icon:"📄",label:"Reports",sub:"Email reports to parents",view:"reports",accent:"#059669"},
           {icon:"📅",label:"History",sub:"Browse all monthly records",view:"history",accent:"#6B7280"},
         ]},
@@ -2531,9 +2564,10 @@ function App(){
 
     /* ABSENCES */
     , view==="absences"&&React.createElement(AbsencesPage, {yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
+    , view==="monthlyReport"&&React.createElement(MonthlyReportPage, {records:records,dailySabaqEntries:dailySabaqEntries,dorRecords:dorRecords,registerData:registerData,hafidhStudents:hafidhStudents,})
 
     /* LATES */
-    , view==="lates"&&React.createElement(LatesPage, {registerData:registerData,setView:setView})
+    , view==="lates"&&React.createElement(LatesPage, {registerData:registerData,setView:setView,records:records})
 
     /* ADD/EDIT */
     , view==="addEntry"&&(
@@ -3785,6 +3819,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     sp2Done:false,sp2Mistakes:"",sp2Scrape:false,sp2Kaccha:false,
     sabaqLines:"",sabaqWeak:false,sabaqLessLines:false,
     dorDone:false,dorJuz:"",dorQuarter:"",dorMistakes:"",dorKaccha:false,dorScrape:false,dorNoTime:false,dorParaDor:false,
+    dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",
   });
   function bufFromSaved(sv){
     const base=EMPTY_AM(sv.studentName);
@@ -3801,14 +3836,32 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       dorKaccha:!!(sv.pdKaccha!==undefined?sv.pdKaccha:sv.pdScrape),
       dorScrape:!!(sv.pdKaccha!==undefined&&sv.pdScrape),
       dorNoTime:!!sv.pdNoTime,
-      dorParaDor:sv.pdIsParaDor!==undefined?!!sv.pdIsParaDor:!!sv.paraDor};
+      dorParaDor:sv.pdIsParaDor!==undefined?!!sv.pdIsParaDor:!!sv.paraDor,
+      dor2Juz:sv.pd2Juz||"",dor2Quarter:normQuarter(sv.pd2Quarter||""),dor2Mistakes:sv.pd2Mistakes?String(sv.pd2Mistakes):"",};
   }
   function initAM(name){
     const sv=(dailySabaqEntries||[]).find(e=>e.class===cls&&e.date===date&&e.studentName===name);
     if(sv)return bufFromSaved(sv);
     const rk=getRegisterKey(cls,"morning",date);
     const reg=(registerData||[]).find(r=>r.key===rk&&r.studentName===name);
-    return{...EMPTY_AM(name),absent:!!(reg&&(reg.status==="A"||reg.status==="AG"))};
+    // Auto-prefill next Dor quarter for Hafidh students from yesterday's last record
+    var prefillJuz="",prefillQ="";
+    if(hafidhStudents&&hafidhStudents.has(name)&&Array.isArray(dorRecords)){
+      var _prev=new Date(date);_prev.setDate(_prev.getDate()-1);
+      var _prevStr=_prev.toISOString().slice(0,10);
+      var _prevDors=(dorRecords||[]).filter(function(d){return d.studentName===name&&d.date===_prevStr&&d.morningDor;});
+      if(_prevDors.length>0){
+        var _ld=_prevDors[_prevDors.length-1];
+        // Use the highest quarter read yesterday (dor2 takes priority over dor1)
+        var _lj=parseInt((_ld.dor2Juz&&_ld.dor2Quarter)?_ld.dor2Juz:_ld.dor1Juz)||0;
+        var _lq=(_ld.dor2Juz&&_ld.dor2Quarter)?_ld.dor2Quarter:(_ld.dor1Quarter||"");
+        var _qMap={"1":"Q2","2":"Q3","3":"Q4","4":"Q1"};
+        var _qN=_qMap[_lq];
+        if(_qN){prefillJuz=_lq==="4"?String(_lj>=30?1:_lj+1):String(_lj);prefillQ=_qN;}
+      }
+    }
+    return{...EMPTY_AM(name),absent:!!(reg&&(reg.status==="A"||reg.status==="AG")),
+      dorJuz:prefillJuz,dorQuarter:prefillQ};
   }
 
   const [cls,setCls]    = React.useState(selectedClass||"HIFZ CLASS A");
@@ -3841,6 +3894,16 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   React.useEffect(()=>{
     setAmRows(prev=>prev.map(r=>kachhaYesterday.has(r.name)?{...r,dorDone:true}:r));
   },[kachhaYesterday]);
+
+  // Students whose SP was Kaccha yesterday → no new Sabaq today
+  const sabaqKachhaYesterday=React.useMemo(function(){
+    if(!date||!Array.isArray(dailySabaqEntries))return new Set();
+    var _p=new Date(date);_p.setDate(_p.getDate()-1);
+    var _ps=_p.toISOString().slice(0,10);
+    var _s=new Set();
+    dailySabaqEntries.forEach(function(d){if(d.date===_ps&&d.class===cls&&(d.spKaccha2||d.spKaccha))_s.add(d.studentName);});
+    return _s;
+  },[dailySabaqEntries,date,cls]);
 
   function updAM(i,f,v){
     setAmRows(prev=>{
@@ -3897,7 +3960,8 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
           dor1Juz:row.dorJuz,dor1Quarter:normQuarter(row.dorQuarter||"1"),
           dor1Mistakes:row.dorNoTime?"":String(parseFloat(row.dorMistakes)||0),dor1Repeated:!!row.dorKaccha,
           dor1Scrape:!!row.dorScrape,dor1NoTime:!!row.dorNoTime,
-          dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,
+          dor2Juz:row.dor2Juz||"",dor2Quarter:normQuarter(row.dor2Quarter||""),
+          dor2Mistakes:row.dor2Juz?String(parseFloat(row.dor2Mistakes)||0):"",dor2Repeated:false,
           paraDor:!!row.dorParaDor,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:""});
       }
     });
@@ -3933,7 +3997,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // QUEUE CARD — single student popup view
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  function QueueCard({rows,updRow,tab,onPrev,onNext,onDone,idx,total,hafidhSet}){
+  function QueueCard({rows,updRow,tab,onPrev,onNext,onDone,idx,total,hafidhSet,sabaqKachhaSet}){
     const row=rows[idx];
     if(!row)return null;
     // Local state for the "Other" lines input — never triggers parent re-render
@@ -3942,6 +4006,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     var _clPair=React.useState(_initCL);
     var linesCustom=_clPair[0],setLinesCustom=_clPair[1];
     const hadKaccha=kachhaYesterday.has(row.name);
+    const isKachhaDay=!!(sabaqKachhaSet&&sabaqKachhaSet.has(row.name))&&tab==="am";
     const isAM=tab==="am";
 
     // Colour for SP mistakes
@@ -3968,7 +4033,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
         React.createElement('div',{style:{width:40,height:4,borderRadius:2,
           background:"#E5E7EB",margin:"0 auto 10px"}}),
         React.createElement('div',{style:{display:"flex",justifyContent:"flex-end",marginBottom:6}},
-          React.createElement('button',{onClick:onDone,
+          React.createElement('button',{onClick:function(){if(linesCustom)updRow(idx,"sabaqLines",linesCustom);onDone();},
             style:{background:"linear-gradient(135deg,#0d6b5e,#1a8a7a)",color:"#fff",border:"none",
               borderRadius:10,padding:"9px 16px",fontSize:12,fontWeight:"800",cursor:"pointer",
               letterSpacing:"0.3px",boxShadow:"0 2px 8px rgba(13,107,94,0.3)"}},"Save & Close")
@@ -3983,7 +4048,12 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               color:"#D97706",fontSize:11,fontWeight:"600",
               background:"#FEF3C7",borderRadius:4,padding:"2px 8px",
               display:"inline-block",marginTop:3
-            }},"⚠️ Kaccha Dor yesterday — do Dor first")
+            }},"⚠️ Kaccha Dor yesterday — do Dor first"),
+            isKachhaDay&&React.createElement('div',{style:{
+              color:"#DC2626",fontSize:11,fontWeight:"700",
+              background:"#FEE2E2",borderRadius:4,padding:"3px 10px",
+              display:"inline-block",marginTop:3
+            }},"🔴 Kaccha yesterday — repeat lesson, no new Sabaq")
           ),
           React.createElement('div',{style:{textAlign:"right"}},
             React.createElement('div',{style:{color:MUTED,fontSize:11}},
@@ -4160,8 +4230,8 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               )
           ),
 
-          /* Sabaq (New Lesson) */
-          !(hafidhSet&&hafidhSet.has(row.name))&&React.createElement('div',{style:{
+          /* Sabaq (New Lesson) — hidden on Kaccha day (student repeats lesson) */
+          !(hafidhSet&&hafidhSet.has(row.name))&&!isKachhaDay&&React.createElement('div',{style:{
             background:"rgba(16,185,129,0.06)",borderRadius:12,
             padding:"14px 16px",marginBottom:12,
             border:"1px solid rgba(16,185,129,0.2)"
@@ -4191,7 +4261,6 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                   placeholder:"Other",
                   autoComplete:"off",autoCorrect:"off",autoCapitalize:"none",spellCheck:false,
                   onChange:function(e){setLinesCustom(e.target.value);},
-                  onBlur:function(){if(linesCustom)updRow(idx,"sabaqLines",linesCustom);},
                   style:{width:68,padding:"8px 6px",borderRadius:9,
                     border:"1.5px solid "+(linesCustom?"#059669":"#E5E7EB"),
                     fontSize:13,fontWeight:"600",
@@ -4291,7 +4360,46 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 )
               )
             ),
-            (row.dorDone||(hafidhSet&&hafidhSet.has(row.name)))&&React.createElement('div',{style:{display:"flex",gap:7,flexWrap:"wrap"}},
+            /* Hafidh 2nd Quarter */
+            (hafidhSet&&hafidhSet.has(row.name))&&React.createElement('div',{style:{marginTop:10}},
+              row.dor2Juz
+                ? React.createElement('div',null,
+                    React.createElement('div',{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
+                      React.createElement('span',{style:{fontSize:11,fontWeight:"700",color:GOLD,textTransform:"uppercase",letterSpacing:"0.6px"}},"2nd Quarter"),
+                      React.createElement('button',{onClick:function(){updRow(idx,"dor2Juz","");updRow(idx,"dor2Quarter","");updRow(idx,"dor2Mistakes","");},
+                        style:{background:"none",border:"none",color:MUTED,cursor:"pointer",fontSize:11,padding:"2px 6px"}},"× Remove")
+                    ),
+                    React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}},
+                      React.createElement('div',null,
+                        React.createElement('label',{style:{...secLabel,color:GOLD}},"Juz"),
+                        React.createElement('select',{value:row.dor2Juz,onChange:function(e){updRow(idx,"dor2Juz",e.target.value);},style:selS},
+                          React.createElement('option',{value:""},"—"),
+                          JUZ_OPTIONS.map(function(j){return React.createElement('option',{key:j,value:j},j);})
+                        )
+                      ),
+                      React.createElement('div',null,
+                        React.createElement('label',{style:{...secLabel,color:GOLD}},"Quarter"),
+                        React.createElement('select',{value:row.dor2Quarter,onChange:function(e){updRow(idx,"dor2Quarter",e.target.value);},style:selS},
+                          React.createElement('option',{value:""},"—"),
+                          QUARTERS.map(function(q){return React.createElement('option',{key:q,value:q},q);})
+                        )
+                      ),
+                      React.createElement('div',null,
+                        React.createElement('label',{style:{...secLabel,color:GOLD}},"Mistakes"),
+                        React.createElement('select',{value:row.dor2Mistakes,onChange:function(e){updRow(idx,"dor2Mistakes",e.target.value);},style:selS},
+                          React.createElement('option',{value:""},"—"),
+                          MK_OPTS.map(function(m){return React.createElement('option',{key:m,value:m},m===0?"0":m);})
+                        )
+                      )
+                    )
+                  )
+                : React.createElement('button',{
+                    onClick:function(){updRow(idx,"dor2Juz",row.dorJuz||"1");updRow(idx,"dor2Quarter","");},
+                    style:{width:"100%",padding:"9px",borderRadius:9,border:"1px dashed "+GOLD,
+                      background:"transparent",color:GOLD,cursor:"pointer",fontSize:12.5,fontWeight:"600"}},
+                  "+ Add 2nd Quarter")
+            ),
+            (row.dorDone||(hafidhSet&&hafidhSet.has(row.name)))&&React.createElement('div',{style:{display:"flex",gap:7,flexWrap:"wrap",marginTop:8}},
               (hafidhSet&&hafidhSet.has(row.name)?
                 [["dorScrape","Scrape","#D97706"],["dorKaccha","Kaccha","#DC2626"],["dorNoTime","No Time","#6B7280"]]:
                 [["dorParaDor","Para Dor","#2563EB"],["dorScrape","Scrape","#D97706"],["dorKaccha","Kaccha","#DC2626"],["dorNoTime","No Time","#6B7280"]]
@@ -4310,21 +4418,21 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
           display:"grid",gridTemplateColumns:"1fr 2fr 1fr",gap:8,marginTop:20
         }},
           React.createElement('button',{
-            onClick:onPrev,disabled:idx===0,
+            onClick:function(){if(linesCustom)updRow(idx,"sabaqLines",linesCustom);onPrev();},disabled:idx===0,
             style:{padding:"13px",borderRadius:10,border:"1px solid #E5E7EB",
               background:idx===0?"#F9FAFB":"#fff",color:idx===0?MUTED:TEXT,
               cursor:idx===0?"default":"pointer",fontSize:22,fontWeight:"600"}
           },"←"),
           idx<total-1
             ? React.createElement('button',{
-                onClick:onNext,
+                onClick:function(){if(linesCustom)updRow(idx,"sabaqLines",linesCustom);onNext();},
                 style:{padding:"13px",borderRadius:10,border:"none",
                   background:GOLD,color:"#fff",cursor:"pointer",
                   fontSize:14,fontWeight:"700",
                   boxShadow:"0 2px 8px rgba(184,147,74,0.4)"}
               },"Next →")
             : React.createElement('button',{
-                onClick:onDone,
+                onClick:function(){if(linesCustom)updRow(idx,"sabaqLines",linesCustom);onDone();},
                 style:{padding:"13px",borderRadius:10,border:"none",
                   background:"#16a34a",color:"#fff",cursor:"pointer",
                   fontSize:14,fontWeight:"700",
@@ -4480,6 +4588,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       onNext:()=>setQueueIdx(q=>Math.min(students.length-1,q+1)),
       onDone:saveAM,
       hafidhSet:hafidhStudents||new Set(),
+      sabaqKachhaSet:sabaqKachhaYesterday,
     })
   );
 }
@@ -5835,6 +5944,256 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
 // Reads daily sabaq entries + register data for a student/month
 // Returns a pre-filled record matching defaultEntry shape
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MONTHLY REPORT PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function MonthlyReportPage({records,dailySabaqEntries,dorRecords,registerData,hafidhStudents}){
+  var today=getTodayStr();
+  var curMonth=today.substring(0,7);
+  var [cls,setCls]=React.useState("HIFZ CLASS A");
+  var [month,setMonth]=React.useState(curMonth);
+  var [generated,setGenerated]=React.useState(false);
+  var [reportData,setReportData]=React.useState(null);
+
+  var classes=["HIFZ CLASS A","HIFZ CLASS B"];
+
+  function generate(){
+    // Get all students in this class
+    var studentSet=new Set();
+    (records||[]).forEach(function(rec){
+      if(rec.class===cls&&rec.name&&!rec.name.startsWith("("))studentSet.add(rec.name);
+    });
+    var students=[...studentSet].sort();
+    if(students.length===0){showToast("No students found in "+cls,"warning");return;}
+
+    // Build per-student summaries
+    var data=students.map(function(name){
+      var isHafidh=hafidhStudents&&hafidhStudents.has(name);
+      var entries=(dailySabaqEntries||[]).filter(function(e){
+        return e.studentName===name&&e.class===cls&&e.date&&e.date.startsWith(month);
+      }).sort(function(a,b){return a.date.localeCompare(b.date);});
+
+      var present=entries.filter(function(e){return !e.absent;});
+      var absent=entries.filter(function(e){return e.absent;});
+
+      // Sabaq Para stats
+      var spDays=present.filter(function(e){return e.sabaqPara&&!e.paraDor;});
+      var spMkTotal=spDays.reduce(function(s,e){return s+(parseFloat(e.spMistakes)||0);},0);
+      var avgSpMk=spDays.length>0?Math.round(spMkTotal/spDays.length*10)/10:0;
+      var kachaCount=spDays.filter(function(e){return e.spKaccha2||e.spKaccha;}).length;
+      var weakCount=spDays.filter(function(e){return e.sabaqWeak;}).length;
+      var sp2Count=spDays.filter(function(e){return e.sp2Done;}).length;
+
+      // Sabaq lines
+      var totalLines=spDays.reduce(function(s,e){return s+(parseFloat(e.sabaqLines)||parseFloat(e.spLines)||0);},0);
+      var avgLines=spDays.length>0?Math.round(totalLines/spDays.length*10)/10:0;
+
+      // Dor records for this month
+      var dorList=(dorRecords||[]).filter(function(d){
+        return d.studentName===name&&d.date&&d.date.startsWith(month);
+      }).sort(function(a,b){return a.date.localeCompare(b.date);});
+
+      // Dor heat map: one entry per session per day
+      var dorMap={};
+      dorList.forEach(function(d){
+        var key=d.date+(d.morningDor?"M":"E");
+        dorMap[key]={date:d.date,session:d.morningDor?"AM":"PM",
+          juz1:d.dor1Juz||"",q1:d.dor1Quarter||"",mk1:d.dor1Mistakes||"",rep1:!!d.dor1Repeated,
+          juz2:d.dor2Juz||"",q2:d.dor2Quarter||"",mk2:d.dor2Mistakes||""};
+      });
+      var dorEntries=Object.values(dorMap).sort(function(a,b){return a.date.localeCompare(b.date)||(a.session==="AM"?-1:1);});
+
+      // Morning Dor via daily_sabaq (for completeness)
+      var morningDorDays=present.filter(function(e){return e.morningDor||e.paraDor;}).length;
+
+      return{name,isHafidh,
+        presentDays:present.length,absentDays:absent.length,
+        sabaqDays:spDays.length,totalLines,avgLines,
+        avgSpMk,kachaCount,weakCount,sp2Count,
+        morningDorDays,dorEntries};
+    });
+
+    setReportData({cls,month,students:data});
+    setGenerated(true);
+  }
+
+  function mkColor(mk){
+    var m=parseFloat(mk)||0;
+    if(m===0)return{bg:"#ECFDF5",color:"#16a34a"};
+    if(m<=1.5)return{bg:"#F0FDF4",color:"#15803d"};
+    if(m<=3)return{bg:"#FEF3C7",color:"#D97706"};
+    return{bg:"#FEE2E2",color:"#DC2626"};
+  }
+
+  return React.createElement("div",{style:{padding:"18px 16px 40px",maxWidth:760,margin:"0 auto"}},
+    React.createElement(PageTitle,{title:"Monthly Report",sub:"Class sabaq & Dor summary"}),
+
+    // Controls
+    React.createElement("div",{style:{background:"#fff",borderRadius:16,border:"1px solid #E5E7EB",
+      padding:"18px 20px",marginBottom:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}},
+      React.createElement("div",{style:{display:"flex",gap:12,flexWrap:"wrap",alignItems:"flex-end"}},
+        React.createElement("div",{style:{flex:1,minWidth:160}},
+          React.createElement("label",{style:{fontSize:11,fontWeight:"700",color:MUTED,letterSpacing:"0.6px",
+            textTransform:"uppercase",display:"block",marginBottom:6}},"Class"),
+          React.createElement("div",{style:{display:"flex",gap:8}},
+            classes.map(function(c){
+              var sel=cls===c;
+              return React.createElement("button",{key:c,onClick:function(){setCls(c);setGenerated(false);},
+                style:{padding:"9px 16px",borderRadius:10,border:"1.5px solid "+(sel?GOLD:"#E5E7EB"),
+                  background:sel?GOLD:"#fff",color:sel?"#fff":TEXT,
+                  cursor:"pointer",fontWeight:"700",fontSize:13}},
+                c.replace("HIFZ CLASS ","Class "));
+            })
+          )
+        ),
+        React.createElement("div",{style:{minWidth:160}},
+          React.createElement("label",{style:{fontSize:11,fontWeight:"700",color:MUTED,letterSpacing:"0.6px",
+            textTransform:"uppercase",display:"block",marginBottom:6}},"Month"),
+          React.createElement("input",{type:"month",value:month,
+            onChange:function(e){setMonth(e.target.value);setGenerated(false);},
+            style:{padding:"9px 12px",borderRadius:10,border:"1px solid #E5E7EB",
+              fontSize:15,width:"100%",outline:"none"}})
+        ),
+        React.createElement("button",{onClick:generate,
+          style:{padding:"10px 24px",borderRadius:10,border:"none",
+            background:"linear-gradient(135deg,#0d6b5e,#1a8a7a)",color:"#fff",
+            cursor:"pointer",fontWeight:"700",fontSize:14,
+            boxShadow:"0 2px 8px rgba(13,107,94,0.3)",whiteSpace:"nowrap"}},
+          "Generate Report")
+      )
+    ),
+
+    // Report output
+    generated&&reportData&&React.createElement("div",null,
+      React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}},
+        React.createElement("div",{style:{color:GOLD,fontWeight:"700",fontSize:15}},
+          reportData.cls.replace("HIFZ ","")+" — "+reportData.month),
+        React.createElement("button",{onClick:function(){window.print();},
+          style:{padding:"8px 18px",borderRadius:10,border:"1px solid #E5E7EB",
+            background:"#fff",color:TEXT,cursor:"pointer",fontSize:13,fontWeight:"600"}},
+          "🖨️ Print")
+      ),
+
+      reportData.students.map(function(s){
+        var hasData=s.presentDays>0||s.dorEntries.length>0;
+        return React.createElement("div",{key:s.name,style:{
+          background:"#fff",borderRadius:16,border:"1px solid #E5E7EB",
+          marginBottom:14,overflow:"hidden",
+          boxShadow:"0 1px 3px rgba(0,0,0,0.05)"
+        }},
+          // Header
+          React.createElement("div",{style:{
+            background:"linear-gradient(135deg,#07150e,#0d2018)",
+            padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"
+          }},
+            React.createElement("div",null,
+              React.createElement("div",{style:{color:"#fff",fontWeight:"700",fontSize:16}},s.name),
+              s.isHafidh&&React.createElement("span",{style:{
+                background:"rgba(201,165,83,0.25)",color:GOLD,
+                fontSize:10,fontWeight:"700",letterSpacing:"0.6px",
+                borderRadius:4,padding:"1px 8px",marginTop:3,display:"inline-block"
+              }},"HAFIDH")
+            ),
+            React.createElement("div",{style:{textAlign:"right"}},
+              React.createElement("div",{style:{color:"rgba(255,255,255,0.7)",fontSize:12}},
+                s.presentDays+" present · "+s.absentDays+" absent"),
+              s.absentDays>0&&React.createElement("div",{style:{color:"#EF4444",fontSize:11,fontWeight:"600",marginTop:2}},
+                Math.round(s.absentDays/(s.presentDays+s.absentDays)*100)+"% absent")
+            )
+          ),
+
+          !hasData
+            ? React.createElement("div",{style:{padding:"20px",textAlign:"center",color:MUTED,fontSize:14}},"No entries recorded this month.")
+            : React.createElement("div",{style:{padding:"16px 18px"}},
+
+              // Sabaq stats (non-Hafidh or has data)
+              !s.isHafidh&&s.sabaqDays>0&&React.createElement("div",{style:{marginBottom:16}},
+                React.createElement("div",{style:{fontSize:11,fontWeight:"800",color:MUTED,
+                  letterSpacing:"0.7px",textTransform:"uppercase",marginBottom:10}},"Sabaq Summary"),
+                React.createElement("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}},
+                  [
+                    {label:"Sabaq Days",value:String(s.sabaqDays),color:"#059669"},
+                    {label:"Avg Lines/Day",value:String(s.avgLines),color:"#2563EB"},
+                    {label:"Avg SP Mistakes",value:String(s.avgSpMk),color:s.avgSpMk>3?"#DC2626":s.avgSpMk>1.5?"#D97706":"#16a34a"},
+                    {label:"Kaccha",value:String(s.kachaCount),color:s.kachaCount>0?"#DC2626":MUTED},
+                  ].map(function(stat){
+                    return React.createElement("div",{key:stat.label,style:{
+                      background:"#F9FAFB",borderRadius:10,padding:"10px 12px",textAlign:"center"
+                    }},
+                      React.createElement("div",{style:{fontSize:18,fontWeight:"800",color:stat.color}},stat.value),
+                      React.createElement("div",{style:{fontSize:10,fontWeight:"600",color:MUTED,
+                        textTransform:"uppercase",letterSpacing:"0.5px",marginTop:3}},stat.label)
+                    );
+                  })
+                ),
+                // Extra flags
+                (s.weakCount>0||s.sp2Count>0)&&React.createElement("div",{style:{
+                  display:"flex",gap:8,marginTop:8,flexWrap:"wrap"
+                }},
+                  s.weakCount>0&&React.createElement("span",{style:{
+                    background:"#FEF3C7",color:"#D97706",
+                    fontSize:11,fontWeight:"700",borderRadius:6,padding:"3px 10px"
+                  }},"⚠️ Weak: "+s.weakCount+" days"),
+                  s.sp2Count>0&&React.createElement("span",{style:{
+                    background:"#FEE2E2",color:"#DC2626",
+                    fontSize:11,fontWeight:"700",borderRadius:6,padding:"3px 10px"
+                  }},"🔴 2nd Attempt: "+s.sp2Count+" days")
+                )
+              ),
+
+              // Dor entries heat map
+              s.dorEntries.length>0&&React.createElement("div",null,
+                React.createElement("div",{style:{fontSize:11,fontWeight:"800",color:MUTED,
+                  letterSpacing:"0.7px",textTransform:"uppercase",marginBottom:10}},"Dor Log"),
+                React.createElement("div",{style:{display:"flex",flexWrap:"wrap",gap:6}},
+                  s.dorEntries.map(function(d,i){
+                    var c1=mkColor(d.mk1);
+                    var dateShort=d.date.slice(5); // MM-DD
+                    return React.createElement("div",{key:d.date+d.session+i,style:{
+                      border:"1px solid #E5E7EB",borderRadius:8,padding:"6px 10px",
+                      minWidth:90,background:d.rep1?"#FFF5F5":"#FAFAFA"
+                    }},
+                      React.createElement("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3}},
+                        React.createElement("span",{style:{fontSize:11,fontWeight:"700",color:MUTED}},dateShort),
+                        React.createElement("span",{style:{fontSize:9.5,fontWeight:"700",color:"#6B7280",
+                          background:"#F3F4F6",borderRadius:4,padding:"1px 5px"
+                        }},d.session)
+                      ),
+                      // Quarter 1
+                      React.createElement("div",{style:{
+                        background:c1.bg,borderRadius:5,padding:"3px 8px",
+                        display:"inline-flex",alignItems:"center",gap:5,marginBottom:d.juz2?3:0
+                      }},
+                        React.createElement("span",{style:{fontSize:11,fontWeight:"700",color:c1.color}},
+                          "J"+d.juz1+(d.q1?" "+d.q1:"")),
+                        d.mk1!==""&&React.createElement("span",{style:{fontSize:10,color:c1.color}},d.mk1+"mk")
+                      ),
+                      // Quarter 2 (if exists)
+                      d.juz2&&React.createElement("div",{style:{
+                        background:mkColor(d.mk2).bg,borderRadius:5,padding:"3px 8px",
+                        display:"inline-flex",alignItems:"center",gap:5
+                      }},
+                        React.createElement("span",{style:{fontSize:11,fontWeight:"700",color:mkColor(d.mk2).color}},
+                          "J"+d.juz2+(d.q2?" "+d.q2:"")),
+                        d.mk2!==""&&React.createElement("span",{style:{fontSize:10,color:mkColor(d.mk2).color}},d.mk2+"mk")
+                      ),
+                      d.rep1&&React.createElement("div",{style:{fontSize:9.5,color:"#DC2626",fontWeight:"700",marginTop:2}},"Kaccha")
+                    );
+                  })
+                )
+              ),
+
+              // Attendance summary
+              s.presentDays===0&&React.createElement("div",{style:{color:MUTED,fontSize:13,textAlign:"center",padding:"8px 0"}},
+                "All absent or no register data.")
+            )
+        );
+      })
+    )
+  );
+}
+
 function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, registerData, existingRecords, dateFrom, dateTo){
   // yearMonth = "YYYY-MM" (used for month-based filter when dateFrom/dateTo not provided)
   // dateFrom / dateTo = "YYYY-MM-DD" for custom range
