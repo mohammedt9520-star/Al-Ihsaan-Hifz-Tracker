@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-340000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-350000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -2328,24 +2328,12 @@ function App(){
           React.createElement('div',{style:{color:"#c9a553",fontSize:9,letterSpacing:"0.18em",marginTop:2,textTransform:"uppercase",fontWeight:"800",fontFamily:"Manrope,sans-serif"}},"Hifz Management")
         )
       ),
-      React.createElement('div',{style:{display:"flex",alignItems:"center",gap:7}},
-        syncMsg?React.createElement('span',{style:{color:"#22c55e",fontSize:11,fontWeight:"700",letterSpacing:"0.02em",minWidth:60,textAlign:"right"}},syncMsg):null,
-        React.createElement('button',{
-          onClick:handleLoadFromCloud,
-          disabled:syncStatus==="loading"||syncStatus==="saving",
-          style:{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.18)",color:"#94a3b8",
-            borderRadius:8,padding:"5px 10px",fontSize:11,fontWeight:"600",cursor:"pointer",
-            display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap",lineHeight:1,
-            opacity:syncStatus==="loading"||syncStatus==="saving"?0.5:1}
-        },"↓ Load"),
-        React.createElement('button',{
-          onClick:handleSyncToCloud,
-          disabled:syncStatus==="loading"||syncStatus==="saving",
-          style:{background:"rgba(201,165,83,0.18)",border:"1px solid rgba(201,165,83,0.4)",color:"#c9a553",
-            borderRadius:8,padding:"5px 10px",fontSize:11,fontWeight:"700",cursor:"pointer",
-            display:"flex",alignItems:"center",gap:4,whiteSpace:"nowrap",lineHeight:1,
-            opacity:syncStatus==="loading"||syncStatus==="saving"?0.5:1}
-        },syncStatus==="saving"?"⏳ Saving...":syncStatus==="loading"?"⏳ Loading...":"↑ Sync")
+      React.createElement('div',{style:{display:"flex",alignItems:"center",gap:6}},
+        React.createElement('div',{title:syncStatus==="live"?"Live":syncStatus==="saving"?"Saving...":syncStatus==="loading"?"Loading...":"Offline",style:{
+          width:8,height:8,borderRadius:"50%",flexShrink:0,
+          background:syncStatus==="live"?"#22c55e":syncStatus==="saving"||syncStatus==="loading"?"#f59e0b":"#ef4444",
+          boxShadow:syncStatus==="live"?"0 0 5px #22c55e66":syncStatus==="saving"||syncStatus==="loading"?"0 0 5px #f59e0b66":"0 0 5px #ef444466"
+        }})
       )
     ),
 
@@ -2441,25 +2429,42 @@ function App(){
       fontFamily:"Manrope,'Inter',sans-serif"}},
       "Hifz Management System"
     ),
-    /* Sync pill */
-    React.createElement('div',{style:{
-      display:"flex",alignItems:"center",gap:7,
-      padding:"7px 18px",
-      background:"rgba(201,165,83,0.07)",
-      borderRadius:100,border:"1px solid rgba(201,165,83,0.22)"
-    }},
-      React.createElement('div',{style:{
-        width:7,height:7,borderRadius:"50%",flexShrink:0,
-        background:syncStatus==="live"?"#22c55e":syncStatus==="saving"||syncStatus==="loading"||(syncStatus==="offline"&&deviceOnline)?"#f59e0b":"#ef4444",
-        boxShadow:syncStatus==="live"?"0 0 6px #22c55e44":syncStatus==="saving"||syncStatus==="loading"||(syncStatus==="offline"&&deviceOnline)?"0 0 6px #f59e0b44":"0 0 6px #ef444444"
-      }}),
-      React.createElement('span',{style:{color:"rgba(201,165,83,0.85)",fontSize:11,fontWeight:"500",letterSpacing:"0.03em"}},
-        syncStatus==="live"?"Connected — data up to date"
-        :syncStatus==="saving"?"Saving to cloud..."
-        :syncStatus==="loading"?"Loading from cloud..."
-        :"Use ↑ Sync or ↓ Load buttons above"
-      )
-    )
+    /* Date */
+    React.createElement('div',{style:{color:"rgba(247,244,236,0.7)",fontSize:13,fontWeight:"500",
+      letterSpacing:"0.02em",marginBottom:20,display:"flex",alignItems:"center",gap:6}},
+      "📅 ",(function(){
+        var d=new Date();
+        return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+      })()
+    ),
+    /* Sync / Load buttons */
+    React.createElement('div',{style:{display:"flex",gap:10,width:"100%",maxWidth:340}},
+      React.createElement('button',{
+        onClick:handleSyncToCloud,
+        disabled:syncStatus==="saving"||syncStatus==="loading",
+        style:{flex:1,background:syncStatus==="saving"?"rgba(201,165,83,0.5)":"#c9a553",
+          border:"none",borderRadius:100,padding:"13px 10px",
+          color:"#1a1008",fontSize:12,fontWeight:"800",letterSpacing:"0.07em",
+          textTransform:"uppercase",cursor:"pointer",display:"flex",
+          alignItems:"center",justifyContent:"center",gap:6,
+          boxShadow:"0 4px 14px rgba(201,165,83,0.35)",
+          opacity:syncStatus==="saving"||syncStatus==="loading"?0.7:1,
+          transition:"opacity 0.2s"}
+      },syncStatus==="saving"?"⏳ Saving...":"☁️ Sync to Cloud"),
+      React.createElement('button',{
+        onClick:handleLoadFromCloud,
+        disabled:syncStatus==="saving"||syncStatus==="loading",
+        style:{flex:1,background:"rgba(7,21,14,0.55)",
+          border:"1.5px solid #c9a553",borderRadius:100,padding:"13px 10px",
+          color:"#c9a553",fontSize:12,fontWeight:"800",letterSpacing:"0.07em",
+          textTransform:"uppercase",cursor:"pointer",display:"flex",
+          alignItems:"center",justifyContent:"center",gap:6,
+          opacity:syncStatus==="saving"||syncStatus==="loading"?0.7:1,
+          transition:"opacity 0.2s"}
+      },syncStatus==="loading"?"⏳ Loading...":"📥 Load from Cloud")
+    ),
+    syncMsg?React.createElement('div',{style:{marginTop:10,color:syncMsg.includes("✓")?"#22c55e":"#ef4444",
+      fontSize:12,fontWeight:"700",letterSpacing:"0.04em"}},syncMsg):null
   ),
 
   /* ── MENU GROUPS ── */
