@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-330000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260706-340000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -66,7 +66,7 @@ async function sbFetch(path,method,body){
   const opts={method:method||"GET",headers:h};
   if(body)opts.body=JSON.stringify(body);
   var _ctrl=new AbortController();
-  var _sbT=setTimeout(function(){_ctrl.abort();},15000);
+  var _sbT=setTimeout(function(){_ctrl.abort();},8000);
   opts.signal=_ctrl.signal;
   var r;
   try{r=await fetch(SUPABASE_URL+"/rest/v1/"+path,opts);}finally{clearTimeout(_sbT);}
@@ -1712,29 +1712,22 @@ function App(){
     if(view==="sabaqEntry")setSabaqEntryDate(getTodayStr());
     if(view==="takeRegister")setRegisterDate(getTodayStr());
   },[view]);
-  React.useEffect(()=>{loadCloud().catch(e=>{console.error("loadCloud failed:",e);setSyncStatus("offline");scheduleRetry();});},[]);
-  // Reconnect detection: when network comes back, sync pending writes
+  // Auto-connect on startup: load fresh data from Supabase once
+  React.useEffect(()=>{loadCloud().catch(function(e){console.warn("startup load failed, using local data:",e.message);});},[]);
+  // Reconnect: when network comes back, pull fresh data from cloud
   React.useEffect(()=>{
     function onOnline(){
-      if(syncStatus==="offline"||syncStatus===""){
-        // Pull latest first so we get any changes from other devices,
-        // then push local pending writes on top
-        loadCloud().catch(function(){}).finally(function(){
-          syncNow().catch(function(){});
-        });
-      }
+      loadCloud().catch(function(){});
     }
     window.addEventListener("online",onOnline);
     return ()=>window.removeEventListener("online",onOnline);
-  },[syncStatus]);
+  },[]);
   // Debounced auto-sync: fires 2s after user-driven data change
   // isFirstLoad prevents syncing stale localStorage data on mount
   const syncTimer=React.useRef(null);
-  const retryTimer=React.useRef(null);
   const [syncMsg,setSyncMsg]=React.useState("");
   const syncMsgTimer=React.useRef(null);
   const isFirstLoad=React.useRef(true);
-  const loadRetries=React.useRef(0);
   const isSyncing=React.useRef(false);
   // Pending-writes queue: stores writes that failed while offline
   const pendingSync=React.useRef(false);
@@ -1743,16 +1736,16 @@ function App(){
     if(syncTimer.current)clearTimeout(syncTimer.current);
     syncTimer.current=setTimeout(function(){syncNow().catch(function(){});},2000);
   }
-  function scheduleRetry(){
-    if(retryTimer.current)clearTimeout(retryTimer.current);
-    retryTimer.current=setTimeout(function(){
-      if(!navigator.onLine){scheduleRetry();return;}
-      loadCloud().catch(function(){}).finally(function(){syncNow().catch(function(){});});
-    },5000);
-  }
+
   function showSyncMsg(msg){clearTimeout(syncMsgTimer.current);setSyncMsg(msg);syncMsgTimer.current=setTimeout(function(){setSyncMsg("");},3000);}
-  function handleSyncToCloud(){syncNow().then(function(){showSyncMsg("Saved ✓");}).catch(function(){showSyncMsg("Error ✗");});}
-  function handleLoadFromCloud(){setSyncStatus("loading");loadCloud().then(function(){showSyncMsg("Loaded ✓");}).catch(function(){showSyncMsg("Error ✗");setSyncStatus("offline");});}
+  function handleSyncToCloud(){
+    if(isSyncing.current){showSyncMsg("Saving...");return;}
+    if(isFirstLoad.current){showSyncMsg("Still loading...");return;}
+    syncNow().then(function(){showSyncMsg("Saved ✓");}).catch(function(e){showSyncMsg("Error ✗");console.warn("Sync failed:",e.message);});
+  }
+  function handleLoadFromCloud(){
+    loadCloud().then(function(){showSyncMsg("Loaded ✓");}).catch(function(e){showSyncMsg("Error ✗");console.warn("Load failed:",e.message);});
+  }
   React.useEffect(()=>{lsSave(records);scheduleSync();},[records]);
   React.useEffect(()=>{lsSaveDor(dorRecords);scheduleSync();},[dorRecords]);
   React.useEffect(()=>{lsSaveYearPlan(yearPlan);scheduleSync();},[yearPlan]);
@@ -2236,11 +2229,10 @@ function App(){
       if(failures.length>0){console.warn("syncNow partial failures:",failures.map(f=>f.reason?.message||f.reason));}
       const anyOk=results.some(r=>r.status==="fulfilled");
       if(anyOk){setSyncStatus("live");}
-      else{setSyncStatus("offline");scheduleRetry();}
+      else{setSyncStatus("offline");}
     }catch(e){
       console.error("syncNow",e);
       setSyncStatus("offline");
-      scheduleRetry();
     }finally{
       isSyncing.current=false;
       if(pendingSync.current){pendingSync.current=false;scheduleSync();}
@@ -2270,8 +2262,8 @@ function App(){
     }
     isFirstLoad.current=false;
     var anyLoaded=sR.ok||dR.ok||dlR.ok||rR.ok||pR.ok||stR.ok;
-    if(anyLoaded){loadRetries.current=0;setSyncStatus("live");scheduleSync();}
-    else{loadRetries.current++;if(loadRetries.current>=3){setSyncStatus("offline");}else{setSyncStatus("loading");}scheduleRetry();}
+    if(anyLoaded){setSyncStatus("live");scheduleSync();}
+    else{setSyncStatus("offline");}
   }
 
   const NAV_ITEMS=[
