@@ -117,7 +117,7 @@ const BEHAVIOUR_LABELS={1:"Very Poor",2:"Poor",3:"Average",4:"Good",5:"Very Good
 const BEHAVIOUR_COLORS={1:RED,2:ORANGE,3:"#f1c40f",4:GREEN,5:"#1abc9c"};
 
 const DOR_COLOR_MAP={
-  green:{bg:GREEN,label:"Good (0.5 – 1.5)"},
+  green:{bg:GREEN,label:"Good (0 – 1.5)"},
   orange:{bg:ORANGE,label:"Needs Work (2 – 3)"},
   red:{bg:RED,label:"Weak (3.5+)"},
   grey:{bg:"#555566",label:"Record Missing"},
@@ -134,7 +134,7 @@ function getTodayStr(){return new Date().toISOString().split("T")[0];}
 
 function getDorColor(mistakes,repeated){
   const m=parseFloat(mistakes);
-  if(isNaN(m)||m===0)return null;
+  if(isNaN(m)||mistakes===""||mistakes===null||mistakes===undefined)return null;
   if(repeated&&m>=3.5)return"orange";
   if(m<=1.5)return"green";
   if(m<=3)return"orange";
