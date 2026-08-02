@@ -2272,11 +2272,11 @@ function App(){
       tryLoad(()=>sbFetchAll("year_plan?select=*")),
       tryLoad(()=>sbFetchAll("app_settings?select=*")),
     ]);
-    if(sR.ok&&sR.data.length>0){try{const d=sR.data.map(sbMapSabaqIn).map(sanitiseRecord).filter(Boolean);setRecords(d);lsSave(d);}catch(e){console.warn("loadCloud set records:",e.message);}}
-    if(dR.ok&&dR.data.length>0){try{const d=dR.data.map(sbMapDorIn).map(sanitiseDor).filter(Boolean);setDorRecords(d);lsSaveDor(d);}catch(e){console.warn("loadCloud set dor:",e.message);}}
-    if(dlR.ok&&dlR.data.length>0){try{const d=dlR.data.map(sbMapDailyIn).map(sanitiseDaily).filter(Boolean);setDailySabaqEntries(d);lsSaveDailySabaq(d);}catch(e){console.warn("loadCloud set daily:",e.message);}}
-    if(rR.ok&&rR.data.length>0){try{const d=rR.data.map(sbMapRegisterIn).map(sanitiseRegister).filter(Boolean);setRegisterData(d);lsSaveRegister(d);}catch(e){console.warn("loadCloud set register:",e.message);}}
-    if(pR.ok&&pR.data.length>0){try{setYearPlan(pR.data);lsSaveYearPlan(pR.data);}catch(e){console.warn("loadCloud set plan:",e.message);}}
+    if(sR.ok){try{const d=sR.data.map(sbMapSabaqIn).map(sanitiseRecord).filter(Boolean);setRecords(d);lsSave(d);}catch(e){console.warn("loadCloud set records:",e.message);}}
+    if(dR.ok){try{const d=dR.data.map(sbMapDorIn).map(sanitiseDor).filter(Boolean);setDorRecords(d);lsSaveDor(d);}catch(e){console.warn("loadCloud set dor:",e.message);}}
+    if(dlR.ok){try{const d=dlR.data.map(sbMapDailyIn).map(sanitiseDaily).filter(Boolean);setDailySabaqEntries(d);lsSaveDailySabaq(d);}catch(e){console.warn("loadCloud set daily:",e.message);}}
+    if(rR.ok){try{const d=rR.data.map(sbMapRegisterIn).map(sanitiseRegister).filter(Boolean);setRegisterData(d);lsSaveRegister(d);}catch(e){console.warn("loadCloud set register:",e.message);}}
+    if(pR.ok){try{setYearPlan(pR.data);lsSaveYearPlan(pR.data);}catch(e){console.warn("loadCloud set plan:",e.message);}}
     if(stR.ok){
       const pw=stR.data.find(r=>r.key==="adminPassword");
       if(pw&&pw.value)localStorage.setItem("adminPassword",pw.value);
