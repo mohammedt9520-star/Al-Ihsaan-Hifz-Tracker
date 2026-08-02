@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260706-350000 | SW update banner: detect new version, prompt refresh | 23/23 tests -->
+<!-- hifz-20260802-180000 | Classes page: inline add-student form, per-class Excel import/export, uniqueId field -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -493,6 +493,7 @@ const defaultEntry={
   absences:"",paraDorMornings:"",totalDaysOfSabaq:"",
   dateFrom:"",dateTo:"",targetGiven:13,upcomingTarget:13,
   parentEmail1:"",parentEmail2:"",
+  fatherPhone:"",motherPhone:"",uniqueId:"",
   weakSabaqInstances:"N/A",weakDorInstances:"N/A",
   teacherComments:"",behaviour:5,
   eveningPossibleDays:"",eveningAbsences:"",
@@ -622,8 +623,8 @@ function calcEntry(s){
     sabaqDays,average,trueAverage,adjustedLines,championTotalSides,championDailyAverage};
 }
 
-function sbMapSabaqOut(r){return{id:r.id||uid(),name:r.name,class:r.class,from_page:r.fromPage||"",to_page:r.toPage||"",total_full_sides:r.totalFullSides||"",plus_lines:r.plusLines||"",absences:r.absences||"",para_dor_mornings:r.paraDorMornings||"",total_days_of_sabaq:r.totalDaysOfSabaq||"",date_from:r.dateFrom||"",date_to:r.dateTo||"",target_given:r.targetGiven||13,upcoming_target:r.upcomingTarget||13,parent_email1:r.parentEmail1||"",parent_email2:r.parentEmail2||"",father_phone:r.fatherPhone||"",mother_phone:r.motherPhone||"",weak_sabaq_instances:r.weakSabaqInstances||"N/A",weak_dor_instances:r.weakDorInstances||"N/A",teacher_comments:r.teacherComments||"",behaviour:r.behaviour||5,evening_possible_days:r.eveningPossibleDays||"",evening_absences:r.eveningAbsences||"",is_hafidh:r.isHafidh||false,is_student_profile:r.isStudentProfile||false,updated_at:new Date().toISOString()};}
-function sbMapSabaqIn(r){return{id:r.id,name:r.name,class:r.class,fromPage:r.from_page||"",toPage:r.to_page||"",totalFullSides:r.total_full_sides||"",plusLines:r.plus_lines||"",absences:r.absences||"",paraDorMornings:r.para_dor_mornings||"",totalDaysOfSabaq:r.total_days_of_sabaq||"",dateFrom:r.date_from||"",dateTo:r.date_to||"",targetGiven:r.target_given||13,upcomingTarget:r.upcoming_target||13,parentEmail1:r.parent_email1||"",parentEmail2:r.parent_email2||"",fatherPhone:r.father_phone||"",motherPhone:r.mother_phone||"",weakSabaqInstances:r.weak_sabaq_instances||"N/A",weakDorInstances:r.weak_dor_instances||"N/A",teacherComments:r.teacher_comments||"",behaviour:r.behaviour||5,eveningPossibleDays:r.evening_possible_days||"",eveningAbsences:r.evening_absences||"",isHafidh:r.is_hafidh||false,isStudentProfile:r.is_student_profile||false};}
+function sbMapSabaqOut(r){return{id:r.id||uid(),name:r.name,class:r.class,from_page:r.fromPage||"",to_page:r.toPage||"",total_full_sides:r.totalFullSides||"",plus_lines:r.plusLines||"",absences:r.absences||"",para_dor_mornings:r.paraDorMornings||"",total_days_of_sabaq:r.totalDaysOfSabaq||"",date_from:r.dateFrom||"",date_to:r.dateTo||"",target_given:r.targetGiven||13,upcoming_target:r.upcomingTarget||13,parent_email1:r.parentEmail1||"",parent_email2:r.parentEmail2||"",father_phone:r.fatherPhone||"",mother_phone:r.motherPhone||"",unique_id:r.uniqueId||"",weak_sabaq_instances:r.weakSabaqInstances||"N/A",weak_dor_instances:r.weakDorInstances||"N/A",teacher_comments:r.teacherComments||"",behaviour:r.behaviour||5,evening_possible_days:r.eveningPossibleDays||"",evening_absences:r.eveningAbsences||"",is_hafidh:r.isHafidh||false,is_student_profile:r.isStudentProfile||false,updated_at:new Date().toISOString()};}
+function sbMapSabaqIn(r){return{id:r.id,name:r.name,class:r.class,fromPage:r.from_page||"",toPage:r.to_page||"",totalFullSides:r.total_full_sides||"",plusLines:r.plus_lines||"",absences:r.absences||"",paraDorMornings:r.para_dor_mornings||"",totalDaysOfSabaq:r.total_days_of_sabaq||"",dateFrom:r.date_from||"",dateTo:r.date_to||"",targetGiven:r.target_given||13,upcomingTarget:r.upcoming_target||13,parentEmail1:r.parent_email1||"",parentEmail2:r.parent_email2||"",fatherPhone:r.father_phone||"",motherPhone:r.mother_phone||"",uniqueId:r.unique_id||"",weakSabaqInstances:r.weak_sabaq_instances||"N/A",weakDorInstances:r.weak_dor_instances||"N/A",teacherComments:r.teacher_comments||"",behaviour:r.behaviour||5,eveningPossibleDays:r.evening_possible_days||"",eveningAbsences:r.evening_absences||"",isHafidh:r.is_hafidh||false,isStudentProfile:r.is_student_profile||false};}
 function sbMapDorOut(r){return{id:r.id||uid(),student_name:r.studentName,date:r.date,dor1_juz:r.dor1Juz||"",dor1_quarter:r.dor1Quarter||"",dor1_mistakes:r.dor1Mistakes||"",dor1_repeated:r.dor1Repeated||false,dor2_juz:r.dor2Juz||"",dor2_quarter:r.dor2Quarter||"",dor2_mistakes:r.dor2Mistakes||"",dor2_repeated:r.dor2Repeated||false,dor1_scrape:r.dor1Scrape||false,dor1_no_time:r.dor1NoTime||false,dor2_scrape:r.dor2Scrape||false,dor2_no_time:r.dor2NoTime||false,dor2_exempt:r.dor2Exempt||false,dor2_para_dor:r.dor2ParaDor||false,morning_dor:r.morningDor||false,para_dor:r.paraDor||false,para_test:r.paraTest||false,para_test_juz:r.paraTestJuz||"",para_test_total_mistakes:r.paraTestTotalMistakes||"",para_test_result:r.paraTestResult||"Passed"};}
 function sbMapDorIn(r){return{id:r.id,studentName:r.student_name,date:r.date,dor1Juz:r.dor1_juz||"",dor1Quarter:r.dor1_quarter||"",dor1Mistakes:r.dor1_mistakes||"",dor1Repeated:r.dor1_repeated||false,dor2Juz:r.dor2_juz||"",dor2Quarter:r.dor2_quarter||"",dor2Mistakes:r.dor2_mistakes||"",dor2Repeated:r.dor2_repeated||false,dor1Scrape:r.dor1_scrape||false,dor1NoTime:r.dor1_no_time||false,dor2Scrape:r.dor2_scrape||false,dor2NoTime:r.dor2_no_time||false,dor2Exempt:r.dor2_exempt||false,dor2ParaDor:r.dor2_para_dor||false,morningDor:r.morning_dor||false,paraDor:r.para_dor||false,paraTest:r.para_test||false,paraTestJuz:r.para_test_juz||"",paraTestTotalMistakes:r.para_test_total_mistakes||"",paraTestResult:r.para_test_result||"Passed"};}
 function sbMapDailyOut(r){return{id:r.id||uid(),student_name:r.studentName,class:r.class,date:r.date,absent:r.absent||false,sabaq_para:r.sabaqPara||false,sp_lines:r.spLines||0,sp_mistakes:r.spMistakes||0,sp_scrape:r.spScrape||false,sp_kaccha2:r.spKaccha2||false,sp2_done:r.sp2Done||false,sp2_mistakes:r.sp2Mistakes||0,sp2_scrape:r.sp2Scrape||false,sp2_kaccha:r.sp2Kaccha||false,sabaq_lines:r.sabaqLines||0,sabaq_mistakes:r.sabaqMistakes||0,sabaq_weak:r.sabaqWeak||false,sabaq_less_lines:r.sabaqLessLines||false,sabaq_kaccha:r.sabaqKaccha||false,para_dor:r.paraDor||false,pd_juz:r.pdJuz||"",pd_quarter:r.pdQuarter||"",pd_mistakes:r.pdMistakes||0,pd_scrape:r.pdScrape||false,pd_kaccha:r.pdKaccha||false,pd_no_time:r.pdNoTime||false,pd_is_para_dor:r.pdIsParaDor||false,morning_dor:r.morningDor||false,has_dor:r.hasDor||false,dor_juz:r.dorJuz||"",dor_quarter:r.dorQuarter||"",dor_mistakes:r.dorMistakes||0,dor_scrape:r.dorScrape||false};}
@@ -1638,8 +1639,9 @@ function App(){
   const [classesView,setClassesView]=React.useState("list"); // list | classDetail | addStudent
   const [selectedClass,setSelectedClass]=React.useState("HIFZ CLASS A");
   const [classExpanded,setClassExpanded]=React.useState({});
-  const [newStudent,setNewStudent]=React.useState({name:"",class:"HIFZ CLASS A",startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});
+  const [newStudent,setNewStudent]=React.useState({name:"",class:"HIFZ CLASS A",uniqueId:"",startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});
   const [newStudentMsg,setNewStudentMsg]=React.useState("");
+  const [classAddFormOpen,setClassAddFormOpen]=React.useState("");
   const [champPeriodKey,setChampPeriodKey]=React.useState("");
   const [dorChampPeriodKey,setDorChampPeriodKey]=React.useState("");
   const [dorChampDateFrom,setDorChampDateFrom]=React.useState("");
@@ -1976,6 +1978,99 @@ function App(){
       XLSX.utils.book_append_sheet(_wb,_ws,"Hifz Monthly");
       XLSX.writeFile(_wb,"Hifz_Monthly_Template.xlsx");
     }catch(ex){showToast("Download error: "+ex.message,"error");}
+  }
+
+  function downloadStudentsTemplate(cls){
+    try{
+      if(typeof XLSX==="undefined"){showToast("XLSX library not loaded yet — please wait and try again.","warning");return;}
+      var _headers=["Name","Unique ID","Father's Phone","Father's Email","Mother's Phone","Mother's Email"];
+      var _students=[...new Set(
+        (Array.isArray(records)?records:[])
+          .filter(function(r){return r.class===cls&&r.name&&!r.name.startsWith("(")&&!r.name.startsWith("*");})
+          .map(function(r){return r.name;})
+      )].sort();
+      var _rows=[_headers];
+      _students.forEach(function(name){
+        var _p=(Array.isArray(records)?records:[]).find(function(r){return r.name===name&&r.class===cls&&r.isStudentProfile;});
+        _rows.push([name,_p?(_p.uniqueId||""):"",_p?(_p.fatherPhone||""):"",_p?(_p.parentEmail1||""):"",_p?(_p.motherPhone||""):"",_p?(_p.parentEmail2||""):""]);
+      });
+      for(var _ei=0;_ei<10;_ei++){_rows.push(["","","","","",""]);}
+      var _ws=XLSX.utils.aoa_to_sheet(_rows);
+      _ws["!cols"]=[{wch:30},{wch:16},{wch:20},{wch:30},{wch:20},{wch:30}];
+      var _wb=XLSX.utils.book_new();
+      var _sheetName=cls.replace(/[\/\\?*\[\]:]/g,"").substring(0,31);
+      XLSX.utils.book_append_sheet(_wb,_ws,_sheetName);
+      XLSX.writeFile(_wb,cls.replace(/\s+/g,"_")+"_Students.xlsx");
+    }catch(ex){showToast("Download error: "+ex.message,"error");}
+  }
+
+  function importStudentsForClass(e,cls){
+    var file=e&&e.target&&e.target.files&&e.target.files[0];
+    if(!file)return;
+    var reader=new FileReader();
+    reader.onerror=function(){showToast("Could not read file.","error");};
+    reader.onload=function(ev){
+      try{
+        var wb=XLSX.read(ev.target.result,{type:"array"});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
+        if(rows.length<2){showToast("File appears empty.","warning");return;}
+        var hdrs=rows[0].map(function(h){return String(h||"").trim().toLowerCase();});
+        var nameIdx=hdrs.findIndex(function(h){return h.includes("name");});
+        var uidIdx=hdrs.findIndex(function(h){return h.includes("unique");});
+        var fPhoneIdx=hdrs.findIndex(function(h){return h.includes("father")&&h.includes("phone");});
+        var fEmailIdx=hdrs.findIndex(function(h){return h.includes("father")&&h.includes("email");});
+        var mPhoneIdx=hdrs.findIndex(function(h){return h.includes("mother")&&h.includes("phone");});
+        var mEmailIdx=hdrs.findIndex(function(h){return h.includes("mother")&&h.includes("email");});
+        if(nameIdx<0){showToast("Could not find 'Name' column in file.","error");return;}
+        var added=0,updated=0;
+        var next=Array.isArray(records)?[...records]:[];
+        var today2=getTodayStr();
+        for(var ri=1;ri<rows.length;ri++){
+          var row=rows[ri];
+          var name=String(row[nameIdx]||"").trim();
+          if(!name)continue;
+          var uniqueId=uidIdx>=0?String(row[uidIdx]||"").trim():"";
+          var fPhone=fPhoneIdx>=0?String(row[fPhoneIdx]||"").trim():"";
+          var fEmail=fEmailIdx>=0?String(row[fEmailIdx]||"").trim():"";
+          var mPhone=mPhoneIdx>=0?String(row[mPhoneIdx]||"").trim():"";
+          var mEmail=mEmailIdx>=0?String(row[mEmailIdx]||"").trim():"";
+          var profIdx=next.findIndex(function(r){return r.isStudentProfile&&r.name.trim().toLowerCase()===name.toLowerCase()&&r.class===cls;});
+          if(profIdx>=0){
+            next[profIdx]=Object.assign({},next[profIdx],{
+              uniqueId:uniqueId||next[profIdx].uniqueId||"",
+              fatherPhone:fPhone||next[profIdx].fatherPhone||"",
+              parentEmail1:fEmail||next[profIdx].parentEmail1||"",
+              motherPhone:mPhone||next[profIdx].motherPhone||"",
+              parentEmail2:mEmail||next[profIdx].parentEmail2||"",
+            });
+            updated++;
+          }else{
+            next.push({
+              id:uid(),name:name,class:cls,
+              fromPage:"",toPage:"",totalFullSides:"0",plusLines:"0",
+              absences:"0",paraDorMornings:"0",totalDaysOfSabaq:"0",
+              dateFrom:today2,dateTo:today2,targetGiven:13,upcomingTarget:13,
+              parentEmail1:fEmail,parentEmail2:mEmail,
+              fatherPhone:fPhone,motherPhone:mPhone,
+              uniqueId:uniqueId||("STU-"+uid().substring(0,6).toUpperCase()),
+              weakSabaqInstances:"N/A",weakDorInstances:"N/A",
+              teacherComments:"",behaviour:5,eveningPossibleDays:"0",eveningAbsences:"0",
+              isStudentProfile:true,
+            });
+            added++;
+          }
+        }
+        setRecords(next);lsSave(next);
+        syncNow().catch(function(){});
+        var _parts=[];
+        if(added>0)_parts.push(added+" added");
+        if(updated>0)_parts.push(updated+" updated");
+        showToast("✅ Students imported — "+(_parts.length?_parts.join(", "):"no changes"),"success");
+      }catch(err){showToast("Import error: "+err.message,"error");}
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value="";
   }
 
   function importCSV(e){
@@ -2952,82 +3047,10 @@ function App(){
         const existingClasses=[...new Set(records.map(r=>r.class).filter(Boolean))];
         void classListVer;const allClasses=[...new Set([...CLASSES,...existingClasses])].sort();
 
-        /* ── ADD STUDENT FORM ── */
-        if(classesView==="addStudent") return(
-          React.createElement('div', null
-            , React.createElement('div', { style: {display:"flex",alignItems:"center",gap:12,marginBottom:24},}
-              , React.createElement('button', { onClick:()=>{setClassesView("list");setNewStudent({name:"",class:"HIFZ CLASS A",startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});setNewStudentMsg("");}, style:{background:"transparent",border:"1px solid "+BORDER,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:13,color:MUTED}}, "← Back" )
-              , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "Add New Student" )
-            )
-            , React.createElement('div', { style: {background:CARD,borderRadius:14,border:"1px solid "+BORDER,padding:24,maxWidth:520,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}},
-              newStudentMsg&&React.createElement('div',{style:{padding:"10px 14px",borderRadius:8,marginBottom:16,background:String(newStudentMsg).startsWith("✅")?"rgba(22,163,74,0.08)":"rgba(220,38,38,0.08)",color:String(newStudentMsg).startsWith("✅")?GREEN:RED,fontSize:13,fontWeight:"500"}},newStudentMsg),
-              React.createElement(FormRow,{label:"Full Name"},
-                React.createElement('input',{type:"text",value:newStudent.name,onChange:e=>setNewStudent(s=>({...s,name:e.target.value})),placeholder:"Student's full name",style:inputStyle})
-              ),
-              React.createElement(FormRow,{label:"Class"},
-                React.createElement('select',{value:newStudent.class,onChange:e=>setNewStudent(s=>({...s,class:e.target.value})),style:inputStyle},
-                  allClasses.map(c=>React.createElement('option',{key:c,value:c},c))
-                )
-              ),
-              React.createElement(FormRow,{label:"Hifz Start Date"},
-                React.createElement('input',{type:"date",value:newStudent.startDate,onChange:e=>setNewStudent(s=>({...s,startDate:e.target.value})),style:inputStyle})
-              ),
-              React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}},
-                React.createElement(FormRow,{label:"Father's Email"},
-                  React.createElement('input',{type:"email",value:newStudent.fatherEmail,onChange:e=>setNewStudent(s=>({...s,fatherEmail:e.target.value})),placeholder:"father@email.com",style:inputStyle})
-                ),
-                React.createElement(FormRow,{label:"Father's Phone"},
-                  React.createElement('input',{type:"tel",value:newStudent.fatherPhone,onChange:e=>setNewStudent(s=>({...s,fatherPhone:e.target.value})),placeholder:"+44 7xxx xxxxxx",style:inputStyle})
-                ),
-                React.createElement(FormRow,{label:"Mother's Email"},
-                  React.createElement('input',{type:"email",value:newStudent.motherEmail,onChange:e=>setNewStudent(s=>({...s,motherEmail:e.target.value})),placeholder:"mother@email.com",style:inputStyle})
-                ),
-                React.createElement(FormRow,{label:"Mother's Phone"},
-                  React.createElement('input',{type:"tel",value:newStudent.motherPhone,onChange:e=>setNewStudent(s=>({...s,motherPhone:e.target.value})),placeholder:"+44 7xxx xxxxxx",style:inputStyle})
-                )
-              ),
-              React.createElement('button',{
-                onClick:()=>{
-                  if(!newStudent.name.trim()){setNewStudentMsg("❌ Full name is required.");return;}
-                  if(newStudent.name.trim().length>80){setNewStudentMsg("❌ Name too long (max 80 characters).");return;}
-                  if(!newStudent.class){setNewStudentMsg("❌ Please select a class.");return;}
-                  const nameExists=records.some(r=>r.name.trim().toLowerCase()===newStudent.name.trim().toLowerCase()&&r.class===newStudent.class);
-                  if(nameExists){setNewStudentMsg("❌ "+newStudent.name.trim()+" already exists in "+newStudent.class+".");return;}
-                  // Add a placeholder record for this student so they appear in the system
-                  const today2=getTodayStr();
-                  const studentRecord={
-                    id:uid(),name:newStudent.name.trim(),class:newStudent.class,
-                    fromPage:"",toPage:"",totalFullSides:"0",plusLines:"0",
-                    absences:"0",paraDorMornings:"0",totalDaysOfSabaq:"0",
-                    dateFrom:newStudent.startDate||today2,dateTo:newStudent.startDate||today2,
-                    targetGiven:13,upcomingTarget:13,
-                    parentEmail1:newStudent.fatherEmail,parentEmail2:newStudent.motherEmail,
-                    fatherPhone:newStudent.fatherPhone,motherPhone:newStudent.motherPhone,
-                    weakSabaqInstances:"N/A",weakDorInstances:"N/A",
-                    teacherComments:"",behaviour:5,eveningPossibleDays:"0",eveningAbsences:"0",
-                    isStudentProfile:true,
-                  };
-                  setRecords(prev=>{const next=[...prev,studentRecord];lsSave(next);return next;});
-                  setNewStudentMsg("✅ "+newStudent.name.trim()+" added! Syncing...");
-                  // Sync immediately after adding student
-                  syncNow().then(()=>setNewStudentMsg("✅ "+newStudent.name.trim()+" added & synced!")).catch(()=>{});
-                  setNewStudent({name:"",class:newStudent.class,startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});
-                  setTimeout(()=>{setClassesView("list");setNewStudentMsg("");},2000);
-                },
-                style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"12px 28px",cursor:"pointer",fontWeight:"600",fontSize:14,marginTop:8}
-              },"Add Student")
-            )
-          )
-        );
-
         /* ── CLASS LIST VIEW ── */
         return React.createElement('div', null
           , React.createElement('div', { style: {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24},}
             , React.createElement('div', { style: {color:TEXT,fontWeight:"700",fontSize:18}}, "🏫 Classes" )
-            , React.createElement('button', {
-                onClick:()=>setClassesView("addStudent"),
-                style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"10px 20px",cursor:"pointer",fontWeight:"600",fontSize:13}
-              }, "+ Add New Student" )
           )
           , React.createElement('div',{style:{background:CARD,borderRadius:14,border:"1.5px solid #E0E5EE",padding:"14px 16px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},
               React.createElement('div',{style:{fontSize:10.5,fontWeight:"800",color:"#6b7280",letterSpacing:"0.6px",marginBottom:8}},"ADD A NEW CLASS"),
@@ -3079,7 +3102,7 @@ function App(){
               isOpen&&React.createElement('div', { style:{borderTop:"1px solid "+BORDER}},
                 React.createElement('div', { style:{padding:"8px 12px"}},
                   classStudents.length===0
-                    ? React.createElement('div',{style:{color:MUTED,fontSize:13,padding:"12px 8px",textAlign:"center"}},"No students yet. Add one above.")
+                    ? React.createElement('div',{style:{color:MUTED,fontSize:13,padding:"12px 8px",textAlign:"center"}},"No students yet — add one below or import from Excel.")
                     : classStudents.map(name=>{
                         const latest=calced.filter(r=>r.name===name).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
                         return React.createElement('div', {
@@ -3116,11 +3139,88 @@ function App(){
                         );
                       })
                 ),
-                React.createElement('div', { style:{padding:"8px 12px 12px"}},
+                /* Excel bulk actions */
+                React.createElement('div',{style:{display:"flex",gap:8,padding:"6px 12px",borderTop:"1px solid "+BORDER+"66"}},
                   React.createElement('button',{
-                    onClick:()=>{setNewStudent(s=>({...s,class:cls}));setClassesView("addStudent");},
-                    style:{background:"transparent",border:"1px solid "+BORDER,borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:12,color:MUTED,width:"100%"}
-                  },"+ Add Student to "+cls)
+                    onClick:()=>downloadStudentsTemplate(cls),
+                    style:{flex:1,background:"#16a34a",color:"#fff",border:"none",borderRadius:8,padding:"8px 0",cursor:"pointer",fontSize:12,fontWeight:"600"}
+                  },"⬇ Download Template"),
+                  React.createElement('label',{style:{flex:1,background:"#2563eb",color:"#fff",borderRadius:8,padding:"8px 0",cursor:"pointer",fontSize:12,fontWeight:"600",textAlign:"center",display:"block"}},
+                    "⬆ Import Students",
+                    React.createElement('input',{type:"file",accept:".xlsx,.xls",style:{display:"none"},onChange:function(e){importStudentsForClass(e,cls);}})
+                  )
+                ),
+                /* Inline add-student form */
+                React.createElement('div',{style:{padding:"6px 12px 12px"}},
+                  classAddFormOpen!==cls
+                    ? React.createElement('button',{
+                        onClick:()=>{
+                          setClassAddFormOpen(cls);
+                          setNewStudent({name:"",class:cls,uniqueId:"STU-"+Math.random().toString(36).substring(2,8).toUpperCase(),startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});
+                          setNewStudentMsg("");
+                        },
+                        style:{background:"transparent",border:"1.5px dashed "+GOLD,borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:12,color:GOLD,width:"100%",fontWeight:"600"}
+                      },"+ Add Student to "+cls)
+                    : React.createElement('div',{style:{background:BG,borderRadius:10,border:"1px solid "+BORDER,padding:16}},
+                        React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}},
+                          React.createElement('div',{style:{color:TEXT,fontWeight:"700",fontSize:13}},"Add Student to "+cls),
+                          React.createElement('button',{onClick:()=>{setClassAddFormOpen("");setNewStudentMsg("");},style:{background:"transparent",border:"none",cursor:"pointer",color:MUTED,fontSize:18,lineHeight:1}},"×")
+                        ),
+                        newStudentMsg&&React.createElement('div',{style:{padding:"8px 12px",borderRadius:7,marginBottom:10,background:String(newStudentMsg).startsWith("✅")?"rgba(22,163,74,0.08)":"rgba(220,38,38,0.08)",color:String(newStudentMsg).startsWith("✅")?GREEN:RED,fontSize:12,fontWeight:"500"}},newStudentMsg),
+                        React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}},
+                          React.createElement('div',null,
+                            React.createElement('div',{style:{fontSize:11,color:MUTED,marginBottom:4,fontWeight:"600"}},"Full Name *"),
+                            React.createElement('input',{type:"text",value:newStudent.name,onChange:function(e){setNewStudent(function(s){return{...s,name:e.target.value};});},placeholder:"Student's full name",style:{...inputStyle,fontSize:12,padding:"7px 10px"}})
+                          ),
+                          React.createElement('div',null,
+                            React.createElement('div',{style:{fontSize:11,color:MUTED,marginBottom:4,fontWeight:"600"}},"Unique ID"),
+                            React.createElement('input',{type:"text",value:newStudent.uniqueId,onChange:function(e){setNewStudent(function(s){return{...s,uniqueId:e.target.value};});},placeholder:"Auto-generated",style:{...inputStyle,fontSize:12,padding:"7px 10px"}})
+                          ),
+                          React.createElement('div',null,
+                            React.createElement('div',{style:{fontSize:11,color:MUTED,marginBottom:4,fontWeight:"600"}},"Father's Phone"),
+                            React.createElement('input',{type:"tel",value:newStudent.fatherPhone,onChange:function(e){setNewStudent(function(s){return{...s,fatherPhone:e.target.value};});},placeholder:"+44 7xxx xxxxxx",style:{...inputStyle,fontSize:12,padding:"7px 10px"}})
+                          ),
+                          React.createElement('div',null,
+                            React.createElement('div',{style:{fontSize:11,color:MUTED,marginBottom:4,fontWeight:"600"}},"Father's Email"),
+                            React.createElement('input',{type:"email",value:newStudent.fatherEmail,onChange:function(e){setNewStudent(function(s){return{...s,fatherEmail:e.target.value};});},placeholder:"father@email.com",style:{...inputStyle,fontSize:12,padding:"7px 10px"}})
+                          ),
+                          React.createElement('div',null,
+                            React.createElement('div',{style:{fontSize:11,color:MUTED,marginBottom:4,fontWeight:"600"}},"Mother's Phone"),
+                            React.createElement('input',{type:"tel",value:newStudent.motherPhone,onChange:function(e){setNewStudent(function(s){return{...s,motherPhone:e.target.value};});},placeholder:"+44 7xxx xxxxxx",style:{...inputStyle,fontSize:12,padding:"7px 10px"}})
+                          ),
+                          React.createElement('div',null,
+                            React.createElement('div',{style:{fontSize:11,color:MUTED,marginBottom:4,fontWeight:"600"}},"Mother's Email"),
+                            React.createElement('input',{type:"email",value:newStudent.motherEmail,onChange:function(e){setNewStudent(function(s){return{...s,motherEmail:e.target.value};});},placeholder:"mother@email.com",style:{...inputStyle,fontSize:12,padding:"7px 10px"}})
+                          )
+                        ),
+                        React.createElement('button',{
+                          onClick:function(){
+                            if(!newStudent.name.trim()){setNewStudentMsg("❌ Full name is required.");return;}
+                            if(newStudent.name.trim().length>80){setNewStudentMsg("❌ Name too long (max 80 characters).");return;}
+                            const nameExists=records.some(function(r){return r.name.trim().toLowerCase()===newStudent.name.trim().toLowerCase()&&r.class===cls;});
+                            if(nameExists){setNewStudentMsg("❌ "+newStudent.name.trim()+" already exists in "+cls+".");return;}
+                            const today2=getTodayStr();
+                            const studentRecord={
+                              id:uid(),name:newStudent.name.trim(),class:cls,
+                              fromPage:"",toPage:"",totalFullSides:"0",plusLines:"0",
+                              absences:"0",paraDorMornings:"0",totalDaysOfSabaq:"0",
+                              dateFrom:today2,dateTo:today2,targetGiven:13,upcomingTarget:13,
+                              parentEmail1:newStudent.fatherEmail,parentEmail2:newStudent.motherEmail,
+                              fatherPhone:newStudent.fatherPhone,motherPhone:newStudent.motherPhone,
+                              uniqueId:newStudent.uniqueId||("STU-"+uid().substring(0,6).toUpperCase()),
+                              weakSabaqInstances:"N/A",weakDorInstances:"N/A",
+                              teacherComments:"",behaviour:5,eveningPossibleDays:"0",eveningAbsences:"0",
+                              isStudentProfile:true,
+                            };
+                            setRecords(function(prev){const next=[...prev,studentRecord];lsSave(next);return next;});
+                            setNewStudentMsg("✅ "+newStudent.name.trim()+" added!");
+                            syncNow().catch(function(){});
+                            setNewStudent({name:"",class:cls,uniqueId:"STU-"+Math.random().toString(36).substring(2,8).toUpperCase(),startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});
+                            setTimeout(function(){setNewStudentMsg("");},3000);
+                          },
+                          style:{background:GOLD,color:"#fff",border:"none",borderRadius:8,padding:"9px 20px",cursor:"pointer",fontWeight:"600",fontSize:13,width:"100%"}
+                        },"Add Student")
+                      )
                 )
               )
             );
