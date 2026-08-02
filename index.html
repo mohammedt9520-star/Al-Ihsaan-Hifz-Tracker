@@ -478,7 +478,7 @@ function lsGetRegister(){try{return(JSON.parse(localStorage.getItem("registerDat
 function lsSaveRegister(r){localStorage.setItem("registerData",JSON.stringify(r));}
 function lsGetDailySabaq(){try{return(JSON.parse(localStorage.getItem("dailySabaqData")||"[]")).map(sanitiseDaily).filter(Boolean);}catch(e){return[];}}
 function lsSaveDailySabaq(r){localStorage.setItem("dailySabaqData",JSON.stringify(r));}
-function lsGetHT(){return localStorage.getItem("htEmail")||"mtecomltd@gmail.com";}
+function lsGetHT(){return localStorage.getItem("htEmail")||"";}
 function lsSaveHT(e){try{localStorage.setItem("htEmail",e||"");}catch(ex){console.warn("lsSaveHT",ex);}}
 
 function formatDateDMY(s){
