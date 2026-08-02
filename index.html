@@ -1591,7 +1591,7 @@ function App(){
   const [sidebarOpen,setSidebarOpen]=React.useState(false);
   const [form,setForm]=React.useState(defaultEntry);
   const [editingId,setEditingId]=React.useState(null);
-  const [syncStatus,setSyncStatus]=React.useState("");
+  const [syncStatus,setSyncStatus]=React.useState("loading");
   const [selectedStudents,setSelectedStudents]=React.useState([]);
   const [profileName,setProfileName]=React.useState("");
   const [historyClass,setHistoryClass]=React.useState("");
@@ -2460,34 +2460,14 @@ function App(){
         return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
       })()
     ),
-    /* Sync / Load buttons */
-    React.createElement('div',{style:{display:"flex",gap:10,width:"100%",maxWidth:340}},
-      React.createElement('button',{
-        onClick:handleSyncToCloud,
-        disabled:syncStatus==="saving"||syncStatus==="loading",
-        style:{flex:1,background:syncStatus==="saving"?"rgba(201,165,83,0.5)":"#c9a553",
-          border:"none",borderRadius:100,padding:"13px 10px",
-          color:"#1a1008",fontSize:12,fontWeight:"800",letterSpacing:"0.07em",
-          textTransform:"uppercase",cursor:"pointer",display:"flex",
-          alignItems:"center",justifyContent:"center",gap:6,
-          boxShadow:"0 4px 14px rgba(201,165,83,0.35)",
-          opacity:syncStatus==="saving"||syncStatus==="loading"?0.7:1,
-          transition:"opacity 0.2s"}
-      },syncStatus==="saving"?"⏳ Saving...":"☁️ Sync to Cloud"),
-      React.createElement('button',{
-        onClick:handleLoadFromCloud,
-        disabled:syncStatus==="saving"||syncStatus==="loading",
-        style:{flex:1,background:"rgba(7,21,14,0.55)",
-          border:"1.5px solid #c9a553",borderRadius:100,padding:"13px 10px",
-          color:"#c9a553",fontSize:12,fontWeight:"800",letterSpacing:"0.07em",
-          textTransform:"uppercase",cursor:"pointer",display:"flex",
-          alignItems:"center",justifyContent:"center",gap:6,
-          opacity:syncStatus==="saving"||syncStatus==="loading"?0.7:1,
-          transition:"opacity 0.2s"}
-      },syncStatus==="loading"?"⏳ Loading...":"📥 Load from Cloud")
-    ),
-    syncMsg?React.createElement('div',{style:{marginTop:10,color:syncMsg.includes("✓")?"#22c55e":"#ef4444",
-      fontSize:12,fontWeight:"700",letterSpacing:"0.04em"}},syncMsg):null
+    /* Sync status label */
+    syncStatus!=="live"&&React.createElement('div',{style:{
+      fontSize:12,fontWeight:"600",letterSpacing:"0.04em",
+      color:syncStatus==="saving"||syncStatus==="loading"?"#f59e0b":"#ef4444",
+      marginTop:4
+    }},syncStatus==="saving"?"⏳ Saving..."
+      :syncStatus==="loading"?"⏳ Connecting..."
+      :"⚠️ Offline — changes saved locally")
   ),
 
   /* ── MENU GROUPS ── */
