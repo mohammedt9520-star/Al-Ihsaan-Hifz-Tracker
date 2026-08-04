@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-190000 | One-time cleanup: wipe stale local dor/daily/register on next open -->
+<!-- hifz-20260804-210000 | Premium report redesign: card layout, warm linen bg, cropped logo, softer palette -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -877,87 +877,68 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   var h="";
   h+='<!DOCTYPE html><html><head><meta charset="UTF-8"/>';
   h+='<style>';
-  h+='@page{margin:12mm 14mm;size:A4;}';
+  h+='@page{margin:0;size:A4;}';
   h+='*{box-sizing:border-box;margin:0;padding:0;}';
-  h+='body{font-family:Arial,sans-serif;color:#222;background:white;font-size:13px;line-height:1.5;}';
-  // Header
-  h+='.rpt-header{display:flex;align-items:center;gap:20px;padding-bottom:14px;border-bottom:3px solid #1a3a6b;margin-bottom:18px;}';
-  h+='.rpt-logo{width:90px;height:90px;object-fit:contain;flex-shrink:0;}';
-  h+='.rpt-title{font-size:26px;font-weight:900;color:#1a3a6b;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;line-height:1.1;}';
-  h+='.rpt-title-sub{font-size:12px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}';
-  // Meta box
-  h+='.meta-box{border:2px solid #1a3a6b;border-radius:6px;margin-bottom:18px;overflow:hidden;}';
-  h+='.meta-row{display:grid;grid-template-columns:140px 1fr 140px 1fr;border-bottom:1px solid #dde;align-items:stretch;}';
-  h+='.meta-row:last-child{border-bottom:none;}';
-  h+='.meta-lbl{background:#f0f4ff;color:#1a3a6b;font-weight:700;font-size:12px;padding:10px 14px;border-right:1px solid #dde;display:flex;align-items:center;}';
-  h+='.meta-val{padding:10px 14px;font-size:14px;font-weight:700;color:#111;display:flex;align-items:center;border-right:1px solid #dde;}';
-  h+='.meta-val:last-child{border-right:none;}';
-  // Section headers
-  h+='.sec{margin-bottom:0;margin-top:16px;}';
-  h+='.sec-hdr{display:flex;align-items:center;gap:10px;padding:9px 14px;color:#fff;font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;border-radius:4px 4px 0 0;}';
-  h+='.sec-hdr-blue{background:linear-gradient(135deg,#1a3a6b 0%,#2a5298 100%);}';
-  h+='.sec-hdr-teal{background:linear-gradient(135deg,#0d6b5e 0%,#1a8a7a 100%);};'; h+='.sec-body-teal{background:linear-gradient(180deg,#f0fffd 0%,#fff 100%);}';
-  h+='.sec-hdr-green{background:linear-gradient(135deg,#1a6b3a 0%,#27ae60 100%);}'; h+='.sec-body-green{background:linear-gradient(180deg,#f0fff6 0%,#fff 100%);}';
-  h+='.sec-hdr-purple{background:linear-gradient(135deg,#4a1a6b 0%,#7b2d8b 100%);}';
-  h+='.sec-hdr-orange{background:linear-gradient(135deg,#b85c00 0%,#e07020 100%);}';
-  h+='.sec-hdr-navy{background:linear-gradient(135deg,#1a3a6b 0%,#1a5298 100%);}';
-  h+='.sec-body{border:2px solid #c8d0e0;border-top:none;border-radius:0 0 4px 4px;overflow:hidden;}';
-  // Data table
+  h+='body{font-family:Arial,sans-serif;color:#2c2c2c;background:#f5f2ed;font-size:13px;line-height:1.5;padding:22px 26px;}';
+  h+='.card{background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);overflow:hidden;margin-bottom:13px;}';
+  h+='.sec-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;color:#fff;font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;}';
+  h+='.sec-hdr-blue{background:linear-gradient(135deg,#2d4a8a,#3d5caa);}';
+  h+='.sec-hdr-teal{background:linear-gradient(135deg,#0e6b5a,#1a8870);}';
+  h+='.sec-hdr-green{background:linear-gradient(135deg,#1a5c38,#247a4c);}';
+  h+='.sec-hdr-purple{background:linear-gradient(135deg,#5b2e8a,#7a44b5);}';
+  h+='.sec-hdr-orange{background:linear-gradient(135deg,#b05200,#d0660a);}';
+  h+='.sec-hdr-slate{background:linear-gradient(135deg,#3d5266,#4e6880);}';
+  h+='.sec-hdr-navy{background:linear-gradient(135deg,#2d4a8a,#3d5caa);}';
+  h+='.sec-num{background:rgba(255,255,255,0.22);border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;}';
+  h+='.rpt-header{display:flex;align-items:center;gap:18px;margin-bottom:16px;}';
+  h+='.rpt-title{font-size:23px;font-weight:900;color:#1e2d5a;letter-spacing:1.5px;text-transform:uppercase;line-height:1.1;}';
+  h+='.rpt-title-sub{font-size:11px;color:#9099ae;letter-spacing:1.5px;text-transform:uppercase;margin-top:5px;}';
+  h+='.meta-grid{display:grid;grid-template-columns:1fr 1fr;}';
+  h+='.meta-cell{padding:12px 16px;border-bottom:1px solid #ede9e0;}';
+  h+='.meta-cell:nth-child(odd){border-right:1px solid #ede9e0;}';
+  h+='.meta-lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:3px;}';
+  h+='.meta-val{font-size:14px;font-weight:700;color:#1e2d5a;}';
   h+='.dtbl{width:100%;border-collapse:collapse;text-align:center;}';
-  h+='.dtbl td{border:1.5px solid #c8d0e0;padding:10px 14px;vertical-align:middle;text-align:center;}';
-  h+='.dtbl .lbl{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;text-align:center;}';
-  h+='.dtbl .val{font-size:20px;font-weight:800;color:#1a3a6b;text-align:center;}';
+  h+='.dtbl td{border:1.5px solid #ede9e0;padding:12px 14px;vertical-align:middle;text-align:center;}';
+  h+='.dtbl .lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}';
+  h+='.dtbl .val{font-size:20px;font-weight:800;color:#1e2d5a;}';
   h+='.dtbl .val-red{color:#e74c3c;}';
   h+='.dtbl .val-green{color:#27ae60;}';
-  // Attendance
-  h+='.att-grid{display:grid;gap:0;}';
-  h+='.att-cell{padding:12px 8px;text-align:center;border:1px solid #dde;}';
-  h+='.att-lbl{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}';
-  h+='.att-val{font-size:22px;font-weight:800;text-align:center;}';
-  // Legend
-  h+='.legend{display:flex;gap:18px;justify-content:center;align-items:center;padding:8px 0;font-size:11px;color:#555;flex-wrap:wrap;}';
+  h+='.att-cell{padding:14px 8px;text-align:center;border-right:1px solid #ede9e0;}';
+  h+='.att-cell:last-child{border-right:none;}';
+  h+='.att-lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}';
+  h+='.att-val{font-size:24px;font-weight:800;text-align:center;}';
+  h+='.legend{display:flex;gap:14px;justify-content:center;align-items:center;padding:10px 0;font-size:11px;color:#666;flex-wrap:wrap;}';
   h+='.legend-item{display:flex;align-items:center;gap:5px;font-weight:600;}';
-  // Comments
-  h+='.comments{padding:14px 16px;font-size:13px;line-height:1.7;min-height:70px;color:#333;}';
-  // Footer
-  h+='.footer{margin-top:20px;padding:16px 20px;border:2px solid #1a3a6b;border-radius:6px;font-size:12px;color:#1a3a6b;text-align:center;line-height:1.9;}';
-  // Page break
+  h+='.comments-body{padding:16px 18px;font-size:13px;line-height:1.85;min-height:80px;color:#3c3c3c;}';
+  h+='.footer-inner{padding:18px 22px;text-align:center;font-size:12px;color:#3c3c3c;line-height:1.9;background:linear-gradient(135deg,#fffdf5,#fff9e6);}';
   h+='.pgbreak{page-break-before:always;}';
-  // Page number
-  h+='.pg-num{text-align:center;margin:22px 0 12px;color:#C4963F;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center;letter-spacing:0.5px;}';
-  h+='.pg-num-line{flex:1;height:2px;background:linear-gradient(90deg,transparent,#C4963F 30%,#D4A855 50%,#C4963F 70%,transparent);border-radius:2px;}';
-  // Sec icon
-  h+='.sec-num{background:#fff3;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;}';
-  h+='</style></head><body>';
+  h+='.pg-num{text-align:center;margin:16px 0 8px;color:#c9a553;font-size:11px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center;letter-spacing:0.5px;}';
+  h+='.pg-num-line{flex:1;height:1.5px;background:linear-gradient(90deg,transparent,#c9a553 30%,#d4b065 50%,#c9a553 70%,transparent);border-radius:2px;}';
+  h+='</style></head>';
+  h+='<body>';
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // PAGE 1
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-  // ── Header ────────────────────────────────────────────────
+  // Header
   h+='<div class="rpt-header">';
-  h+='<img src="'+window.LOGO_SRC+'" class="rpt-logo"/>';
+  // Logo: crop bottom ~38% to remove "Hifz Tracker" text, show crest only
+  h+='<div style="width:72px;height:50px;overflow:hidden;flex-shrink:0;border-radius:3px;">';
+  h+='<img src="'+window.LOGO_SRC+'" style="width:72px;display:block;"/></div>';
   h+='<div><div class="rpt-title">Monthly Hifz Report</div>';
-  h+='<div class="rpt-title-sub">Al-Ihsaan Academy</div></div>';
+  h+='<div class="rpt-title-sub">Al-Ihsaan Academy · Hifz Programme</div></div>';
   h+='</div>';
 
-  // ── Meta box ─────────────────────────────────────────────
-  h+='<div class="meta-box">';
-  h+='<div class="meta-row">';
-  h+='<div class="meta-lbl">Student\'s Name:</div>';
-  h+='<div class="meta-val">'+esc(entry.name)+'</div>';
-  h+='<div class="meta-lbl">Date of Report:</div>';
-  h+='<div class="meta-val">'+dateRange+'</div>';
-  h+='</div>';
-  h+='<div class="meta-row">';
-  h+='<div class="meta-lbl">Class:</div>';
-  h+='<div class="meta-val">'+esc(entry.class)+'</div>';
-  h+='<div class="meta-lbl">Month:</div>';
-  h+='<div class="meta-val">'+monthRange+'</div>';
-  h+='</div>';
-  h+='</div>';
+  // Meta card
+  h+='<div class="card">';
+  h+='<div class="meta-grid">';
+  h+='<div class="meta-cell"><div class="meta-lbl">Student\'s Name</div><div class="meta-val">'+esc(entry.name)+'</div></div>';
+  h+='<div class="meta-cell"><div class="meta-lbl">Date of Report</div><div class="meta-val">'+dateRange+'</div></div>';
+  h+='<div class="meta-cell" style="border-bottom:none;"><div class="meta-lbl">Class</div><div class="meta-val">'+esc(entry.class)+'</div></div>';
+  h+='<div class="meta-cell" style="border-bottom:none;"><div class="meta-lbl">Month</div><div class="meta-val">'+monthRange+'</div></div>';
+  h+='</div></div>';
 
-  // ── 1. Attendance Overview ────────────────────────────────
+  // 1. Attendance Overview
   const amPossible=calc.N+calc.G;
   const amAttended=calc.N;
   const amAbsences=calc.G;
@@ -965,18 +946,19 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
 
   function attBlock(title,possible,absences,attended,pct,hdrClass){
     const col=attPctColor(pct);
-    var s='<div class="sec"><div class="sec-hdr '+hdrClass+'"><span class="sec-num">1</span> '+title+'</div>';
-    s+='<div class="sec-body"><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">';
-    s+='<div class="att-cell"><div class="att-lbl">Possible Days of Sabaq</div><div class="att-val" style="color:#1a3a6b;">'+possible+'</div></div>';
+    var s='<div class="card">';
+    s+='<div class="sec-hdr '+hdrClass+'"><span class="sec-num">1</span> '+title+'</div>';
+    s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">';
+    s+='<div class="att-cell"><div class="att-lbl">Possible Days of Sabaq</div><div class="att-val" style="color:#2d4a8a;">'+possible+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Absences</div><div class="att-val '+(absences>0?"val-red":"")+'">'+absences+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Attended</div><div class="att-val val-green">'+attended+'</div></div>';
-    s+='<div class="att-cell"><div class="att-lbl">Attendance %</div><div style="display:flex;justify-content:center;">'+svgDonut(pct,col)+'</div></div>';
-    s+='</div></div></div>';
+    s+='<div class="att-cell"><div class="att-lbl">Attendance %</div><div style="display:flex;justify-content:center;padding:6px 0;">'+svgDonut(pct,col)+'</div></div>';
+    s+='</div></div>';
     return s;
   }
 
   if(hasEvening){
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:0;">';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">';
     h+=attBlock("AM Session (Morning)",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue");
     h+=attBlock("PM Session (Evening)",eveningPossible,eveningAbsences,eveningAttended,eveningPct,"sec-hdr-navy");
     h+='</div>';
@@ -985,9 +967,10 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   }
 
   if(!isHafidh){
-  // ── 2. Sabaq Target Given ─────────────────────────────────
-  h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Sabaq Target Given</div>';
-  h+='<div class="sec-body sec-body-teal"><table class="dtbl"><tr>';
+  // 2. Sabaq Target Given
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Sabaq Target Given</div>';
+  h+='<table class="dtbl"><tr>';
   h+='<td><div class="lbl">Total Sabaq Days</div><div class="val">'+calc.N+'</div></td>';
   h+='<td><div class="lbl">Minus Days of Absence</div><div class="val">'+calc.G+'</div></td>';
   h+='<td><div class="lbl">Minus Days of Para Dor</div><div class="val">'+calc.H+'</div></td>';
@@ -995,41 +978,41 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='</tr><tr>';
   h+='<td colspan="2" style="text-align:center;"><div class="lbl">Target Given</div><div class="val" style="font-size:20px;">'+calc.O+' Lines/Day</div></td>';
   h+='<td colspan="2" style="text-align:center;"><div class="lbl">Total Lines Target</div><div class="val" style="font-size:20px;">'+calc.P+'</div></td>';
-  h+='</tr></table></div></div>';
+  h+='</tr></table></div>';
 
-  // ── 3. Sabaq Completed This Month ────────────────────────
-  h+='<div class="sec"><div class="sec-hdr sec-hdr-green"><span class="sec-num">3</span> Sabaq Completed This Month</div>';
-  h+='<div class="sec-body sec-body-green"><table class="dtbl"><tr>';
-  h+='<td><div class="lbl">Page Numbers</div><div class="val">'+esc(entry.fromPage)+' \u2013 '+esc(entry.toPage)+'</div></td>';
+  // 3. Sabaq Completed This Month
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-green"><span class="sec-num">3</span> Sabaq Completed This Month</div>';
+  h+='<table class="dtbl"><tr>';
+  h+='<td><div class="lbl">Page Numbers</div><div class="val">'+esc(entry.fromPage)+' – '+esc(entry.toPage)+'</div></td>';
   h+='<td><div class="lbl">Total Lines</div><div class="val">'+fmt(calc.I,0)+'</div></td>';
   h+='<td><div class="lbl">Sabaq Para Total</div><div class="val">'+fmt(calc.totalAvgPages,2)+'</div></td>';
   h+='</tr><tr>';
-  // Average Lines Completed — legend goes BELOW inside this cell
   const mkC=avgCircleColor==="green"?"#27ae60":avgCircleColor==="orange"?"#e67e22":"#e74c3c";
   h+='<td colspan="2" style="text-align:center;">';
   h+='<div class="lbl">Average Lines Completed</div>';
   h+='<div class="val" style="font-size:22px;margin-bottom:8px;">'+fmt(calc.K,2)+' '+svgCircleLarge(avgCircleColor)+'</div>';
-  h+='<div class="legend" style="justify-content:center;border-top:1px solid #eee;padding-top:8px;">';
+  h+='<div class="legend" style="justify-content:center;border-top:1px solid #ede9e0;padding-top:8px;">';
   h+='<span class="legend-item"><svg width="11" height="11"><circle cx="5.5" cy="5.5" r="5" fill="#27ae60"/></svg> <span style="color:#27ae60;">Very Good</span></span>';
-  h+='<span style="color:#ccc;">|</span>';
+  h+='<span style="color:#ddd;">|</span>';
   h+='<span class="legend-item"><svg width="11" height="11"><circle cx="5.5" cy="5.5" r="5" fill="#e67e22"/></svg> <span style="color:#e67e22;">Good, However Could Be Better</span></span>';
-  h+='<span style="color:#ccc;">|</span>';
+  h+='<span style="color:#ddd;">|</span>';
   h+='<span class="legend-item"><svg width="11" height="11"><circle cx="5.5" cy="5.5" r="5" fill="#e74c3c"/></svg> <span style="color:#e74c3c;">Concerning, Improvement Needed</span></span>';
   h+='</div></td>';
-  // True Running Average (inc absences)
   h+='<td style="vertical-align:top;">';
   h+='<div class="lbl">True Running Average</div>';
   h+='<div class="val" style="font-size:22px;margin-bottom:6px;">'+incAbsencesVal+'</div>';
   h+=absenceNote;
   h+='</td>';
-  h+='</tr></table></div></div>';
+  h+='</tr></table></div>';
 
-  // ── 4. Target for Next Month ──────────────────────────────
-  h+='<div class="sec"><div class="sec-hdr sec-hdr-purple"><span class="sec-num">4</span> Target for Next Month</div>';
-  h+='<div class="sec-body"><table class="dtbl"><tr>';
-  h+='<td style="text-align:left;"><div class="lbl">Sabaq Lines Per Day</div></td>';
-  h+='<td style="text-align:left;"><div class="val" style="font-size:22px;">'+calc.Q+'</div></td>';
-  h+='</tr></table></div></div>';
+  // 4. Target for Next Month
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-purple"><span class="sec-num">4</span> Target for Next Month</div>';
+  h+='<table class="dtbl"><tr>';
+  h+='<td style="text-align:left;padding:14px 18px;"><div class="lbl">Sabaq Lines Per Day</div></td>';
+  h+='<td style="text-align:left;padding:14px 18px;"><div class="val" style="font-size:22px;">'+calc.Q+'</div></td>';
+  h+='</tr></table></div>';
 
   } // end !isHafidh sabaq sections
   if(isHafidh){
@@ -1048,73 +1031,70 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
     var _jns=Object.keys(_jm).map(Number).sort(function(a,b){return a-b;});
     var _tq1=0,_tq2=0,_tq3=0,_tq4=0,_tmk=0;
     _jns.forEach(function(n){var rw=_jm[n];_tq1+=rw.q1;_tq2+=rw.q2;_tq3+=rw.q3;_tq4+=rw.q4;_tmk+=rw.mistakes;});
-    h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Hafidh Dor Record This Month</div>';
-    h+='<div class="sec-body"><table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;">';
-    h+='<thead><tr style="background:#f0f4ff;">';
+    h+='<div class="card">';
+    h+='<div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Hafidh Dor Record This Month</div>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;">';
+    h+='<thead><tr style="background:#f5f8ff;">';
     ['Juz','Q1','Q2','Q3','Q4','Mistakes'].forEach(function(lbl){
-      h+='<th style="padding:10px 12px;font-size:11px;font-weight:700;color:#1a3a6b;border:1.5px solid #c8d0e0;text-transform:uppercase;letter-spacing:0.5px;">'+lbl+'</th>';
+      h+='<th style="padding:11px 12px;font-size:10px;font-weight:700;color:#a0a8b8;border:1.5px solid #ede9e0;text-transform:uppercase;letter-spacing:0.5px;">'+lbl+'</th>';
     });
     h+='</tr></thead><tbody>';
     if(_jns.length===0){
-      h+='<tr><td colspan="6" style="padding:20px;color:#888;font-style:italic;">No Dor sessions recorded for this period.</td></tr>';
+      h+='<tr><td colspan="6" style="padding:20px;color:#aaa;font-style:italic;">No Dor sessions recorded for this period.</td></tr>';
     } else {
       _jns.forEach(function(n,i){
         var rw=_jm[n];
-        var bg=i%2===0?'#fff':'#f9fafb';
+        var bg=i%2===0?'#fff':'#fafaf8';
         var mkC=rw.mistakes>10?'#e74c3c':rw.mistakes>5?'#e67e22':'#27ae60';
         h+='<tr style="background:'+bg+';">';
-        h+='<td style="padding:9px 12px;font-weight:700;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+n+'</td>';
-        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q1+'</td>';
-        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q2+'</td>';
-        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q3+'</td>';
-        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q4+'</td>';
-        h+='<td style="padding:9px 12px;font-weight:700;color:'+mkC+';border:1.5px solid #c8d0e0;">'+rw.mistakes+'</td>';
+        h+='<td style="padding:10px 12px;font-weight:700;color:#1e2d5a;border:1.5px solid #ede9e0;">'+n+'</td>';
+        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q1+'</td>';
+        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q2+'</td>';
+        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q3+'</td>';
+        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q4+'</td>';
+        h+='<td style="padding:10px 12px;font-weight:700;color:'+mkC+';border:1.5px solid #ede9e0;">'+rw.mistakes+'</td>';
         h+='</tr>';
       });
-      h+='<tr style="background:#f0f4ff;font-weight:700;">';
-      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;font-size:11px;letter-spacing:0.5px;">TOTAL</td>';
-      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq1+'</td>';
-      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq2+'</td>';
-      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq3+'</td>';
-      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq4+'</td>';
-      h+='<td style="padding:10px 12px;color:#e74c3c;border:1.5px solid #c8d0e0;">'+_tmk+'</td>';
+      h+='<tr style="background:#f5f8ff;font-weight:700;">';
+      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;font-size:11px;letter-spacing:0.5px;">TOTAL</td>';
+      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq1+'</td>';
+      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq2+'</td>';
+      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq3+'</td>';
+      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq4+'</td>';
+      h+='<td style="padding:11px 12px;color:#e74c3c;border:1.5px solid #ede9e0;">'+_tmk+'</td>';
       h+='</tr>';
     }
-    h+='</tbody></table></div></div>';
+    h+='</tbody></table></div>';
   }
   // Page 1 number
   h+='<div class="pg-num"><div class="pg-num-line"></div>Page 1<div class="pg-num-line"></div></div>';
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // PAGE 2
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   h+='<div class="pgbreak"></div>';
 
-  // ── 5. Dor (Revision) Record — CSS Grid Heatmap ──────────
-  h+='<div style="background:#fff;border-radius:10px;overflow:hidden;border:1.5px solid #dde;margin-bottom:14px;">';
-  h+='<div style="background:#CF5B0C;display:flex;align-items:center;gap:10px;padding:9px 16px;">';
-  h+='<div style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;">5</div>';
-  h+='<div style="font-size:11px;font-weight:800;color:#fff;letter-spacing:0.8px;text-transform:uppercase;">Dor (Revision) Record This Month</div>';
-  h+='</div>';
+  // 5. Dor (Revision) Record
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-orange"><span class="sec-num">5</span> Dor (Revision) Record This Month</div>';
   if(juzList.length>0){
     h+='<div style="max-height:400px;overflow-y:auto;">'+hmHTML+'</div>';
-    h+='<div style="display:flex;justify-content:space-evenly;align-items:center;padding:10px 8px;border-top:1.5px solid #e5e7eb;">';
+    h+='<div style="display:flex;justify-content:space-evenly;align-items:center;padding:10px 12px;border-top:1.5px solid #ede9e0;">';
     [["#22c55e","Good (0–1.5)"],["#f59e0b","Needs Work (2–3)"],["#ef4444","Weak (3.5+)"],["#c0c0c0","Record Missing"]].forEach(function(item){
-      h+='<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;"><div style="width:10px;height:10px;border-radius:50%;background:'+item[0]+';"></div><span style="color:'+item[0]+'">'+item[1]+'</span></div>';
+      h+='<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;"><div style="width:10px;height:10px;border-radius:50%;background:'+item[0]+';flex-shrink:0;"></div><span style="color:'+item[0]+';">'+item[1]+'</span></div>';
     });
     h+='</div>';
     if(totalDorStr){
-      h+='<div style="border-top:1px solid #e5e7eb;padding:8px 16px;"><div style="font-size:9px;font-weight:500;color:#6b7280;margin-bottom:1px;">Total Dor Completed This Month</div><div style="font-size:13px;font-weight:800;color:#1e3a5f;">'+totalDorStr+'</div></div>';
+      h+='<div style="border-top:1px solid #ede9e0;padding:10px 18px;"><div style="font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Total Dor Completed This Month</div><div style="font-size:14px;font-weight:800;color:#1e2d5a;">'+totalDorStr+'</div></div>';
     }
   } else {
-    h+='<div style="padding:14px 16px;color:#888;font-size:12px;">No Dor entries recorded for this period.</div>';
+    h+='<div style="padding:16px 18px;color:#aaa;font-size:12px;font-style:italic;">No Dor entries recorded for this period.</div>';
   }
   h+='</div>';
 
-  // ── Daily Sabaq Analysis (if data exists) ─────────────────
+  // Daily Sabaq Analysis
   if(hasQuality&&!isHafidh){
-    h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">6</span> Daily Sabaq Analysis</div>';
-    h+='<div class="sec-body sec-body-teal"><table class="dtbl"><tr>';
+    h+='<div class="card">';
+    h+='<div class="sec-hdr sec-hdr-teal"><span class="sec-num">6</span> Daily Sabaq Analysis</div>';
+    h+='<table class="dtbl"><tr>';
     const mkColor=avgSpM>3?"#e74c3c":avgSpM>1.5?"#e67e22":"#27ae60";
     h+='<td><div class="lbl">Avg SP Mistakes/day</div><div class="val" style="color:'+mkColor+';">'+avgSpM+'</div></td>';
     h+='<td><div class="lbl">SP Scraped</div><div class="val" style="color:#e67e22;">'+spScrCt+' day'+(spScrCt!==1?"s":"")+'</div></td>';
@@ -1127,33 +1107,37 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
       if(llCt>0)h+='<td><div class="lbl">Less Lines than Target</div><div class="val" style="color:#2563eb;">'+llCt+' day'+(llCt!==1?"s":"")+'</div></td>';
       h+='</tr></table>';
     }
-    h+='</div></div>';
+    h+='</div>';
   }
 
   // Behaviour section number shifts if quality section shown
-  const bhvNum=hasQuality?7:6;
+  const bhvNum=hasQuality&&!isHafidh?7:6;
   const cmtNum=bhvNum+1;
 
-  // ── Behaviour ─────────────────────────────────────────────
-  h+='<div class="sec"><div class="sec-hdr sec-hdr-blue"><span class="sec-num">'+bhvNum+'</span> Behaviour</div>';
-  h+='<div class="sec-body"><table class="dtbl"><tr>';
-  h+='<td style="padding:14px;text-align:center;">';
+  // Behaviour
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-slate"><span class="sec-num">'+bhvNum+'</span> Behaviour</div>';
+  h+='<table class="dtbl"><tr>';
+  h+='<td style="padding:16px;text-align:center;">';
   h+='<div class="lbl">Behaviour Rating</div>';
-  h+='<div style="font-size:22px;font-weight:700;color:'+bhvColor+';margin:6px 0;">'+entry.behaviour+'/5 \u2013 '+bhvLabel+'</div>';
-  h+='<div style="font-size:11px;color:#888;margin-top:4px;">1 = Very Poor &nbsp;|&nbsp; 2 = Poor &nbsp;|&nbsp; 3 = Average &nbsp;|&nbsp; 4 = Good &nbsp;|&nbsp; 5 = Very Good</div>';
-  h+='</td></tr></table></div></div>';
+  h+='<div style="font-size:22px;font-weight:700;color:'+bhvColor+';margin:8px 0;">'+entry.behaviour+'/5 – '+bhvLabel+'</div>';
+  h+='<div style="font-size:11px;color:#a0a8b8;margin-top:4px;">1 = Very Poor &nbsp;|&nbsp; 2 = Poor &nbsp;|&nbsp; 3 = Average &nbsp;|&nbsp; 4 = Good &nbsp;|&nbsp; 5 = Very Good</div>';
+  h+='</td></tr></table></div>';
 
-  // ── Teacher Comments ──────────────────────────────────────
-  h+='<div class="sec"><div class="sec-hdr sec-hdr-navy"><span class="sec-num">'+cmtNum+'</span> Teacher\'s Comments</div>';
-  h+='<div class="sec-body"><div class="comments">'+esc(entry.teacherComments||"No comments recorded.")+'</div></div></div>';
-
-  // ── Footer ────────────────────────────────────────────────
-  h+='<div class="footer">';
-  h+='<strong>Please review your report with your child and address any concerns.<br/>';
-  h+='If the Madrasah is concerned regarding your child\u2019s performance, we will arrange a meeting soon <em>Insha\u2019Allah</em>.</strong><br/><br/>';
-  h+='<span style="color:#555;">If you have any questions regarding your child\u2019s report please contact the Head of Hifz</span><br/>';
-  h+='<strong>Ustaadh Tanweer &nbsp;|&nbsp; 07943 673 287</strong>';
+  // Teacher Comments
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-blue"><span class="sec-num">'+cmtNum+'</span> Teacher\'s Comments</div>';
+  h+='<div class="comments-body">'+esc(entry.teacherComments||"No comments recorded.")+'</div>';
   h+='</div>';
+
+  // Footer
+  h+='<div class="card" style="border:1.5px solid #e0c97a;">';
+  h+='<div class="footer-inner">';
+  h+='<strong>Please review your report with your child and address any concerns.<br/>';
+  h+='If the Madrasah is concerned regarding your child’s performance, we will arrange a meeting soon <em>Insha’Allah</em>.</strong><br/><br/>';
+  h+='<span style="color:#7a7a6a;">If you have any questions regarding your child’s report please contact the Head of Hifz</span><br/>';
+  h+='<strong>Ustaadh Tanweer &nbsp;|&nbsp; 07943 673 287</strong>';
+  h+='</div></div>';
 
   // Page 2 number
   h+='<div class="pg-num"><div class="pg-num-line"></div>Page 2<div class="pg-num-line"></div></div>';
