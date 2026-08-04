@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-280000 | Clean pg-num: remove Al-Ihsaan banner box, restore Page 1 / Page 2 label between gold lines -->
+<!-- hifz-20260804-290000 | Fix logo in view/PDF: preload as base64 so blob URLs and iframes can display it -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -29,7 +29,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
 <body>
 <div id="root"></div>
 <div id="pwa-bar"><span style="flex:1">Install for the best experience</span><button id="pwa-install" style="background:linear-gradient(180deg,#dcbc6e,#c9a553);color:#2a1f06;border:none;border-radius:100px;padding:7px 16px;cursor:pointer;font-weight:800;font-size:12px;white-space:nowrap;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),0 4px 12px rgba(201,165,83,0.3);">Install</button><button id="pwa-close" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:0 4px;flex-shrink:0;">&#x2715;</button></div>
-<script>window.LOGO_SRC="/icon-192.png";</script>
+<script>
+window.LOGO_SRC="/icon-192.png";
+(function(){
+  fetch("/icon-192.png").then(function(r){return r.blob();}).then(function(blob){
+    var reader=new FileReader();
+    reader.onload=function(){window.LOGO_SRC=reader.result;};
+    reader.readAsDataURL(blob);
+  }).catch(function(){/* keep relative fallback */});
+})();
+</script>
 <script>
 if("serviceWorker"in navigator){
   navigator.serviceWorker.register("/sw.js").then(function(reg){
@@ -56,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260804-280000';
+const APP_VERSION='hifz-20260804-290000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
