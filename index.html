@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-120000 | Sheet import: styled XLSX template, CALC columns clarified, blank-student report guard -->
+<!-- hifz-20260804-140000 | Email PDF + WhatsApp report sharing from all three send-report locations -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -150,6 +150,24 @@ function getDorColor(mistakes,repeated){
   s.onerror=function(){console.warn("SheetJS CDN load failed");};
   document.head.appendChild(s);
 })();
+// ── PDF generation libraries (lazy-loaded on first use) ────────────────────
+var _pdfLibsState=0; // 0=unloaded 1=loading 2=loaded
+var _pdfLibsCbs=[];
+function loadPDFLibs(cb){
+  if(_pdfLibsState===2){cb();return;}
+  _pdfLibsCbs.push(cb);
+  if(_pdfLibsState===1)return;
+  _pdfLibsState=1;
+  var done=0;
+  function tick(){if(++done===2){_pdfLibsState=2;_pdfLibsCbs.forEach(function(f){f();});_pdfLibsCbs=[];}}
+  ["https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
+   "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"].forEach(function(url){
+    var s=document.createElement("script");s.src=url;
+    s.onload=tick;
+    s.onerror=function(){showToast("Failed to load PDF library — check connection","error");};
+    document.head.appendChild(s);
+  });
+}
 const XLSX_TEMPLATE_B64="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";
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -631,6 +649,94 @@ function hasReportData(entry){
   var lines=parseFloat(entry.plusLines);
   var days=parseFloat(entry.totalDaysOfSabaq);
   return (sides>0)||(lines>0)||(days>0);
+}
+
+// Convert a UK-format phone number to the bare digits WhatsApp expects (e.g. 447712345678)
+function toWhatsAppNumber(phone){
+  if(!phone)return"";
+  var n=String(phone).replace(/[\s\-\(\)\+]/g,"");
+  if(/^\d{10}$/.test(n)&&n.charAt(0)==="7")return"44"+n;         // 07xxx → 44 7xxx
+  if(/^\d{11}$/.test(n)&&n.charAt(0)==="0")return"44"+n.slice(1); // 07xxx (with leading 0) → 44 7xxx
+  if(n.startsWith("44"))return n;                                   // already international
+  return n;
+}
+
+// Generate a PDF blob from a report record.
+// onDone(err, blob) — err is null on success.
+function generateReportPDF(record, dorRecs, allRecs, onDone){
+  if(!hasReportData(record)){onDone(new Error("No data"));return;}
+  showToast("Generating PDF… please wait ⏳","info",9000);
+  loadPDFLibs(function(){
+    try{
+      var calc=Object.assign({},record,calcEntry(record));
+      var html=generateReportHTML(record,calc,dorRecs||[],allRecs||[]);
+      // Render in a hidden, same-origin iframe (blob URL = same origin)
+      var blob=new Blob([html],{type:"text/html;charset=utf-8"});
+      var blobUrl=URL.createObjectURL(blob);
+      var iframe=document.createElement("iframe");
+      // Off-screen but sized to A4 width so layout matches
+      iframe.style.cssText="position:fixed;left:-9999px;top:0;width:794px;height:1200px;border:none;";
+      document.body.appendChild(iframe);
+      iframe.onload=function(){
+        // Small delay to let the browser finish painting inside the iframe
+        setTimeout(function(){
+          try{
+            var body=iframe.contentDocument&&iframe.contentDocument.body;
+            if(!body){throw new Error("iframe body not accessible");}
+            window.html2canvas(body,{
+              scale:2,useCORS:true,allowTaint:true,logging:false,
+              width:794,windowWidth:794
+            }).then(function(canvas){
+              URL.revokeObjectURL(blobUrl);
+              document.body.removeChild(iframe);
+              try{
+                var jsPDF=window.jspdf&&window.jspdf.jsPDF;
+                if(!jsPDF)throw new Error("jsPDF not loaded");
+                var pdf=new jsPDF({orientation:"portrait",unit:"pt",format:"a4"});
+                var pageW=pdf.internal.pageSize.getWidth();   // 595 pt
+                var pageH=pdf.internal.pageSize.getHeight();  // 842 pt
+                // Scale the canvas to fit A4 width, preserve aspect ratio
+                var imgW=pageW;
+                var imgH=(canvas.height/canvas.width)*pageW;
+                var imgData=canvas.toDataURL("image/jpeg",0.92);
+                // Slice the image across as many A4 pages as needed
+                var pages=Math.ceil(imgH/pageH);
+                for(var p=0;p<pages;p++){
+                  if(p>0)pdf.addPage();
+                  pdf.addImage(imgData,"JPEG",0,-(p*pageH),imgW,imgH);
+                }
+                onDone(null,pdf.output("blob"));
+              }catch(e2){onDone(e2);}
+            }).catch(function(e){
+              URL.revokeObjectURL(blobUrl);
+              try{document.body.removeChild(iframe);}catch(x){}
+              onDone(e);
+            });
+          }catch(e){
+            URL.revokeObjectURL(blobUrl);
+            try{document.body.removeChild(iframe);}catch(x){}
+            onDone(e);
+          }
+        },700);
+      };
+      iframe.onerror=function(){
+        URL.revokeObjectURL(blobUrl);
+        try{document.body.removeChild(iframe);}catch(x){}
+        onDone(new Error("iframe load failed"));
+      };
+      iframe.src=blobUrl;
+    }catch(e){onDone(e);}
+  });
+}
+
+// Trigger a file download of a blob
+function downloadBlob(blob,filename){
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement("a");
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},5000);
 }
 
 function sbMapSabaqOut(r){return{id:r.id||uid(),name:r.name,class:r.class,from_page:r.fromPage||"",to_page:r.toPage||"",total_full_sides:r.totalFullSides||"",plus_lines:r.plusLines||"",absences:r.absences||"",para_dor_mornings:r.paraDorMornings||"",total_days_of_sabaq:r.totalDaysOfSabaq||"",date_from:r.dateFrom||"",date_to:r.dateTo||"",target_given:r.targetGiven||13,upcoming_target:r.upcomingTarget||13,parent_email1:r.parentEmail1||"",parent_email2:r.parentEmail2||"",father_phone:r.fatherPhone||"",mother_phone:r.motherPhone||"",unique_id:r.uniqueId||"",weak_sabaq_instances:r.weakSabaqInstances||"N/A",weak_dor_instances:r.weakDorInstances||"N/A",teacher_comments:r.teacherComments||"",behaviour:r.behaviour||5,evening_possible_days:r.eveningPossibleDays||"",evening_absences:r.eveningAbsences||"",is_hafidh:r.isHafidh||false,is_student_profile:r.isStudentProfile||false,updated_at:new Date().toISOString()};}
@@ -2259,6 +2365,66 @@ function App(){
       setTimeout(()=>{ window.location.href='mailto:'+emails.join(',')+'?subject='+subject+'&body='+body; },400);
     }
   }
+
+  // ── Email PDF: generate PDF, save it, open Gmail compose pre-filled ───────
+  function emailReportPDF(record){
+    if(!hasReportData(record)){showToast("No data for "+record.name+" yet — add their pages/days first.","warning",4000);return;}
+    // Resolve phone/email from monthly record, falling back to student profile
+    var profile=(records||[]).find(function(r){return r.isStudentProfile&&r.name===record.name;});
+    var email1=record.parentEmail1||(profile&&profile.parentEmail1)||"";
+    var email2=record.parentEmail2||(profile&&profile.parentEmail2)||"";
+    var emails=[email1,email2].filter(Boolean);
+    var monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
+    var safeName=(record.name||"student").replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"_");
+    generateReportPDF(record,dorRecords,records,function(err,pdfBlob){
+      if(err){showToast("PDF error: "+err.message,"error");return;}
+      // 1. Download the PDF to the user's device
+      downloadBlob(pdfBlob,"Report_"+safeName+(monthStr?"_"+monthStr.replace(/\s/g,"_"):"")+".pdf");
+      // 2. Open Gmail compose with parent email(s) pre-filled
+      var subject=encodeURIComponent("Al-Ihsaan Academy — Hifz Report: "+record.name+(monthStr?" ("+monthStr+")":""));
+      var body=encodeURIComponent(
+        "السلام عليكم ورحمة الله وبركاته\n\n"+
+        "Dear Parent,\n\n"+
+        "Please find the Hifz monthly report for "+record.name+" attached.\n\n"+
+        (monthStr?"Month: "+monthStr+"\n\n":"")+
+        "JazakAllahu Khayran\nAl-Ihsaan Academy — Hifz Department"
+      );
+      var gmailUrl="https://mail.google.com/mail/?view=cm&fs=1"+
+        (emails.length?"&to="+encodeURIComponent(emails.join(",")):"")+"&su="+subject+"&body="+body;
+      setTimeout(function(){window.open(gmailUrl,"_blank");},600);
+      showToast("✅ PDF saved to Downloads — attach it in the Gmail tab that just opened, then send!","success",7000);
+    });
+  }
+
+  // ── WhatsApp PDF: generate PDF, save it, open WhatsApp Web pre-filled ─────
+  function whatsappReport(record,phone){
+    if(!hasReportData(record)){showToast("No data for "+record.name+" yet — add their pages/days first.","warning",4000);return;}
+    // Resolve phone from monthly record, falling back to student profile
+    if(!phone){
+      var profile2=(records||[]).find(function(r){return r.isStudentProfile&&r.name===record.name;});
+      phone=(profile2&&(profile2.fatherPhone||profile2.motherPhone))||"";
+    }
+    if(!phone){showToast("No phone number saved for "+record.name+". Add it on the Classes page.","warning",4000);return;}
+    var waNum=toWhatsAppNumber(phone);
+    if(!waNum){showToast("Could not parse phone number for WhatsApp.","warning");return;}
+    var monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
+    var safeName=(record.name||"student").replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"_");
+    generateReportPDF(record,dorRecords,records,function(err,pdfBlob){
+      if(err){showToast("PDF error: "+err.message,"error");return;}
+      // 1. Download the PDF
+      downloadBlob(pdfBlob,"Report_"+safeName+(monthStr?"_"+monthStr.replace(/\s/g,"_"):"")+".pdf");
+      // 2. Open WhatsApp Web with the number and a pre-written message
+      var msg=encodeURIComponent(
+        "السلام عليكم ورحمة الله وبركاته\n\n"+
+        "Dear Parent,\n\n"+
+        "Please find the Hifz report for "+record.name+(monthStr?" ("+monthStr+")":"")+" attached below.\n\n"+
+        "JazakAllahu Khayran\nAl-Ihsaan Academy — Hifz Department"
+      );
+      setTimeout(function(){window.open("https://wa.me/"+waNum+"?text="+msg,"_blank");},600);
+      showToast("✅ PDF saved to Downloads — attach it in the WhatsApp tab and press send! 💬","success",7000);
+    });
+  }
+
   async function saveEntry(){
     if(!form.name.trim()){showToast("Please enter a student name.","error");return;}
     if(form.name.trim().length>80){showToast("Student name too long — max 80 characters.","error");return;}
@@ -3103,8 +3269,9 @@ function App(){
                 , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:getAvgColor(r.K),fontWeight:"bold"},}, fmt(r.K,2)))
                 , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Attend: " ), React.createElement('span', { style: {color:TEXT},}, fmt(r.attendancePct,2), "%"))
               )
-              , React.createElement('div', { style: {display:"flex",gap:8},}
-                , React.createElement('button', { onClick: ()=>sendReport(r), style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧 Email" )
+              , React.createElement('div', { style: {display:"flex",gap:6,flexWrap:"wrap"},}
+                , React.createElement('button', { onClick: ()=>emailReportPDF(r), title:"Email PDF to parent", style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧 PDF" )
+                , (()=>{var _wp=(records.find(x=>x.isStudentProfile&&x.name===r.name)||{});var _ph=r.fatherPhone||_wp.fatherPhone||r.motherPhone||_wp.motherPhone||"";return _ph?React.createElement('button', { onClick: ()=>whatsappReport(r,_ph), title:"Send via WhatsApp", style: {background:"#25D366",color:"#fff",border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "💬"):null;})()
                 , React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12},}, "Edit")
                 , React.createElement('button', { onClick: ()=>deleteRecord(r.id), style: {background:"#c0392b22",color:RED,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "✕")
               )
@@ -3662,8 +3829,9 @@ function App(){
                       , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Attend: " ), React.createElement('span', { style: {color:TEXT},}, fmt(r.attendancePct,2), "%"))
                       , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:BEHAVIOUR_COLORS[r.behaviour]||GREEN},}, r.behaviour, "/5"))
                     )
-                    , React.createElement('div', { style: {display:"flex",gap:8},}
-                      , React.createElement('button', { onClick: ()=>sendReport(r), style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧")
+                    , React.createElement('div', { style: {display:"flex",gap:6,flexWrap:"wrap"},}
+                      , React.createElement('button', { onClick: ()=>emailReportPDF(r), title:"Email PDF", style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧")
+                      , (()=>{var _wp2=(records.find(x=>x.isStudentProfile&&x.name===r.name)||{});var _ph2=r.fatherPhone||_wp2.fatherPhone||r.motherPhone||_wp2.motherPhone||"";return _ph2?React.createElement('button',{onClick:()=>whatsappReport(r,_ph2),title:"WhatsApp",style:{background:"#25D366",color:"#fff",border:"none",borderRadius:6,padding:"6px 8px",cursor:"pointer",fontSize:12,fontWeight:"bold"}},"💬"):null;})()
                       , React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "Edit")
                     )
                   )
@@ -3706,9 +3874,19 @@ function App(){
                     )
                     , React.createElement('div', { style: {fontSize:12,color:MUTED,marginBottom:12},}
                       , React.createElement('div', null, "📊 Avg: "  , React.createElement('span', { style: {color:getAvgColor(s.K),fontWeight:"bold"},}, fmt(s.K,2)))
-                      , (s.parentEmail1||s.parentEmail2)&&React.createElement('div', { style: {marginTop:4},}, "📧 " , [s.parentEmail1,s.parentEmail2].filter(Boolean).join(", "))
+                      , (()=>{var _rp=(records.find(x=>x.isStudentProfile&&x.name===s.name)||{});var _em1=s.parentEmail1||_rp.parentEmail1||"";var _em2=s.parentEmail2||_rp.parentEmail2||"";var _fph=s.fatherPhone||_rp.fatherPhone||"";var _mph=s.motherPhone||_rp.motherPhone||"";return React.createElement('div',{style:{marginTop:6,display:"grid",gap:3}},[_em1&&React.createElement('div',{key:"e1",style:{fontSize:11}},"📧 "+_em1),_em2&&React.createElement('div',{key:"e2",style:{fontSize:11}},"📧 "+_em2),_fph&&React.createElement('div',{key:"fp",style:{fontSize:11,color:"#25D366"}},"💬 Dad: "+_fph),_mph&&React.createElement('div',{key:"mp",style:{fontSize:11,color:"#25D366"}},"💬 Mum: "+_mph)]);})()
                     )
-                    , React.createElement('button', { onClick: ()=>sendReport(s), style: {width:"100%",background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"9px",cursor:"pointer",fontWeight:"bold",fontSize:13},}, "📧 Email Report"  )
+                    , React.createElement('button', { onClick: ()=>emailReportPDF(s), style: {width:"100%",background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"9px",cursor:"pointer",fontWeight:"bold",fontSize:13,marginBottom:6},}, "📧 Email PDF"  )
+                    , (()=>{
+                        var _rp3=(records.find(x=>x.isStudentProfile&&x.name===s.name)||{});
+                        var _fph3=s.fatherPhone||_rp3.fatherPhone||"";
+                        var _mph3=s.motherPhone||_rp3.motherPhone||"";
+                        if(!_fph3&&!_mph3)return null;
+                        return React.createElement('div',{style:{display:"flex",gap:6}},
+                          _fph3&&React.createElement('button',{onClick:()=>whatsappReport(s,_fph3),style:{flex:1,background:"#25D366",color:"#fff",border:"none",borderRadius:8,padding:"8px 4px",cursor:"pointer",fontWeight:"bold",fontSize:12}},"💬 Dad"),
+                          _mph3&&React.createElement('button',{onClick:()=>whatsappReport(s,_mph3),style:{flex:1,background:"#128C7E",color:"#fff",border:"none",borderRadius:8,padding:"8px 4px",cursor:"pointer",fontWeight:"bold",fontSize:12}},"💬 Mum")
+                        );
+                      })()
                   )
                 );
               })
