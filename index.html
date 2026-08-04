@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-210000 | Premium report + gold SW banner + homepage version tag -->
+<!-- hifz-20260804-220000 | Premium report + gold SW banner + homepage version tag -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -56,7 +56,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260804-210000';
+const APP_VERSION='hifz-20260804-220000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -671,64 +671,72 @@ function generateReportPDF(record, dorRecs, allRecs, onDone){
   loadPDFLibs(function(){
     try{
       var calc=Object.assign({},record,calcEntry(record));
-      var html=generateReportHTML(record,calc,dorRecs||[],allRecs||[]);
-      // Render in a hidden, same-origin iframe (blob URL = same origin)
-      var blob=new Blob([html],{type:"text/html;charset=utf-8"});
-      var blobUrl=URL.createObjectURL(blob);
-      var iframe=document.createElement("iframe");
-      // Off-screen but sized to A4 width so layout matches
-      iframe.style.cssText="position:fixed;left:-9999px;top:0;width:794px;height:1200px;border:none;";
-      document.body.appendChild(iframe);
-      iframe.onload=function(){
-        // Small delay to let the browser finish painting inside the iframe
-        setTimeout(function(){
+      var html1=generateReportHTML(record,calc,dorRecs||[],allRecs||[],1);
+      var html2=generateReportHTML(record,calc,dorRecs||[],allRecs||[],2);
+      renderPageToCanvas(html1,function(err1,canvas1){
+        if(err1){onDone(err1);return;}
+        renderPageToCanvas(html2,function(err2,canvas2){
+          if(err2){onDone(err2);return;}
           try{
-            var body=iframe.contentDocument&&iframe.contentDocument.body;
-            if(!body){throw new Error("iframe body not accessible");}
-            window.html2canvas(body,{
-              scale:2,useCORS:true,allowTaint:true,logging:false,
-              width:794,windowWidth:794
-            }).then(function(canvas){
-              URL.revokeObjectURL(blobUrl);
-              document.body.removeChild(iframe);
-              try{
-                var jsPDF=window.jspdf&&window.jspdf.jsPDF;
-                if(!jsPDF)throw new Error("jsPDF not loaded");
-                var pdf=new jsPDF({orientation:"portrait",unit:"pt",format:"a4"});
-                var pageW=pdf.internal.pageSize.getWidth();   // 595 pt
-                var pageH=pdf.internal.pageSize.getHeight();  // 842 pt
-                // Scale the canvas to fit A4 width, preserve aspect ratio
-                var imgW=pageW;
-                var imgH=(canvas.height/canvas.width)*pageW;
-                var imgData=canvas.toDataURL("image/jpeg",0.92);
-                // Slice the image across as many A4 pages as needed
-                var pages=Math.ceil(imgH/pageH);
-                for(var p=0;p<pages;p++){
-                  if(p>0)pdf.addPage();
-                  pdf.addImage(imgData,"JPEG",0,-(p*pageH),imgW,imgH);
-                }
-                onDone(null,pdf.output("blob"));
-              }catch(e2){onDone(e2);}
-            }).catch(function(e){
-              URL.revokeObjectURL(blobUrl);
-              try{document.body.removeChild(iframe);}catch(x){}
-              onDone(e);
-            });
-          }catch(e){
-            URL.revokeObjectURL(blobUrl);
-            try{document.body.removeChild(iframe);}catch(x){}
-            onDone(e);
-          }
-        },700);
-      };
-      iframe.onerror=function(){
-        URL.revokeObjectURL(blobUrl);
-        try{document.body.removeChild(iframe);}catch(x){}
-        onDone(new Error("iframe load failed"));
-      };
-      iframe.src=blobUrl;
+            var jsPDF=window.jspdf&&window.jspdf.jsPDF;
+            if(!jsPDF)throw new Error("jsPDF not loaded");
+            var pdf=new jsPDF({orientation:"portrait",unit:"pt",format:"a4"});
+            var pageW=pdf.internal.pageSize.getWidth();
+            var pageH=pdf.internal.pageSize.getHeight();
+            function addCanvasToPdf(c){
+              var imgW=pageW;
+              var imgH=(c.height/c.width)*pageW;
+              var imgData=c.toDataURL("image/jpeg",0.92);
+              if(imgH>pageH){var s=pageH/imgH;pdf.addImage(imgData,"JPEG",0,0,imgW*s,pageH);}
+              else{pdf.addImage(imgData,"JPEG",0,0,imgW,imgH);}
+            }
+            addCanvasToPdf(canvas1);
+            pdf.addPage();
+            addCanvasToPdf(canvas2);
+            onDone(null,pdf.output("blob"));
+          }catch(e2){onDone(e2);}
+        });
+      });
     }catch(e){onDone(e);}
   });
+}
+
+function renderPageToCanvas(html,callback){
+  var blob=new Blob([html],{type:"text/html;charset=utf-8"});
+  var blobUrl=URL.createObjectURL(blob);
+  var iframe=document.createElement("iframe");
+  iframe.style.cssText="position:fixed;left:-9999px;top:0;width:794px;height:1120px;border:none;";
+  document.body.appendChild(iframe);
+  iframe.onload=function(){
+    setTimeout(function(){
+      try{
+        var body=iframe.contentDocument&&iframe.contentDocument.body;
+        if(!body){throw new Error("iframe body not accessible");}
+        window.html2canvas(body,{
+          scale:2,useCORS:true,allowTaint:true,logging:false,
+          width:794,windowWidth:794
+        }).then(function(canvas){
+          URL.revokeObjectURL(blobUrl);
+          document.body.removeChild(iframe);
+          callback(null,canvas);
+        }).catch(function(e){
+          URL.revokeObjectURL(blobUrl);
+          try{document.body.removeChild(iframe);}catch(x){}
+          callback(e);
+        });
+      }catch(e){
+        URL.revokeObjectURL(blobUrl);
+        try{document.body.removeChild(iframe);}catch(x){}
+        callback(e);
+      }
+    },700);
+  };
+  iframe.onerror=function(){
+    URL.revokeObjectURL(blobUrl);
+    try{document.body.removeChild(iframe);}catch(x){}
+    callback(new Error("iframe load failed"));
+  };
+  iframe.src=blobUrl;
 }
 
 // Trigger a file download of a blob
@@ -771,7 +779,7 @@ function svgCircleLarge(color){
   return '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;margin-left:6px;"><circle cx="8" cy="8" r="7" fill="'+c+'"/></svg>';
 }
 
-function generateReportHTML(entry, calc, dorRecords, allRecords){
+function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   if(!entry||!calc)return"<html><body><p>No record data available.</p></body></html>";
   if(!Array.isArray(dorRecords))dorRecords=[];
   if(!Array.isArray(allRecords))allRecords=[];
@@ -881,8 +889,8 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='@page{margin:0;size:A4;}';
   h+='*{box-sizing:border-box;margin:0;padding:0;}';
   h+='body{font-family:Arial,sans-serif;color:#2c2c2c;background:#f5f2ed;font-size:13px;line-height:1.5;padding:22px 26px;}';
-  h+='.card{background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);overflow:hidden;margin-bottom:13px;}';
-  h+='.sec-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;color:#fff;font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;}';
+  h+='.card{background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);margin-bottom:13px;}';
+  h+='.sec-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;color:#fff;font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;border-radius:14px 14px 0 0;}';
   h+='.sec-hdr-blue{background:linear-gradient(135deg,#2d4a8a,#3d5caa);}';
   h+='.sec-hdr-teal{background:linear-gradient(135deg,#0e6b5a,#1a8870);}';
   h+='.sec-hdr-green{background:linear-gradient(135deg,#1a5c38,#247a4c);}';
@@ -905,20 +913,20 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='.dtbl .val{font-size:20px;font-weight:800;color:#1e2d5a;}';
   h+='.dtbl .val-red{color:#e74c3c;}';
   h+='.dtbl .val-green{color:#27ae60;}';
-  h+='.att-cell{padding:14px 8px;text-align:center;border-right:1px solid #ede9e0;}';
+  h+='.att-cell{padding:10px 8px;text-align:center;border-right:1.5px solid #d0d5e0;background:#f7f8fb;}';
   h+='.att-cell:last-child{border-right:none;}';
-  h+='.att-lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}';
-  h+='.att-val{font-size:24px;font-weight:800;text-align:center;}';
+  h+='.att-lbl{font-size:11px;font-weight:700;color:#7a83a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}';
+  h+='.att-val{font-size:34px;font-weight:800;text-align:center;}';
   h+='.legend{display:flex;gap:14px;justify-content:center;align-items:center;padding:10px 0;font-size:11px;color:#666;flex-wrap:wrap;}';
   h+='.legend-item{display:flex;align-items:center;gap:5px;font-weight:600;}';
   h+='.comments-body{padding:16px 18px;font-size:13px;line-height:1.85;min-height:80px;color:#3c3c3c;}';
   h+='.footer-inner{padding:18px 22px;text-align:center;font-size:12px;color:#3c3c3c;line-height:1.9;background:linear-gradient(135deg,#fffdf5,#fff9e6);}';
-  h+='.pgbreak{page-break-before:always;}';
+  // (pgbreak CSS removed - two-pass render handles pagination)
   h+='.pg-num{text-align:center;margin:16px 0 8px;color:#c9a553;font-size:11px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center;letter-spacing:0.5px;}';
   h+='.pg-num-line{flex:1;height:1.5px;background:linear-gradient(90deg,transparent,#c9a553 30%,#d4b065 50%,#c9a553 70%,transparent);border-radius:2px;}';
   h+='</style></head>';
   h+='<body>';
-
+  if(pageNum!==2){
   // PAGE 1
 
   // Header
@@ -1069,15 +1077,25 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   }
   // Page 1 number
   h+='<div class="pg-num"><div class="pg-num-line"></div>Page 1<div class="pg-num-line"></div></div>';
-
-  // PAGE 2
-  h+='<div class="pgbreak"></div>';
+  }
+  if(pageNum!==1){
+  if(pageNum===2){
+  h+='<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;padding-bottom:12px;border-bottom:1.5px solid #ede9e0;">';
+  h+='<div style="width:54px;height:38px;overflow:hidden;flex-shrink:0;border-radius:3px;">';
+  h+='<img src="'+window.LOGO_SRC+'" style="width:54px;display:block;"/></div>';
+  h+='<div style="flex:1;"><div style="font-size:14px;font-weight:900;color:#1e2d5a;letter-spacing:1px;text-transform:uppercase;line-height:1.1;">Monthly Hifz Report</div>';
+  h+='<div style="font-size:10px;color:#9099ae;letter-spacing:1.2px;text-transform:uppercase;margin-top:3px;">Al-Ihsaan Academy &middot; Hifz Programme</div></div>';
+  h+='<div style="text-align:right;"><div style="font-size:11px;font-weight:700;color:#1e2d5a;">'+esc(entry.name)+'</div>';
+  h+='<div style="font-size:9px;color:#a0a8b8;letter-spacing:0.5px;margin-top:2px;">'+dateRange+'</div></div>';
+  h+='<div style="background:#f5f2ed;border:1px solid #c9a553;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;color:#c9a553;letter-spacing:0.5px;flex-shrink:0;">PAGE 2</div>';
+  h+='</div>';
+  }
 
   // 5. Dor (Revision) Record
   h+='<div class="card">';
   h+='<div class="sec-hdr sec-hdr-orange"><span class="sec-num">5</span> Dor (Revision) Record This Month</div>';
   if(juzList.length>0){
-    h+='<div style="max-height:400px;overflow-y:auto;">'+hmHTML+'</div>';
+    h+='<div>'+hmHTML+'</div>';
     h+='<div style="display:flex;justify-content:space-evenly;align-items:center;padding:10px 12px;border-top:1.5px solid #ede9e0;">';
     [["#22c55e","Good (0–1.5)"],["#f59e0b","Needs Work (2–3)"],["#ef4444","Weak (3.5+)"],["#c0c0c0","Record Missing"]].forEach(function(item){
       h+='<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;"><div style="width:10px;height:10px;border-radius:50%;background:'+item[0]+';flex-shrink:0;"></div><span style="color:'+item[0]+';">'+item[1]+'</span></div>';
@@ -1142,7 +1160,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
 
   // Page 2 number
   h+='<div class="pg-num"><div class="pg-num-line"></div>Page 2<div class="pg-num-line"></div></div>';
-
+  }
   h+='</body></html>';
   return h;
 }
