@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-140000 | Email PDF + WhatsApp report sharing from all three send-report locations -->
+<!-- hifz-20260804-160000 | Remove below-target box, fix encoding, ranking nowrap, contact columns in monthly sheet -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -1981,6 +1981,7 @@ function App(){
         // S=18(True Avg-CALC) T=19(Adjusted Lines-CALC)
         // U=20(Champion Total Sides-CALC) V=21(Champion Daily Avg-CALC)
         // W=22(Behaviour) X=23(Teacher Comments)
+        // Y=24(Father Phone) Z=25(Father Email) AA=26(Mother Phone) AB=27(Mother Email)
         // Calculated columns (I,J,K,Q,S,T,U,V) are SKIPPED — app recalculates
         const C={
           name:1, fromPage:2, toPage:3, totalFullSides:4, plusLines:5,
@@ -1995,7 +1996,8 @@ function App(){
           // T(19)=Adjusted Lines CALC — skip
           // U(20)=Champion Total Sides CALC — skip
           // V(21)=Champion Daily Avg CALC — skip
-          behaviour:22, teacherComments:23
+          behaviour:22, teacherComments:23,
+          fatherPhone:24, parentEmail1:25, motherPhone:26, parentEmail2:27
         };
         const newRecs=[];
         for(let ri=0;ri<rows.length;ri++){
@@ -2020,6 +2022,11 @@ function App(){
           rec.upcomingTarget=cleanNum(r[C.upcomingTarget])||"13";
           rec.behaviour=cleanNum(r[C.behaviour])||"5";
           rec.teacherComments=String(r[C.teacherComments]||"").trim();
+          // Contact columns (Y-AB) — optional, preserved if blank
+          rec.fatherPhone=normaliseUKPhone(r[C.fatherPhone]||"");
+          rec.parentEmail1=String(r[C.parentEmail1]||"").trim().toLowerCase();
+          rec.motherPhone=normaliseUKPhone(r[C.motherPhone]||"");
+          rec.parentEmail2=String(r[C.parentEmail2]||"").trim().toLowerCase();
           if(rec.name){
             // I2: run through sanitiseRecord to enforce all validation rules
             rec.id=uid();
@@ -2043,9 +2050,18 @@ function App(){
             const dupIdx=m?next.findIndex(function(r2){return !r2.isStudentProfile&&r2.name===rec.name&&r2.dateFrom&&r2.dateFrom.substring(0,7)===m;}):-1;
             if(dupIdx>=0){next[dupIdx]=Object.assign({},rec,{id:next[dupIdx].id});updated++;}
             else{next.push(rec);added++;}
-            // Auto-create student profile anchor if one doesn't exist yet
-            var hasProfile=next.some(function(r2){return r2.name===rec.name&&r2.isStudentProfile;});
-            if(!hasProfile){
+            // Auto-create student profile anchor if one doesn't exist yet,
+            // or update the existing profile with any contact info from the sheet
+            var profIdx=next.findIndex(function(r2){return r2.name===rec.name&&r2.isStudentProfile;});
+            var contactPatch={
+              fatherPhone:rec.fatherPhone||undefined,
+              parentEmail1:rec.parentEmail1||undefined,
+              motherPhone:rec.motherPhone||undefined,
+              parentEmail2:rec.parentEmail2||undefined,
+            };
+            // strip undefined keys so we don't overwrite existing data with blanks
+            Object.keys(contactPatch).forEach(function(k){if(!contactPatch[k])delete contactPatch[k];});
+            if(profIdx<0){
               next.push(Object.assign({},defaultEntry,{
                 id:uid(),name:rec.name,class:rec.class,
                 dateFrom:rec.dateFrom||"",dateTo:rec.dateFrom||"",
@@ -2054,7 +2070,9 @@ function App(){
                 weakSabaqInstances:"N/A",weakDorInstances:"N/A",
                 eveningPossibleDays:"0",eveningAbsences:"0",
                 isStudentProfile:true,
-              }));
+              },contactPatch));
+            } else if(Object.keys(contactPatch).length>0){
+              next[profIdx]=Object.assign({},next[profIdx],contactPatch);
             }
           });
           lsSave(next);
@@ -2081,24 +2099,34 @@ function App(){
         if(!_smap[r.name])_smap[r.name]=r.class||CLASSES[0];
       });
       // Column headers — "(auto)" columns are recalculated by the app on import; leave them blank
-      var _headers=["#","Name","From Page","To Page","Total Full Sides","Additional Lines (+)","Absences","Para Dor Mornings","Total Lines (auto)","Sabaq Days (auto)","Average (auto)","Class","Report Start Date","Report End Date","Total Days Of Sabaq","Target Given","Total Lines Target (auto)","Upcoming Target","True Average (auto)","Adjusted Lines (auto)","Champion Total Sides (auto)","Champion Daily Avg (auto)","Behaviour (1-5)","Teacher Comments"];
+      var _headers=["#","Name","From Page","To Page","Total Full Sides","Additional Lines (+)","Absences","Para Dor Mornings","Total Lines (auto)","Sabaq Days (auto)","Average (auto)","Class","Report Start Date","Report End Date","Total Days Of Sabaq","Target Given","Total Lines Target (auto)","Upcoming Target","True Average (auto)","Adjusted Lines (auto)","Champion Total Sides (auto)","Champion Daily Avg (auto)","Behaviour (1-5)","Teacher Comments","Father's Phone","Father's Email","Mother's Phone","Mother's Email"];
       // Columns that are calculated automatically on import — shown in grey
       var _calcCols=[8,9,10,16,18,19,20,21];
+      // Contact columns (Y-AB) — shown in green header to distinguish
+      var _contactCols=[24,25,26,27];
+      var _totalCols=28;
       var _names=Object.keys(_smap).sort();
       var _rows=[_headers];
       if(_names.length>0){
-        _names.forEach(function(name,i){var row=new Array(24).fill("");row[0]=i+1;row[1]=name;row[11]=_smap[name];row[15]="13";row[17]="13";row[22]="5";_rows.push(row);});
+        _names.forEach(function(name,i){
+          var row=new Array(_totalCols).fill("");
+          row[0]=i+1;row[1]=name;row[11]=_smap[name];row[15]="13";row[17]="13";row[22]="5";
+          // Pre-populate contact columns from existing student profile
+          var _prof=(Array.isArray(records)?records:[]).find(function(r){return r.name===name&&r.isStudentProfile;});
+          if(_prof){row[24]=_prof.fatherPhone||"";row[25]=_prof.parentEmail1||"";row[26]=_prof.motherPhone||"";row[27]=_prof.parentEmail2||"";}
+          _rows.push(row);
+        });
       }else{
-        for(var _ei=0;_ei<10;_ei++){var _er=new Array(24).fill("");_er[0]=_ei+1;_rows.push(_er);}
+        for(var _ei=0;_ei<10;_ei++){var _er=new Array(_totalCols).fill("");_er[0]=_ei+1;_rows.push(_er);}
       }
       var _ws=XLSX.utils.aoa_to_sheet(_rows);
-      _ws["!cols"]=[{wch:4},{wch:28},{wch:10},{wch:10},{wch:14},{wch:14},{wch:10},{wch:16},{wch:14},{wch:12},{wch:12},{wch:18},{wch:18},{wch:18},{wch:16},{wch:12},{wch:18},{wch:14},{wch:14},{wch:14},{wch:20},{wch:20},{wch:14},{wch:32}];
+      _ws["!cols"]=[{wch:4},{wch:28},{wch:10},{wch:10},{wch:14},{wch:14},{wch:10},{wch:16},{wch:14},{wch:12},{wch:12},{wch:18},{wch:18},{wch:18},{wch:16},{wch:12},{wch:18},{wch:14},{wch:14},{wch:14},{wch:20},{wch:20},{wch:14},{wch:32},{wch:18},{wch:28},{wch:18},{wch:28}];
       _ws["!rows"]=[{hpx:44}]; // header row height
       // ── Apply cell styles (requires xlsx-js-style) ──────────────────────────
-      var _styleSupport=!!(XLSX.utils&&typeof XLSX.writeFile==="function"&&_rows[0]&&_ws["A1"]&&"s" in {}); // style support check
       // Header styles
       var _hdrBlue={fill:{fgColor:{rgb:"1A3A6B"}},font:{bold:true,sz:10,color:{rgb:"FFFFFF"}},alignment:{horizontal:"center",vertical:"center",wrapText:true},border:{bottom:{style:"medium",color:{rgb:"0F2451"}},right:{style:"thin",color:{rgb:"2A5298"}}}};
       var _hdrGrey={fill:{fgColor:{rgb:"6B7A8D"}},font:{bold:true,sz:10,color:{rgb:"EEEEEE"},italic:true},alignment:{horizontal:"center",vertical:"center",wrapText:true},border:{bottom:{style:"medium",color:{rgb:"4A5A6B"}},right:{style:"thin",color:{rgb:"7B8EA8"}}}};
+      var _hdrGreen={fill:{fgColor:{rgb:"0D6B3A"}},font:{bold:true,sz:10,color:{rgb:"FFFFFF"}},alignment:{horizontal:"center",vertical:"center",wrapText:true},border:{bottom:{style:"medium",color:{rgb:"094D29"}},right:{style:"thin",color:{rgb:"1A8A5A"}}}};
       // Data cell styles
       var _cellWhite={fill:{fgColor:{rgb:"FFFFFF"}},font:{sz:10},alignment:{horizontal:"center",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"DDDDDD"}},right:{style:"thin",color:{rgb:"DDDDDD"}}}};
       var _cellBlue={fill:{fgColor:{rgb:"F0F4FF"}},font:{sz:10},alignment:{horizontal:"center",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"D0D9F5"}},right:{style:"thin",color:{rgb:"D0D9F5"}}}};
@@ -2106,20 +2134,23 @@ function App(){
       var _cellGreyAlt={fill:{fgColor:{rgb:"E0E3E8"}},font:{sz:10,color:{rgb:"999999"},italic:true},alignment:{horizontal:"center",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"CCCCCC"}},right:{style:"thin",color:{rgb:"CCCCCC"}}}};
       var _cellNameWhite={fill:{fgColor:{rgb:"FFFFFF"}},font:{bold:true,sz:10},alignment:{horizontal:"left",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"DDDDDD"}},right:{style:"thin",color:{rgb:"DDDDDD"}}}};
       var _cellNameBlue={fill:{fgColor:{rgb:"F0F4FF"}},font:{bold:true,sz:10},alignment:{horizontal:"left",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"D0D9F5"}},right:{style:"thin",color:{rgb:"D0D9F5"}}}};
+      var _cellGreen={fill:{fgColor:{rgb:"F0FFF5"}},font:{sz:10},alignment:{horizontal:"left",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"C6F0D8"}},right:{style:"thin",color:{rgb:"C6F0D8"}}}};
+      var _cellGreenAlt={fill:{fgColor:{rgb:"E0F5EB"}},font:{sz:10},alignment:{horizontal:"left",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"C6F0D8"}},right:{style:"thin",color:{rgb:"C6F0D8"}}}};
       // Apply header row styles
-      for(var _ci=0;_ci<24;_ci++){
+      for(var _ci=0;_ci<_totalCols;_ci++){
         var _hAddr=XLSX.utils.encode_cell({r:0,c:_ci});
         if(!_ws[_hAddr]){_ws[_hAddr]={v:"",t:"s"};}
-        _ws[_hAddr].s=(_calcCols.indexOf(_ci)>=0)?_hdrGrey:_hdrBlue;
+        _ws[_hAddr].s=(_calcCols.indexOf(_ci)>=0)?_hdrGrey:(_contactCols.indexOf(_ci)>=0)?_hdrGreen:_hdrBlue;
       }
       // Apply data row styles
       for(var _ri=1;_ri<_rows.length;_ri++){
         var _alt=(_ri%2===0);
-        for(var _ci2=0;_ci2<24;_ci2++){
+        for(var _ci2=0;_ci2<_totalCols;_ci2++){
           var _dAddr=XLSX.utils.encode_cell({r:_ri,c:_ci2});
           if(!_ws[_dAddr]){_ws[_dAddr]={v:"",t:"s"};}
           var _s;
           if(_calcCols.indexOf(_ci2)>=0){_s=_alt?_cellGreyAlt:_cellGrey;}
+          else if(_contactCols.indexOf(_ci2)>=0){_s=_alt?_cellGreenAlt:_cellGreen;}
           else if(_ci2===1){_s=_alt?_cellNameBlue:_cellNameWhite;}
           else{_s=_alt?_cellBlue:_cellWhite;}
           _ws[_dAddr].s=_s;
@@ -2911,21 +2942,7 @@ function App(){
   )
 ))
 
-    /* BELOW TARGET */
-      , view==="menu"&&belowTarget.length>0&&(
-        React.createElement('div', { style: {background:RED+"11",border:"1px solid "+(RED)+"44",borderRadius:12,padding:"16px 20px",marginBottom:20},}
-          , React.createElement('div', { style: {color:RED,fontWeight:"bold",marginBottom:12,fontSize:15},}, "⚠️ Below Target (avg < 11)"     )
-          , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"1fr 1fr",gap:6},}
-            , belowTarget.map(s=>(
-              React.createElement('div', { key: s.id, onClick: ()=>{setProfileName(s.name);setView("profile");}, style: {background:RED+"15",borderRadius:8,padding:"8px 12px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"},}
-                , React.createElement('span', { style: {color:TEXT,fontWeight:"bold",fontSize:13},}, s.name)
-                , React.createElement('span', { style: {color:RED,fontWeight:"bold",fontSize:13},}, fmt(s.K,2))
-              )
-            ))
-          )
-          , React.createElement('div', { style: {color:MUTED,fontSize:11,marginTop:10},}, "Click a name to view their profile"      )
-        )
-      )
+    /* BELOW TARGET — removed per teacher request */
 
       /* DOR ENTRY */
     , view==="dor"&&React.createElement(DorEntryPage, { studentNames: studentNames, dorRecords: dorRecords, setDorRecords: setDorRecords, records: records, yearPlan:yearPlan, registerData:registerData, setRegisterData:setRegisterData, syncNow:syncNow,})
@@ -3264,7 +3281,7 @@ function App(){
         React.createElement('div', { style: {display:"grid",gap:12},}
           , historyFiltered.map(r=>(
             React.createElement('div', { key: r.id, style: {background:CARD,borderRadius:14,padding:"14px 20px",border:"1px solid rgba(0,0,0,0.07)",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"},}
-              , React.createElement('div', { style: {flex:1,minWidth:160},}, React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:15},}, r.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, r.class, " Â· "  , r.monthName))
+              , React.createElement('div', { style: {flex:1,minWidth:160},}, React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:15},}, r.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, r.class, " ·"  , r.monthName))
               , React.createElement('div', { style: {display:"flex",gap:20,fontSize:14,flexWrap:"wrap"},}
                 , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:getAvgColor(r.K),fontWeight:"bold"},}, fmt(r.K,2)))
                 , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Attend: " ), React.createElement('span', { style: {color:TEXT},}, fmt(r.attendancePct,2), "%"))
@@ -3933,7 +3950,7 @@ function App(){
         React.createElement('div', { style: {display:"grid",gap:12},}
           , htFiltered.map(r=>(
             React.createElement('div', { key: r.id, style: {background:CARD,borderRadius:10,padding:"14px 18px",border:"1px solid "+(RED)+"33",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"},}
-              , React.createElement('div', { style: {flex:1},}, React.createElement('div', { style: {color:TEXT,fontWeight:"bold",fontSize:15,cursor:"pointer",textDecoration:"underline"}, onClick: ()=>{setProfileName(r.name);setView("profile");},}, r.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, r.class, " Â· "  , r.monthName))
+              , React.createElement('div', { style: {flex:1},}, React.createElement('div', { style: {color:TEXT,fontWeight:"bold",fontSize:15,cursor:"pointer",textDecoration:"underline"}, onClick: ()=>{setProfileName(r.name);setView("profile");},}, r.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, r.class, " ·"  , r.monthName))
               , React.createElement('div', { style: {display:"flex",gap:16,fontSize:13,flexWrap:"wrap"},}
                 , r.K<11&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:RED,fontWeight:"bold"},}, fmt(r.K,2)))
                 , parseInt(r.behaviour)<3&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:ORANGE,fontWeight:"bold"},}, r.behaviour, "/5 — "  , BEHAVIOUR_LABELS[r.behaviour]))
@@ -4089,9 +4106,9 @@ function App(){
                 , React.createElement('div', { style: {background:ACCENT,padding:"10px 16px",color:GOLD,fontWeight:"bold",fontSize:12,letterSpacing:2},}, "FULL RANKINGS")
                 , React.createElement('div', { style: {padding:"8px 12px"},}
                   , allRanked.map((s,i)=>React.createElement('div', {key:s.name, style: {display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",borderRadius:6,marginBottom:4,background:i===0?GOLD+"22":i===1?BLUE+"22":i%2===0?"transparent":DARK+"44",border:"1px solid "+(i===0?GOLD+"33":i===1?BLUE+"33":MUTED+"11")}},
-                    React.createElement('div', {style:{display:"flex",alignItems:"center",gap:8}},
-                      React.createElement('span', {style:{color:i===0?GOLD:i===1?BLUE:MUTED,fontWeight:i<2?"bold":"normal",minWidth:26,fontSize:i<2?14:12}}, i===0?"🥇":i===1?"🥈":"#"+(i+1)),
-                      React.createElement('span', {style:{color:TEXT,fontSize:13}}, s.name)
+                    React.createElement('div', {style:{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0}},
+                      React.createElement('span', {style:{color:i===0?GOLD:i===1?BLUE:MUTED,fontWeight:i<2?"bold":"normal",minWidth:26,fontSize:i<2?14:12,flexShrink:0}}, i===0?"🥇":i===1?"🥈":"#"+(i+1)),
+                      React.createElement('span', {style:{color:TEXT,fontSize:13,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}, s.name)
                     ),
                     React.createElement('div', {style:{display:"flex",gap:14,fontSize:12}},
                       React.createElement('span', {style:{color:MUTED}}, s.cleanQuarters+"Q"),
@@ -4167,9 +4184,9 @@ function App(){
                     , React.createElement('div', { style: {color:MUTED,fontSize:11,letterSpacing:3,marginBottom:12},}, "FULL RANKINGS" )
                     , list.map((s,i)=>(
                       React.createElement('div', { key: s.id, style: {display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 12px",borderRadius:6,marginBottom:4,background:i===0?GOLD+"22":i===1?BLUE+"22":i%2===0?"transparent":DARK+"44",border:"1px solid "+(i===0?GOLD+"33":i===1?BLUE+"33":MUTED+"11")},}
-                        , React.createElement('div', { style: {display:"flex",alignItems:"center",gap:8},}
-                          , React.createElement('span', { style: {color:i===0?GOLD:i===1?BLUE:MUTED,fontWeight:i<2?"bold":"normal",minWidth:26,fontSize:i<2?15:12},}, i===0?"🥇":i===1?"🥈":"#"+(i+1))
-                          , React.createElement('span', { style: {color:TEXT,fontSize:13},}, s.name)
+                        , React.createElement('div', { style: {display:"flex",alignItems:"center",gap:8,flex:1,minWidth:0},}
+                          , React.createElement('span', { style: {color:i===0?GOLD:i===1?BLUE:MUTED,fontWeight:i<2?"bold":"normal",minWidth:26,fontSize:i<2?15:12,flexShrink:0},}, i===0?"🥇":i===1?"🥈":"#"+(i+1))
+                          , React.createElement('span', { style: {color:TEXT,fontSize:13,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"},}, s.name)
                         )
                         , React.createElement('div', { style: {display:"flex",gap:16,fontSize:12},}
                           , React.createElement('span', { style: {color:MUTED},}, fmt(s.championTotalSides,2)+"s")
