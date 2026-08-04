@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-160000 | Remove below-target box, fix encoding, ranking nowrap, contact columns in monthly sheet -->
+<!-- hifz-20260804-180000 | Fix red sync dot: return=minimal upserts, 30s POST timeout, stale-closure fix, online heartbeat -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -61,12 +61,13 @@ const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 // ── SUPABASE LAYER ─────────────────────────────────────────────
 async function sbFetch(path,method,body){
   const h={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+(await sbGetToken()),"Content-Type":"application/json"};
-  if(method==="POST"||method==="PATCH")h["Prefer"]="resolution=merge-duplicates";
+  if(method==="POST"||method==="PATCH")h["Prefer"]="resolution=merge-duplicates,return=minimal";
   if(method==="DELETE")h["Prefer"]="return=minimal";
   const opts={method:method||"GET",headers:h};
   if(body)opts.body=JSON.stringify(body);
   var _ctrl=new AbortController();
-  var _sbT=setTimeout(function(){_ctrl.abort();},8000);
+  // Give writes (POST/PATCH) 30 s — large upserts returning minimal data still need time on slow connections
+  var _sbT=setTimeout(function(){_ctrl.abort();},(method==="POST"||method==="PATCH")?30000:10000);
   opts.signal=_ctrl.signal;
   var r;
   try{r=await fetch(SUPABASE_URL+"/rest/v1/"+path,opts);}finally{clearTimeout(_sbT);}
@@ -1799,14 +1800,23 @@ function App(){
     // Force SW update check so new versions are detected on every session
     if('serviceWorker'in navigator){navigator.serviceWorker.ready.then(function(reg){reg.update().catch(function(){});});}
     // Track real device connectivity so we can distinguish "Supabase blip" from "no internet"
-    function onDeviceOnline(){setDeviceOnline(true);}
+    function onDeviceOnline(){
+      setDeviceOnline(true);
+      // Re-sync immediately when connection is restored so the dot turns green
+      setTimeout(function(){if(scheduleSyncRef.current)scheduleSyncRef.current();},1000);
+    }
     function onDeviceOffline(){setDeviceOnline(false);setSyncStatus("offline");}
     window.addEventListener("online",onDeviceOnline);
     window.addEventListener("offline",onDeviceOffline);
+    // Heartbeat: keep the dot green even when the user isn't actively editing
+    var heartbeatInterval=setInterval(function(){
+      if(navigator.onLine&&scheduleSyncRef.current)scheduleSyncRef.current();
+    },60000);
     return function(){
       window.removeEventListener('swupdateavailable',onSwUpdate);
       window.removeEventListener("online",onDeviceOnline);
       window.removeEventListener("offline",onDeviceOffline);
+      clearInterval(heartbeatInterval);
     };
   },[]);
 
@@ -1849,11 +1859,17 @@ function App(){
   const isSyncing=React.useRef(false);
   // Pending-writes queue: stores writes that failed while offline
   const pendingSync=React.useRef(false);
+  // Always-fresh refs so event-listener closures (registered once) can call the latest sync fns
+  const syncNowRef=React.useRef(null);
+  const scheduleSyncRef=React.useRef(null);
   function scheduleSync(){
     if(isFirstLoad.current)return; // skip until loadCloud completes
     if(syncTimer.current)clearTimeout(syncTimer.current);
-    syncTimer.current=setTimeout(function(){syncNow().catch(function(){});},2000);
+    syncTimer.current=setTimeout(function(){syncNowRef.current&&syncNowRef.current().catch(function(){});},2000);
   }
+  // Keep refs current on every render so once-registered event listeners always call the latest version
+  syncNowRef.current=syncNow;
+  scheduleSyncRef.current=scheduleSync;
 
   function showSyncMsg(msg){clearTimeout(syncMsgTimer.current);setSyncMsg(msg);syncMsgTimer.current=setTimeout(function(){setSyncMsg("");},3000);}
   function handleSyncToCloud(){
@@ -2271,7 +2287,9 @@ function App(){
           }
         }
         setRecords(next);lsSave(next);
-        syncNow().catch(function(){});
+        // Use scheduleSync (via ref) so the debounced call fires AFTER React re-renders
+        // with the updated records — calling syncNow() directly here would capture stale records
+        setTimeout(function(){if(scheduleSyncRef.current)scheduleSyncRef.current();},100);
         var _parts=[];
         if(added>0)_parts.push(added+" added");
         if(updated>0)_parts.push(updated+" updated");
