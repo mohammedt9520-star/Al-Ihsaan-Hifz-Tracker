@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-180000 | Fix red sync dot: return=minimal upserts, 30s POST timeout, stale-closure fix, online heartbeat -->
+<!-- hifz-20260804-190000 | One-time cleanup: wipe stale local dor/daily/register on next open -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -1834,6 +1834,20 @@ function App(){
   },[]);
 
   // Auto-load from Supabase on first open
+  // ONE-TIME CLEANUP: wipe stale dor/daily/register local data (pre-reset leftovers)
+  // Runs once on any device that hasn't seen this flag yet, then never again
+  React.useEffect(function(){
+    if(!localStorage.getItem("hifzCleanV1")){
+      localStorage.setItem("dorData","[]");
+      localStorage.setItem("dailySabaqData","[]");
+      localStorage.setItem("registerData","[]");
+      localStorage.setItem("hifzCleanV1","1");
+      setDorRecords([]);
+      setDailySabaqEntries([]);
+      setRegisterData([]);
+      console.log("hifzCleanV1: wiped stale local dor/daily/register data");
+    }
+  },[]);
   // Reset form/editingId when navigating away from addEntry
   React.useEffect(()=>{
     if(view!=="addEntry"){setForm(defaultEntry);setEditingId(null);}
