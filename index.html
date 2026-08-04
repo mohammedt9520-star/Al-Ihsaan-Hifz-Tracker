@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-220000 | Premium report + gold SW banner + homepage version tag -->
+<!-- hifz-20260804-230000 | Premium report + gold SW banner + homepage version tag -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -56,7 +56,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260804-220000';
+const APP_VERSION='hifz-20260804-230000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -771,12 +771,12 @@ function getMonthRange(dateFrom, dateTo){
 
 function svgCircle(color){
   const c={green:"#2ecc71",orange:"#f39c12",red:"#e74c3c",grey:"#aaaaaa"}[color]||"#aaaaaa";
-  return '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;margin:0 1px;"><circle cx="7" cy="7" r="6" fill="'+c+'"/></svg>';
+  return '<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:'+c+';vertical-align:middle;margin:0 2px;flex-shrink:0;"></span>';
 }
 
 function svgCircleLarge(color){
   const c={green:"#2ecc71",orange:"#f39c12",red:"#e74c3c",grey:"#aaaaaa"}[color]||"#aaaaaa";
-  return '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;margin-left:6px;"><circle cx="8" cy="8" r="7" fill="'+c+'"/></svg>';
+  return '<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:'+c+';vertical-align:middle;margin-left:7px;flex-shrink:0;"></span>';
 }
 
 function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
@@ -915,8 +915,8 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='.dtbl .val-green{color:#27ae60;}';
   h+='.att-cell{padding:10px 8px;text-align:center;border-right:1.5px solid #d0d5e0;background:#f7f8fb;}';
   h+='.att-cell:last-child{border-right:none;}';
-  h+='.att-lbl{font-size:11px;font-weight:700;color:#7a83a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}';
-  h+='.att-val{font-size:34px;font-weight:800;text-align:center;}';
+  h+='.att-lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}';
+  h+='.att-val{font-size:24px;font-weight:800;text-align:center;}';
   h+='.legend{display:flex;gap:14px;justify-content:center;align-items:center;padding:10px 0;font-size:11px;color:#666;flex-wrap:wrap;}';
   h+='.legend-item{display:flex;align-items:center;gap:5px;font-weight:600;}';
   h+='.comments-body{padding:16px 18px;font-size:13px;line-height:1.85;min-height:80px;color:#3c3c3c;}';
@@ -1002,11 +1002,11 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<div class="lbl">Average Lines Completed</div>';
   h+='<div class="val" style="font-size:22px;margin-bottom:8px;">'+fmt(calc.K,2)+' '+svgCircleLarge(avgCircleColor)+'</div>';
   h+='<div class="legend" style="justify-content:center;border-top:1px solid #ede9e0;padding-top:8px;">';
-  h+='<span class="legend-item"><svg width="11" height="11"><circle cx="5.5" cy="5.5" r="5" fill="#27ae60"/></svg> <span style="color:#27ae60;">Very Good</span></span>';
+  h+='<span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27ae60;vertical-align:middle;flex-shrink:0;"></span> <span style="color:#27ae60;">Very Good</span></span>';
   h+='<span style="color:#ddd;">|</span>';
-  h+='<span class="legend-item"><svg width="11" height="11"><circle cx="5.5" cy="5.5" r="5" fill="#e67e22"/></svg> <span style="color:#e67e22;">Good, However Could Be Better</span></span>';
+  h+='<span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e67e22;vertical-align:middle;flex-shrink:0;"></span> <span style="color:#e67e22;">Good, However Could Be Better</span></span>';
   h+='<span style="color:#ddd;">|</span>';
-  h+='<span class="legend-item"><svg width="11" height="11"><circle cx="5.5" cy="5.5" r="5" fill="#e74c3c"/></svg> <span style="color:#e74c3c;">Concerning, Improvement Needed</span></span>';
+  h+='<span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e74c3c;vertical-align:middle;flex-shrink:0;"></span> <span style="color:#e74c3c;">Concerning, Improvement Needed</span></span>';
   h+='</div></td>';
   h+='<td style="vertical-align:top;">';
   h+='<div class="lbl">True Running Average</div>';
