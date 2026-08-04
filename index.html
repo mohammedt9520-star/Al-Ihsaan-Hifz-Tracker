@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-230000 | Premium report + gold SW banner + homepage version tag -->
+<!-- hifz-20260804-240000 | Premium report + gold SW banner + homepage version tag -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -56,7 +56,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260804-230000';
+const APP_VERSION='hifz-20260804-240000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -927,6 +927,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='</style></head>';
   h+='<body>';
   if(pageNum!==2){
+  h+='<div style="display:flex;flex-direction:column;min-height:1020px;">';
   // PAGE 1
 
   // Header
@@ -935,7 +936,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<div style="width:72px;height:50px;overflow:hidden;flex-shrink:0;border-radius:3px;">';
   h+='<img src="'+window.LOGO_SRC+'" style="width:72px;display:block;"/></div>';
   h+='<div><div class="rpt-title">Monthly Hifz Report</div>';
-  h+='<div class="rpt-title-sub">Al-Ihsaan Academy · Hifz Programme</div></div>';
+  h+='<div class="rpt-title-sub">Al-Ihsaan Academy</div></div>';
   h+='</div>';
 
   // Meta card
@@ -978,7 +979,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   if(!isHafidh){
   // 2. Sabaq Target Given
   h+='<div class="card">';
-  h+='<div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Sabaq Target Given</div>';
+  h+='<div class="sec-hdr sec-hdr-orange"><span class="sec-num">2</span> Sabaq Target Given</div>';
   h+='<table class="dtbl"><tr>';
   h+='<td><div class="lbl">Total Sabaq Days</div><div class="val">'+calc.N+'</div></td>';
   h+='<td><div class="lbl">Minus Days of Absence</div><div class="val">'+calc.G+'</div></td>';
@@ -1075,8 +1076,10 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
     }
     h+='</tbody></table></div>';
   }
-  // Page 1 number
-  h+='<div class="pg-num"><div class="pg-num-line"></div>Page 1<div class="pg-num-line"></div></div>';
+  // Page 1 footer — spacer pushes banner to bottom
+  h+='<div style="flex:1;min-height:30px;background:linear-gradient(180deg,#f5f2ed 0%,#ece3c2 100%);border-radius:14px;margin-bottom:13px;display:flex;align-items:center;justify-content:center;">'+'<div style="text-align:center;">'+'<div style="width:1.5px;height:28px;background:linear-gradient(180deg,transparent,#c9a553,transparent);margin:0 auto 7px;"></div>'+'<div style="color:#c9a553;font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;opacity:0.65;">Al-Ihsaan Academy</div>'+'</div></div>';
+  h+='<div class="pg-num"><div class="pg-num-line"></div><div class="pg-num-line"></div></div>';
+  h+='</div>';
   }
   if(pageNum!==1){
   if(pageNum===2){
@@ -1084,10 +1087,9 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<div style="width:54px;height:38px;overflow:hidden;flex-shrink:0;border-radius:3px;">';
   h+='<img src="'+window.LOGO_SRC+'" style="width:54px;display:block;"/></div>';
   h+='<div style="flex:1;"><div style="font-size:14px;font-weight:900;color:#1e2d5a;letter-spacing:1px;text-transform:uppercase;line-height:1.1;">Monthly Hifz Report</div>';
-  h+='<div style="font-size:10px;color:#9099ae;letter-spacing:1.2px;text-transform:uppercase;margin-top:3px;">Al-Ihsaan Academy &middot; Hifz Programme</div></div>';
+  h+='<div style="font-size:10px;color:#9099ae;letter-spacing:1.2px;text-transform:uppercase;margin-top:3px;">Al-Ihsaan Academy</div></div>';
   h+='<div style="text-align:right;"><div style="font-size:11px;font-weight:700;color:#1e2d5a;">'+esc(entry.name)+'</div>';
   h+='<div style="font-size:9px;color:#a0a8b8;letter-spacing:0.5px;margin-top:2px;">'+dateRange+'</div></div>';
-  h+='<div style="background:#f5f2ed;border:1px solid #c9a553;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;color:#c9a553;letter-spacing:0.5px;flex-shrink:0;">PAGE 2</div>';
   h+='</div>';
   }
 
@@ -1159,7 +1161,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='</div></div>';
 
   // Page 2 number
-  h+='<div class="pg-num"><div class="pg-num-line"></div>Page 2<div class="pg-num-line"></div></div>';
+  h+='<div class="pg-num"><div class="pg-num-line"></div><div class="pg-num-line"></div></div>';
   }
   h+='</body></html>';
   return h;
