@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-240000 | Premium report + gold SW banner + homepage version tag -->
+<!-- hifz-20260804-250000 | Add View Report button to all three report action locations -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -56,7 +56,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260804-240000';
+const APP_VERSION='hifz-20260804-250000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2464,6 +2464,19 @@ function App(){
     });
   }
 
+  // ── View report inline in a new browser tab (no download needed) ──────────
+  function viewReportInBrowser(record){
+    if(!hasReportData(record)){showToast("No data for "+record.name+" yet — add their pages/days first.","warning",4000);return;}
+    try{
+      var calc=Object.assign({},record,calcEntry(record));
+      var html=generateReportHTML(record,calc,dorRecords||[],records||[]);
+      var blob=new Blob([html],{type:"text/html;charset=utf-8"});
+      var url=URL.createObjectURL(blob);
+      window.open(url,"_blank");
+      setTimeout(function(){URL.revokeObjectURL(url);},20000);
+    }catch(e){showToast("Preview error: "+e.message,"error");}
+  }
+
   // ── WhatsApp PDF: generate PDF, save it, open WhatsApp Web pre-filled ─────
   function whatsappReport(record,phone){
     if(!hasReportData(record)){showToast("No data for "+record.name+" yet — add their pages/days first.","warning",4000);return;}
@@ -3335,6 +3348,7 @@ function App(){
                 , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Attend: " ), React.createElement('span', { style: {color:TEXT},}, fmt(r.attendancePct,2), "%"))
               )
               , React.createElement('div', { style: {display:"flex",gap:6,flexWrap:"wrap"},}
+                , React.createElement('button', { onClick: ()=>viewReportInBrowser(r), title:"View report in browser", style: {background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.3)",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "👁" )
                 , React.createElement('button', { onClick: ()=>emailReportPDF(r), title:"Email PDF to parent", style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧 PDF" )
                 , (()=>{var _wp=(records.find(x=>x.isStudentProfile&&x.name===r.name)||{});var _ph=r.fatherPhone||_wp.fatherPhone||r.motherPhone||_wp.motherPhone||"";return _ph?React.createElement('button', { onClick: ()=>whatsappReport(r,_ph), title:"Send via WhatsApp", style: {background:"#25D366",color:"#fff",border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "💬"):null;})()
                 , React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12},}, "Edit")
@@ -3895,6 +3909,7 @@ function App(){
                       , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:BEHAVIOUR_COLORS[r.behaviour]||GREEN},}, r.behaviour, "/5"))
                     )
                     , React.createElement('div', { style: {display:"flex",gap:6,flexWrap:"wrap"},}
+                      , React.createElement('button', { onClick: ()=>viewReportInBrowser(r), title:"View report in browser", style: {background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.3)",borderRadius:6,padding:"6px 8px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "👁" )
                       , React.createElement('button', { onClick: ()=>emailReportPDF(r), title:"Email PDF", style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧")
                       , (()=>{var _wp2=(records.find(x=>x.isStudentProfile&&x.name===r.name)||{});var _ph2=r.fatherPhone||_wp2.fatherPhone||r.motherPhone||_wp2.motherPhone||"";return _ph2?React.createElement('button',{onClick:()=>whatsappReport(r,_ph2),title:"WhatsApp",style:{background:"#25D366",color:"#fff",border:"none",borderRadius:6,padding:"6px 8px",cursor:"pointer",fontSize:12,fontWeight:"bold"}},"💬"):null;})()
                       , React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "Edit")
@@ -3941,6 +3956,7 @@ function App(){
                       , React.createElement('div', null, "📊 Avg: "  , React.createElement('span', { style: {color:getAvgColor(s.K),fontWeight:"bold"},}, fmt(s.K,2)))
                       , (()=>{var _rp=(records.find(x=>x.isStudentProfile&&x.name===s.name)||{});var _em1=s.parentEmail1||_rp.parentEmail1||"";var _em2=s.parentEmail2||_rp.parentEmail2||"";var _fph=s.fatherPhone||_rp.fatherPhone||"";var _mph=s.motherPhone||_rp.motherPhone||"";return React.createElement('div',{style:{marginTop:6,display:"grid",gap:3}},[_em1&&React.createElement('div',{key:"e1",style:{fontSize:11}},"📧 "+_em1),_em2&&React.createElement('div',{key:"e2",style:{fontSize:11}},"📧 "+_em2),_fph&&React.createElement('div',{key:"fp",style:{fontSize:11,color:"#25D366"}},"💬 Dad: "+_fph),_mph&&React.createElement('div',{key:"mp",style:{fontSize:11,color:"#25D366"}},"💬 Mum: "+_mph)]);})()
                     )
+                    , React.createElement('button', { onClick: ()=>viewReportInBrowser(s), title:"View report in browser", style: {width:"100%",background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.3)",borderRadius:8,padding:"9px",cursor:"pointer",fontWeight:"bold",fontSize:13,marginBottom:6},}, "👁 View Report"  )
                     , React.createElement('button', { onClick: ()=>emailReportPDF(s), style: {width:"100%",background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"9px",cursor:"pointer",fontWeight:"bold",fontSize:13,marginBottom:6},}, "📧 Email PDF"  )
                     , (()=>{
                         var _rp3=(records.find(x=>x.isStudentProfile&&x.name===s.name)||{});
