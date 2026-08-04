@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260802-180000 | Classes page: inline add-student form, per-class Excel import/export, uniqueId field -->
+<!-- hifz-20260804-120000 | Sheet import: styled XLSX template, CALC columns clarified, blank-student report guard -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -146,7 +146,7 @@ function getDorColor(mistakes,repeated){
   if(typeof XLSX!=="undefined")return;
   if(!document||!document.head)return;
   var s=document.createElement("script");
-  s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  s.src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js";
   s.onerror=function(){console.warn("SheetJS CDN load failed");};
   document.head.appendChild(s);
 })();
@@ -621,6 +621,16 @@ function calcEntry(s){
   const championDailyAverage = N > 0 ? championTotalSides / N : 0;
   return{I,J,K,P,R,S:S_val,T,U,O,Q,G,H,N,totalAttended,attendancePct,totalAvgPages,monthName,
     sabaqDays,average,trueAverage,adjustedLines,championTotalSides,championDailyAverage};
+}
+
+// Returns true only if the record has enough real data to generate a meaningful report.
+// A row with just a name/class/dates but no pages or days filled in will return false.
+function hasReportData(entry){
+  if(!entry)return false;
+  var sides=parseFloat(entry.totalFullSides);
+  var lines=parseFloat(entry.plusLines);
+  var days=parseFloat(entry.totalDaysOfSabaq);
+  return (sides>0)||(lines>0)||(days>0);
 }
 
 function sbMapSabaqOut(r){return{id:r.id||uid(),name:r.name,class:r.class,from_page:r.fromPage||"",to_page:r.toPage||"",total_full_sides:r.totalFullSides||"",plus_lines:r.plusLines||"",absences:r.absences||"",para_dor_mornings:r.paraDorMornings||"",total_days_of_sabaq:r.totalDaysOfSabaq||"",date_from:r.dateFrom||"",date_to:r.dateTo||"",target_given:r.targetGiven||13,upcoming_target:r.upcomingTarget||13,parent_email1:r.parentEmail1||"",parent_email2:r.parentEmail2||"",father_phone:r.fatherPhone||"",mother_phone:r.motherPhone||"",unique_id:r.uniqueId||"",weak_sabaq_instances:r.weakSabaqInstances||"N/A",weak_dor_instances:r.weakDorInstances||"N/A",teacher_comments:r.teacherComments||"",behaviour:r.behaviour||5,evening_possible_days:r.eveningPossibleDays||"",evening_absences:r.eveningAbsences||"",is_hafidh:r.isHafidh||false,is_student_profile:r.isStudentProfile||false,updated_at:new Date().toISOString()};}
@@ -1964,7 +1974,10 @@ function App(){
         if(["instances","1-5"].some(function(w){return r.name.toLowerCase().includes(w);}))return;
         if(!_smap[r.name])_smap[r.name]=r.class||CLASSES[0];
       });
-      var _headers=["#","Name","From Page","To Page","Total Full Sides","Additional Lines (+)","Absences","Para Dor Mornings","Total Lines (CALC)","Sabaq Days (CALC)","Average (CALC)","Class","Report Start Date","Report End Date","Total Days Of Sabaq","Target Given","Total Lines Target (CALC)","Upcoming Target","True Average (CALC)","Adjusted Lines (CALC)","Champion Total Sides (CALC)","Champion Daily Avg (CALC)","Behaviour (1-5)","Teacher Comments"];
+      // Column headers — "(auto)" columns are recalculated by the app on import; leave them blank
+      var _headers=["#","Name","From Page","To Page","Total Full Sides","Additional Lines (+)","Absences","Para Dor Mornings","Total Lines (auto)","Sabaq Days (auto)","Average (auto)","Class","Report Start Date","Report End Date","Total Days Of Sabaq","Target Given","Total Lines Target (auto)","Upcoming Target","True Average (auto)","Adjusted Lines (auto)","Champion Total Sides (auto)","Champion Daily Avg (auto)","Behaviour (1-5)","Teacher Comments"];
+      // Columns that are calculated automatically on import — shown in grey
+      var _calcCols=[8,9,10,16,18,19,20,21];
       var _names=Object.keys(_smap).sort();
       var _rows=[_headers];
       if(_names.length>0){
@@ -1974,9 +1987,42 @@ function App(){
       }
       var _ws=XLSX.utils.aoa_to_sheet(_rows);
       _ws["!cols"]=[{wch:4},{wch:28},{wch:10},{wch:10},{wch:14},{wch:14},{wch:10},{wch:16},{wch:14},{wch:12},{wch:12},{wch:18},{wch:18},{wch:18},{wch:16},{wch:12},{wch:18},{wch:14},{wch:14},{wch:14},{wch:20},{wch:20},{wch:14},{wch:32}];
+      _ws["!rows"]=[{hpx:44}]; // header row height
+      // ── Apply cell styles (requires xlsx-js-style) ──────────────────────────
+      var _styleSupport=!!(XLSX.utils&&typeof XLSX.writeFile==="function"&&_rows[0]&&_ws["A1"]&&"s" in {}); // style support check
+      // Header styles
+      var _hdrBlue={fill:{fgColor:{rgb:"1A3A6B"}},font:{bold:true,sz:10,color:{rgb:"FFFFFF"}},alignment:{horizontal:"center",vertical:"center",wrapText:true},border:{bottom:{style:"medium",color:{rgb:"0F2451"}},right:{style:"thin",color:{rgb:"2A5298"}}}};
+      var _hdrGrey={fill:{fgColor:{rgb:"6B7A8D"}},font:{bold:true,sz:10,color:{rgb:"EEEEEE"},italic:true},alignment:{horizontal:"center",vertical:"center",wrapText:true},border:{bottom:{style:"medium",color:{rgb:"4A5A6B"}},right:{style:"thin",color:{rgb:"7B8EA8"}}}};
+      // Data cell styles
+      var _cellWhite={fill:{fgColor:{rgb:"FFFFFF"}},font:{sz:10},alignment:{horizontal:"center",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"DDDDDD"}},right:{style:"thin",color:{rgb:"DDDDDD"}}}};
+      var _cellBlue={fill:{fgColor:{rgb:"F0F4FF"}},font:{sz:10},alignment:{horizontal:"center",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"D0D9F5"}},right:{style:"thin",color:{rgb:"D0D9F5"}}}};
+      var _cellGrey={fill:{fgColor:{rgb:"EAECF0"}},font:{sz:10,color:{rgb:"999999"},italic:true},alignment:{horizontal:"center",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"CCCCCC"}},right:{style:"thin",color:{rgb:"CCCCCC"}}}};
+      var _cellGreyAlt={fill:{fgColor:{rgb:"E0E3E8"}},font:{sz:10,color:{rgb:"999999"},italic:true},alignment:{horizontal:"center",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"CCCCCC"}},right:{style:"thin",color:{rgb:"CCCCCC"}}}};
+      var _cellNameWhite={fill:{fgColor:{rgb:"FFFFFF"}},font:{bold:true,sz:10},alignment:{horizontal:"left",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"DDDDDD"}},right:{style:"thin",color:{rgb:"DDDDDD"}}}};
+      var _cellNameBlue={fill:{fgColor:{rgb:"F0F4FF"}},font:{bold:true,sz:10},alignment:{horizontal:"left",vertical:"center"},border:{bottom:{style:"thin",color:{rgb:"D0D9F5"}},right:{style:"thin",color:{rgb:"D0D9F5"}}}};
+      // Apply header row styles
+      for(var _ci=0;_ci<24;_ci++){
+        var _hAddr=XLSX.utils.encode_cell({r:0,c:_ci});
+        if(!_ws[_hAddr]){_ws[_hAddr]={v:"",t:"s"};}
+        _ws[_hAddr].s=(_calcCols.indexOf(_ci)>=0)?_hdrGrey:_hdrBlue;
+      }
+      // Apply data row styles
+      for(var _ri=1;_ri<_rows.length;_ri++){
+        var _alt=(_ri%2===0);
+        for(var _ci2=0;_ci2<24;_ci2++){
+          var _dAddr=XLSX.utils.encode_cell({r:_ri,c:_ci2});
+          if(!_ws[_dAddr]){_ws[_dAddr]={v:"",t:"s"};}
+          var _s;
+          if(_calcCols.indexOf(_ci2)>=0){_s=_alt?_cellGreyAlt:_cellGrey;}
+          else if(_ci2===1){_s=_alt?_cellNameBlue:_cellNameWhite;}
+          else{_s=_alt?_cellBlue:_cellWhite;}
+          _ws[_dAddr].s=_s;
+        }
+      }
       var _wb=XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(_wb,_ws,"Hifz Monthly");
       XLSX.writeFile(_wb,"Hifz_Monthly_Template.xlsx");
+      showToast("Template downloaded! Fill in the blue/white columns. Grey (auto) columns are calculated automatically when you re-import.","info",6000);
     }catch(ex){showToast("Download error: "+ex.message,"error");}
   }
 
@@ -2181,6 +2227,10 @@ function App(){
     setSelectedStudents([]);
   }
   function sendReport(record){
+    if(!hasReportData(record)){
+      showToast("No data for "+record.name+" yet — fill in their pages/days first, then re-import.","warning",4000);
+      return;
+    }
     const calc={...record,...calcEntry(record)};
     const reportHTML=generateReportHTML(record,calc,dorRecords,records);
 
@@ -6569,8 +6619,9 @@ function exportAllReports(records,dorRecords,calced){
   h+="<style>@media print{.sr{page-break-after:always;}}body{font-family:Arial,sans-serif;margin:20px;}</style></head><body>";
   h+="<h1>Al-Ihsaan Academy Hifz Reports &#8212; "+getTodayStr()+"</h1>";
   students.forEach(function(n){
-    var recs=records.filter(function(x){return x.name===n;}).sort(function(a,b){return (b.dateFrom||"").localeCompare(a.dateFrom||"");});
-    if(recs.length>0)h+='<div class="sr">'+generateReportHTML(recs[0],calcEntry(recs[0]),dorRecords,records)+'</div>';
+    var recs=records.filter(function(x){return x.name===n&&!x.isStudentProfile;}).sort(function(a,b){return (b.dateFrom||"").localeCompare(a.dateFrom||"");});
+    // Skip students whose most recent record has no actual data filled in
+    if(recs.length>0&&hasReportData(recs[0]))h+='<div class="sr">'+generateReportHTML(recs[0],calcEntry(recs[0]),dorRecords,records)+'</div>';
   });
   h+="</body></html>";
   var blob=new Blob([h],{type:"text/html;charset=utf-8;"});
