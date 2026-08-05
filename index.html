@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-550000 | Reports: fix missing ternary colon causing blank screen -->
+<!-- hifz-20260805-560000 | Reports: WhatsApp group announcement button -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-550000';
+const APP_VERSION='hifz-20260805-560000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4324,6 +4324,26 @@ function App(){
               )
             )
           )
+        /* ── WhatsApp Group Announcement ── */
+        ,rptStudents.length>0&&(()=>{
+          const monthLabel=selPeriod?selPeriod.label:"this month";
+          const noDataNames=noDataStudents.map(function(s){return s.name;});
+          const msg="Assalaamu 'Alaykum wa Rahmatullahi wa Barakaatuh\n\nDear Parents,\n\nThe Monthly Hifz Reports for "+monthLabel+" have now been sent.\n\nWe encourage all parents to review the report together with your child, acknowledge their achievements, and discuss any areas for improvement to help them continue making positive progress next month, Insha'Allah.\n\n_If you have not received the report, please check your Spam/Junk folder first._"+(noDataNames.length>0?"\n\n------------------------\nThe following students have not received a report as they were absent when the report data was being collected:\n\n"+noDataNames.join("\n"):"") +"\n\nHifz Management | Madrasah Al-Ihsaan";
+          function sendGroupMsg(){
+            try{navigator.clipboard.writeText(msg);}catch(e){}
+            window.open("https://chat.whatsapp.com/F7aa2iPUmoy7RfQphhHNvk","_blank");
+            showToast("Message copied — paste it in the group and tap Send 💬","success",5000);
+          }
+          return React.createElement('div',{style:{marginTop:20}}
+            ,React.createElement('button',{
+              onClick:sendGroupMsg,
+              style:{width:"100%",background:"#25D366",color:"#fff",border:"none",borderRadius:14,padding:"14px 20px",cursor:"pointer",fontWeight:700,fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:"0 2px 8px rgba(37,211,102,0.3)"}
+            }
+              ,React.createElement('span',{style:{fontSize:20}},"💬")
+              ,"Send Group Announcement"
+            )
+          );
+        })()
         /* ── Floating Send bar ── */
         ,totalSel>0&&React.createElement('div',{style:{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:200,display:"flex",gap:8,alignItems:"center",background:TEXT,borderRadius:40,padding:"8px 8px 8px 18px",boxShadow:"0 8px 32px rgba(0,0,0,0.28)"}}
           ,React.createElement('div',{style:{color:"#fff",fontWeight:700,fontSize:13,whiteSpace:"nowrap"}},totalSel," selected")
