@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-180000 | realtime sync, AI comment generation, Telegram monthly reminder -->
+<!-- hifz-20260805-190000 | realtime sync, AI comment generation, Telegram monthly reminder -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-180000';
+const APP_VERSION='hifz-20260805-190000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -622,7 +622,7 @@ function calcEntry(s){
   const O=parseFloat(s.targetGiven)||13,Q=parseFloat(s.upcomingTarget)||13;
   const I=E*13+F;
   const J=Math.max(0,N-H-G); // clamp: sabaq days cannot be negative
-  const K=J>0?I/J:0,P=O*13;
+  const K=J>0?I/J:0,P=J*O;
   const R=(N-H)>0?I/(N-H):0;
   const S_val=H>0?(I+K*H)/N:(N>0?I/N:0);
   const T=parseFloat((S_val*N/13).toFixed(3));
@@ -812,7 +812,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   const eveningPct=eveningPossible>0?(eveningAttended/eveningPossible)*100:0;
   const hasEvening=eveningPossible>0;
   const incAbsencesVal=calc.G===0?"N/A":fmt(calc.R,2);
-  const absenceNote=calc.G>0?'<div style="margin-top:8px;padding:8px 12px;border:1.5px solid #e74c3c;border-radius:4px;background:#fff8f8;font-size:11px;color:#c0392b;font-style:italic;line-height:1.5;"><strong>Please Note:</strong> Though your child\u2019s absence(s) may have been genuine, they were expected to make up the missed Sabaq.</div>':"";
+  const absenceNote=calc.G>0?'<div style="margin-top:8px;padding:8px 12px;border:1.5px solid #e74c3c;border-radius:4px;background:#fff8f8;font-size:11px;color:#c0392b;font-style:italic;line-height:1.5;"><strong>Please Note:</strong> Though your child\u2019s absence(s) may have been genuine, they were expected to make up the missed Sabaq. Hence above is your child\u2019s true running average.</div>':"";
 
   // Para tests
   const paraTests=(dorRecords||[]).filter(function(d){
@@ -962,14 +962,14 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   const amAbsences=calc.G;
   const amPct=amPossible>0?(amAttended/amPossible)*100:0;
 
-  function attBlock(title,possible,absences,attended,pct,hdrClass){
+  function attBlock(title,possible,absences,attended,pct,hdrClass,sessLabel){
     const col=attPctColor(pct);
     var s='<div class="card">';
     s+='<div class="sec-hdr '+hdrClass+'"><span class="sec-num">1</span> '+title+'</div>';
     s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">';
-    s+='<div class="att-cell"><div class="att-lbl">Possible Days of Sabaq</div><div class="att-val" style="color:#2d4a8a;">'+possible+'</div></div>';
+    s+='<div class="att-cell"><div class="att-lbl">'+(sessLabel||'Morning Sessions This Month')+'</div><div class="att-val" style="color:#2d4a8a;">'+possible+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Absences</div><div class="att-val '+(absences>0?"val-red":"")+'">'+absences+'</div></div>';
-    s+='<div class="att-cell"><div class="att-lbl">Attended</div><div class="att-val val-green">'+attended+'</div></div>';
+    s+='<div class="att-cell"><div class="att-lbl">Total Sessions Attended</div><div class="att-val val-green">'+attended+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Attendance %</div><div style="display:flex;justify-content:center;padding:6px 0;">'+svgDonut(pct,col)+'</div></div>';
     s+='</div></div>';
     return s;
@@ -977,11 +977,11 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
 
   if(hasEvening){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">';
-    h+=attBlock("AM Session (Morning)",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue");
-    h+=attBlock("PM Session (Evening)",eveningPossible,eveningAbsences,eveningAttended,eveningPct,"sec-hdr-navy");
+    h+=attBlock("AM Session (Morning)",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue","Morning Sessions This Month");
+    h+=attBlock("PM Session (Evening)",eveningPossible,eveningAbsences,eveningAttended,eveningPct,"sec-hdr-navy","Evening Sessions This Month");
     h+='</div>';
   } else {
-    h+=attBlock("Attendance Overview",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue");
+    h+=attBlock("Attendance Overview",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue","Morning Sessions This Month");
   }
 
   if(!isHafidh){
@@ -1004,11 +1004,11 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<table class="dtbl"><tr>';
   h+='<td><div class="lbl">Page Numbers</div><div class="val">'+esc(entry.fromPage)+' – '+esc(entry.toPage)+'</div></td>';
   h+='<td><div class="lbl">Total Lines</div><div class="val">'+fmt(calc.I,0)+'</div></td>';
-  h+='<td><div class="lbl">Sabaq Para Total</div><div class="val">'+fmt(calc.totalAvgPages,2)+'</div></td>';
+  h+='<td><div class="lbl">Total Pages Memorised</div><div class="val">'+fmt(calc.totalAvgPages,2)+'</div></td>';
   h+='</tr><tr>';
   const mkC=avgCircleColor==="green"?"#27ae60":avgCircleColor==="orange"?"#e67e22":"#e74c3c";
   h+='<td colspan="2" style="text-align:center;">';
-  h+='<div class="lbl">Average Lines Completed</div>';
+  h+='<div class="lbl">(Daily) Average Lines Memorised</div>';
   h+='<div class="val" style="font-size:22px;margin-bottom:8px;">'+fmt(calc.K,2)+' '+svgCircleLarge(avgCircleColor)+'</div>';
   h+='<div class="legend" style="justify-content:center;border-top:1px solid #ede9e0;padding-top:8px;">';
   h+='<span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27ae60;vertical-align:middle;flex-shrink:0;"></span> <span style="color:#27ae60;">Very Good</span></span>';
@@ -1018,7 +1018,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e74c3c;vertical-align:middle;flex-shrink:0;"></span> <span style="color:#e74c3c;">Concerning, Improvement Needed</span></span>';
   h+='</div></td>';
   h+='<td style="vertical-align:top;">';
-  h+='<div class="lbl">True Running Average</div>';
+  h+='<div class="lbl">True Running Average (Inc. Absences)</div>';
   h+='<div class="val" style="font-size:22px;margin-bottom:6px;">'+incAbsencesVal+'</div>';
   h+=absenceNote;
   h+='</td>';
