@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-580000 | Reports: group announcement copies to clipboard -->
+<!-- hifz-20260805-590000 | Reports: Dor quick-entry grid, card UI refresh -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-580000';
+const APP_VERSION='hifz-20260805-590000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1897,6 +1897,8 @@ function App(){
   const [champPeriodKey,setChampPeriodKey]=React.useState("");
   const [rptPeriodKey,setRptPeriodKey]=React.useState("");
   const [rptClass,setRptClass]=React.useState("");
+  const [quickDorCtx,setQuickDorCtx]=React.useState(null); // {student,period}
+  const [dorGrid,setDorGrid]=React.useState({});            // {juz:{quarter:level 0-4}}
   const [dorChampPeriodKey,setDorChampPeriodKey]=React.useState("");
   const [dorChampDateFrom,setDorChampDateFrom]=React.useState("");
   const [dorChampDateTo,setDorChampDateTo]=React.useState("");
@@ -4285,6 +4287,7 @@ function App(){
               const _monthStr=s.dateFrom?new Date(s.dateFrom+"T12:00:00").toLocaleString("default",{month:"long",year:"numeric"}):"";
               const _sentKey=s.name+"_"+(_monthStr||"unknown");
               const _wasSent=!!emailsSent[_sentKey];
+              const _hasDor=selPeriod&&dorRecords.some(d=>d.studentName===s.name&&d.date>=selPeriod.dateFrom&&d.date<=selPeriod.dateTo);
               return React.createElement('div',{key:s.id,onClick:()=>toggleSelect(s.id),style:{background:isSel?"#fffbeb":CARD,borderRadius:14,border:"1.5px solid "+(isSel?GOLD:"rgba(0,0,0,0.06)"),boxShadow:isSel?"0 0 0 3px rgba(201,165,83,0.12)":"0 1px 4px rgba(0,0,0,0.04)",padding:"14px 16px",display:"flex",alignItems:"center",gap:14,cursor:"pointer",transition:"all 0.15s ease"}}
                 ,React.createElement('div',{style:{width:20,height:20,borderRadius:"50%",flexShrink:0,border:"2px solid "+(isSel?GOLD:"#d0d5de"),background:isSel?GOLD:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"}}
                   ,isSel&&React.createElement('div',{style:{width:8,height:8,borderRadius:"50%",background:"#fff"}})
@@ -4293,12 +4296,11 @@ function App(){
                   ,React.createElement('div',{style:{fontWeight:700,fontSize:14,color:isSel?GOLD:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},s.name)
                   ,React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:2}},s.monthName||"")
                 )
-                ,React.createElement('div',{style:{background:ACCENT,borderRadius:8,padding:"5px 10px",textAlign:"center",flexShrink:0}}
-                  ,React.createElement('div',{style:{fontSize:10,color:MUTED,fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase"}},"Avg")
-                  ,React.createElement('div',{style:{fontSize:15,fontWeight:800,color:getAvgColor(s.K),lineHeight:1.1}},fmt(s.K,1))
-                )
                 ,React.createElement('div',{style:{display:"flex",gap:6,flexShrink:0},onClick:e=>e.stopPropagation()}
-                  ,React.createElement('button',{onClick:()=>viewReportInBrowser(s),title:"View",style:{background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.25)",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"👁")
+                  ,React.createElement('button',{onClick:()=>viewReportInBrowser(s),title:"View Report",style:{background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.25)",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"📄")
+                  ,_hasDor
+                    ?React.createElement('button',{disabled:true,title:"Dor already entered",style:{background:"#f0f0f0",color:"#aaa",border:"1px solid #e0e0e0",borderRadius:8,width:36,height:36,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",cursor:"default"}},"✓")
+                    :React.createElement('button',{onClick:()=>{setQuickDorCtx({student:s,period:selPeriod});setDorGrid({});setView("quickDor");},title:"Add Dor record",style:{background:"#1b241d",color:GOLD,border:"1px solid rgba(201,165,83,0.3)",borderRadius:8,width:36,height:36,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},"Dor")
                   ,React.createElement('div',{style:{position:"relative",display:"inline-flex"}}
                     ,React.createElement('button',{onClick:()=>emailReportPDF(s),title:"Email PDF",style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"📧")
                     ,_wasSent&&React.createElement('div',{title:"Report sent this month",style:{position:"absolute",top:-4,right:-4,width:11,height:11,borderRadius:"50%",background:"#22c55e",border:"2px solid "+CARD,pointerEvents:"none"}})
@@ -4426,6 +4428,91 @@ function App(){
               )
             )
           )
+        )
+      );
+    })()
+
+    /* QUICK DOR ENTRY */
+    , view==="quickDor"&&quickDorCtx&&(()=>{
+      const _qds=quickDorCtx.student;
+      const _qdp=quickDorCtx.period;
+      const DOR_LEVELS=[
+        {bg:"#dde8de",label:""},
+        {bg:"#22c55e",label:""},
+        {bg:"#eab308",label:""},
+        {bg:"#f97316",label:"Scrape"},
+        {bg:"#dc2626",label:"Kacha"},
+      ];
+      function _getCell(juz,q){return(dorGrid[juz]&&dorGrid[juz][q])||0;}
+      function _cycleCell(juz,q){
+        var cur=_getCell(juz,q);
+        var next=(cur+1)%5;
+        setDorGrid(function(prev){var nj=Object.assign({},prev[juz]||{});nj[q]=next;var ng=Object.assign({},prev);ng[juz]=nj;return ng;});
+      }
+      function _saveDorGrid(){
+        var recs=[];
+        for(var _j=1;_j<=30;_j++){for(var _q=1;_q<=4;_q++){
+          var _lv=_getCell(_j,_q);if(!_lv)continue;
+          var _m=_lv===1?"1":_lv===2?"2":_lv===3?"3.5":"4";
+          recs.push({id:uid(),studentName:_qds.name,date:_qdp?_qdp.dateFrom:getTodayStr(),
+            dor1Juz:String(_j),dor1Quarter:String(_q),dor1Mistakes:_m,
+            dor1Repeated:_lv===4,dor1Scrape:_lv===3,dor1NoTime:false,
+            dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,dor2Scrape:false,
+            dor2NoTime:false,dor2Exempt:false,dor2ParaDor:false,morningDor:false,paraDor:false,
+            paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:""});
+        }}
+        if(!recs.length){showToast("No cells filled in yet.","warning",2500);return;}
+        setDorRecords(function(prev){var n=[...prev,...recs];if(typeof lsSaveDor==="function")lsSaveDor(n);return n;});
+        scheduleSync();if(typeof syncNow==="function")syncNow().catch(function(){});
+        showToast("Dor saved for "+_qds.name,"success",3000);
+        setQuickDorCtx(null);setDorGrid({});setView("reports");
+      }
+      return React.createElement('div',{style:{display:"flex",flexDirection:"column",height:"100vh",background:"#f8faf8"}}
+        ,React.createElement('div',{style:{padding:"16px 16px 12px",background:CARD,borderBottom:"1px solid rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:12,flexShrink:0}}
+          ,React.createElement('button',{onClick:function(){setQuickDorCtx(null);setDorGrid({});setView("reports");},style:{background:"none",border:"none",fontSize:22,cursor:"pointer",color:MUTED,padding:"0 4px",lineHeight:1}},"←")
+          ,React.createElement('div',{style:{flex:1,minWidth:0}}
+            ,React.createElement('div',{style:{fontWeight:800,fontSize:15,color:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},_qds.name)
+            ,React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:1}},"Dor Entry · "+(_qdp?_qdp.label:""))
+          )
+          ,React.createElement('button',{onClick:_saveDorGrid,style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:10,padding:"8px 18px",cursor:"pointer",fontWeight:800,fontSize:13,flexShrink:0}},"Save")
+        )
+        ,React.createElement('div',{style:{padding:"8px 16px",background:CARD,borderBottom:"1px solid rgba(0,0,0,0.04)",display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}
+          ,[["","Empty"],["","0 – 1.5"],["","2 – 2.5"],["Scrape","Scrape"],["Kacha","Kacha"]].map(function(pair,i){
+            return React.createElement('div',{key:i,style:{display:"flex",alignItems:"center",gap:4}}
+              ,React.createElement('div',{style:{width:12,height:12,borderRadius:3,background:DOR_LEVELS[i].bg,border:i===0?"1.5px dashed #b0c0b2":"none",flexShrink:0}})
+              ,React.createElement('span',{style:{fontSize:10,color:MUTED}},pair[1])
+            );
+          })
+        )
+        ,React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"4px 12px 32px"}}
+          ,React.createElement('table',{style:{borderCollapse:"collapse",width:"100%"}}
+            ,React.createElement('thead',null
+              ,React.createElement('tr',null
+                ,React.createElement('th',{style:{padding:"8px 8px",fontSize:11,color:MUTED,fontWeight:700,textAlign:"left",width:42,position:"sticky",top:0,background:"#f8faf8"}},"Juz")
+                ,["Q1","Q2","Q3","Q4"].map(function(q){return React.createElement('th',{key:q,style:{padding:"8px 4px",fontSize:11,color:MUTED,fontWeight:700,textAlign:"center",position:"sticky",top:0,background:"#f8faf8"}},q);})
+              )
+            )
+            ,React.createElement('tbody',null
+              ,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30].map(function(juz){
+                return React.createElement('tr',{key:juz,style:{borderBottom:"1px solid rgba(0,0,0,0.04)"}}
+                  ,React.createElement('td',{style:{padding:"3px 8px",fontSize:13,fontWeight:700,color:TEXT}},juz)
+                  ,[1,2,3,4].map(function(q){
+                    var lv=_getCell(juz,q);
+                    var dl=DOR_LEVELS[lv];
+                    return React.createElement('td',{key:q,style:{padding:"3px",textAlign:"center"}}
+                      ,React.createElement('div',{onClick:function(){_cycleCell(juz,q);},style:{display:"inline-flex",flexDirection:"column",alignItems:"center",cursor:"pointer",width:52,minHeight:46,justifyContent:"center",gap:2}}
+                        ,React.createElement('div',{style:{width:34,height:34,borderRadius:9,background:dl.bg,border:lv===0?"1.5px dashed #b8c8ba":"none",transition:"background 0.1s",boxShadow:lv>0?"0 1px 4px rgba(0,0,0,0.15)":"none"}})
+                        ,dl.label?React.createElement('div',{style:{fontSize:8,color:lv===3?"#c2570a":lv===4?"#b91c1c":MUTED,fontWeight:700,lineHeight:1}},dl.label):null
+                      )
+                    );
+                  })
+                );
+              })
+            )
+          )
+        )
+        ,React.createElement('div',{style:{padding:"12px 16px 20px",background:CARD,borderTop:"1px solid rgba(0,0,0,0.06)",flexShrink:0}}
+          ,React.createElement('button',{onClick:_saveDorGrid,style:{width:"100%",background:GOLD,color:"#1b1200",border:"none",borderRadius:12,padding:"14px",cursor:"pointer",fontWeight:800,fontSize:15}},"Save Dor · "+_qds.name)
         )
       );
     })()
