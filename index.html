@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-290000 | Fix logo in view/PDF: preload as base64 so blob URLs and iframes can display it -->
+<!-- hifz-20260804-300000 | One-click email send via Supabase Edge Function with PDF attached -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260804-290000';
+const APP_VERSION='hifz-20260804-300000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2446,33 +2446,41 @@ function App(){
     }
   }
 
-  // ── Email PDF: generate PDF, save it, open Gmail compose pre-filled ───────
+  // ── Email PDF: generate PDF and send via Supabase Edge Function ─────────
   function emailReportPDF(record){
     if(!hasReportData(record)){showToast("No data for "+record.name+" yet — add their pages/days first.","warning",4000);return;}
-    // Resolve phone/email from monthly record, falling back to student profile
     var profile=(records||[]).find(function(r){return r.isStudentProfile&&r.name===record.name;});
     var email1=record.parentEmail1||(profile&&profile.parentEmail1)||"";
     var email2=record.parentEmail2||(profile&&profile.parentEmail2)||"";
     var emails=[email1,email2].filter(Boolean);
+    if(!emails.length){showToast("No parent email on file for "+record.name+" — add one in their profile first.","warning",5000);return;}
     var monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
     var safeName=(record.name||"student").replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"_");
+    var filename="Report_"+safeName+(monthStr?"_"+monthStr.replace(/\s/g,"_"):"")+".pdf";
+    showToast("Sending report for "+record.name+"… ⏳","info",20000);
     generateReportPDF(record,dorRecords,records,function(err,pdfBlob){
       if(err){showToast("PDF error: "+err.message,"error");return;}
-      // 1. Download the PDF to the user's device
-      downloadBlob(pdfBlob,"Report_"+safeName+(monthStr?"_"+monthStr.replace(/\s/g,"_"):"")+".pdf");
-      // 2. Open Gmail compose with parent email(s) pre-filled
-      var subject=encodeURIComponent("Al-Ihsaan Academy — Hifz Report: "+record.name+(monthStr?" ("+monthStr+")":""));
-      var body=encodeURIComponent(
-        "السلام عليكم ورحمة الله وبركاته\n\n"+
-        "Dear Parent,\n\n"+
-        "Please find the Hifz monthly report for "+record.name+" attached.\n\n"+
-        (monthStr?"Month: "+monthStr+"\n\n":"")+
-        "JazakAllahu Khayran\nAl-Ihsaan Academy — Hifz Department"
-      );
-      var gmailUrl="https://mail.google.com/mail/?view=cm&fs=1"+
-        (emails.length?"&to="+encodeURIComponent(emails.join(",")):"")+"&su="+subject+"&body="+body;
-      setTimeout(function(){window.open(gmailUrl,"_blank");},600);
-      showToast("✅ PDF saved to Downloads — attach it in the Gmail tab that just opened, then send!","success",7000);
+      var reader=new FileReader();
+      reader.onload=function(){
+        var pdfBase64=reader.result.split(",")[1];
+        var subject="Al-Ihsaan Academy — Hifz Report: "+record.name+(monthStr?" ("+monthStr+")":"");
+        var bodyText="السلام عليكم ورحمة الله وبركاته\n\nDear Parent,\n\nPlease find attached the Hifz monthly report for "+record.name+".\n\n"+(monthStr?"Month: "+monthStr+"\n\n":"")+"JazakAllahu Khayran\nAl-Ihsaan Academy — Hifz Department";
+        fetch(SUPABASE_URL+"/functions/v1/send-report-email",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+          body:JSON.stringify({to:emails,subject:subject,bodyText:bodyText,pdfBase64:pdfBase64,filename:filename})
+        })
+        .then(function(r){return r.json();})
+        .then(function(data){
+          if(data.success){
+            showToast("✅ Report sent to "+emails.join(" & "),"success",5000);
+          }else{
+            showToast("❌ Email failed: "+(data.error||"Unknown error"),"error",7000);
+          }
+        })
+        .catch(function(e){showToast("❌ Send failed: "+e.message,"error",7000);});
+      };
+      reader.readAsDataURL(pdfBlob);
     });
   }
 
