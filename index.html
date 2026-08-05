@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-160000 | hasReportData strict, missing students section, teacher contacts panel -->
+<!-- hifz-20260805-190000 | realtime sync, AI comment generation, Telegram monthly reminder -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -21,7 +21,7 @@ body{background:#f7f4ec;font-family:"Manrope","Inter","Segoe UI",system-ui,sans-
 input,select,textarea,button{font-family:inherit;font-size:16px;}
 input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !important;box-shadow:0 0 0 3px rgba(201,165,83,0.18) !important;}
 ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(201,165,83,0.3);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:rgba(201,165,83,0.55);}
-.profile-chart{width:100%;}table{border-collapse:collapse;}button{transition:filter 0.15s cubic-bezier(0.2,0.8,0.3,1),transform 0.12s cubic-bezier(0.2,0.8,0.3,1);}button:hover{filter:brightness(1.08);}button:active{transform:scale(0.96);}.hl-entrance{animation:hl-in 0.32s cubic-bezier(0.2,0.8,0.3,1) both;}@keyframes hl-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}.hl-section-label::after{content:'';display:inline-block;width:80px;height:1px;background:linear-gradient(90deg,rgba(201,165,83,0.45),transparent);margin-left:10px;vertical-align:middle;}
+.profile-chart{width:100%;}table{border-collapse:collapse;}button{transition:filter 0.15s cubic-bezier(0.2,0.8,0.3,1),transform 0.12s cubic-bezier(0.2,0.8,0.3,1);}button:hover{filter:brightness(1.08);}button:active{transform:scale(0.96);}.hl-entrance{animation:hl-in 0.32s cubic-bezier(0.2,0.8,0.3,1) both;}@keyframes hl-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}.hl-section-label::after{content:'';display:inline-block;width:80px;height:1px;background:linear-gradient(90deg,rgba(201,165,83,0.45),transparent);margin-left:10px;vertical-align:middle;}@keyframes spin{to{transform:rotate(360deg);}}
 #pwa-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:#07150e;color:#fff;padding:12px 20px;font-size:13px;align-items:center;gap:10px;z-index:9999;box-shadow:0 -2px 12px rgba(0,0,0,0.3);}
 #pwa-bar.show{display:flex;}
 </style>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-160000';
+const APP_VERSION='hifz-20260805-190000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -622,7 +622,7 @@ function calcEntry(s){
   const O=parseFloat(s.targetGiven)||13,Q=parseFloat(s.upcomingTarget)||13;
   const I=E*13+F;
   const J=Math.max(0,N-H-G); // clamp: sabaq days cannot be negative
-  const K=J>0?I/J:0,P=O*13;
+  const K=J>0?I/J:0,P=J*O;
   const R=(N-H)>0?I/(N-H):0;
   const S_val=H>0?(I+K*H)/N:(N>0?I/N:0);
   const T=parseFloat((S_val*N/13).toFixed(3));
@@ -812,7 +812,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   const eveningPct=eveningPossible>0?(eveningAttended/eveningPossible)*100:0;
   const hasEvening=eveningPossible>0;
   const incAbsencesVal=calc.G===0?"N/A":fmt(calc.R,2);
-  const absenceNote=calc.G>0?'<div style="margin-top:8px;padding:8px 12px;border:1.5px solid #e74c3c;border-radius:4px;background:#fff8f8;font-size:11px;color:#c0392b;font-style:italic;line-height:1.5;"><strong>Please Note:</strong> Though your child\u2019s absence(s) may have been genuine, they were expected to make up the missed Sabaq.</div>':"";
+  const absenceNote=calc.G>0?'<div style="margin-top:8px;padding:8px 12px;border:1.5px solid #e74c3c;border-radius:4px;background:#fff8f8;font-size:11px;color:#c0392b;font-style:italic;line-height:1.5;"><strong>Please Note:</strong> Though your child\u2019s absence(s) may have been genuine, they were expected to make up the missed Sabaq. Hence above is your child\u2019s true running average.</div>':"";
 
   // Para tests
   const paraTests=(dorRecords||[]).filter(function(d){
@@ -962,14 +962,14 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   const amAbsences=calc.G;
   const amPct=amPossible>0?(amAttended/amPossible)*100:0;
 
-  function attBlock(title,possible,absences,attended,pct,hdrClass){
+  function attBlock(title,possible,absences,attended,pct,hdrClass,sessLabel){
     const col=attPctColor(pct);
     var s='<div class="card">';
     s+='<div class="sec-hdr '+hdrClass+'"><span class="sec-num">1</span> '+title+'</div>';
     s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">';
-    s+='<div class="att-cell"><div class="att-lbl">Possible Days of Sabaq</div><div class="att-val" style="color:#2d4a8a;">'+possible+'</div></div>';
+    s+='<div class="att-cell"><div class="att-lbl">'+(sessLabel||'Morning Sessions This Month')+'</div><div class="att-val" style="color:#2d4a8a;">'+possible+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Absences</div><div class="att-val '+(absences>0?"val-red":"")+'">'+absences+'</div></div>';
-    s+='<div class="att-cell"><div class="att-lbl">Attended</div><div class="att-val val-green">'+attended+'</div></div>';
+    s+='<div class="att-cell"><div class="att-lbl">Total Sessions Attended</div><div class="att-val val-green">'+attended+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Attendance %</div><div style="display:flex;justify-content:center;padding:6px 0;">'+svgDonut(pct,col)+'</div></div>';
     s+='</div></div>';
     return s;
@@ -977,11 +977,11 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
 
   if(hasEvening){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">';
-    h+=attBlock("AM Session (Morning)",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue");
-    h+=attBlock("PM Session (Evening)",eveningPossible,eveningAbsences,eveningAttended,eveningPct,"sec-hdr-navy");
+    h+=attBlock("AM Session (Morning)",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue","Morning Sessions This Month");
+    h+=attBlock("PM Session (Evening)",eveningPossible,eveningAbsences,eveningAttended,eveningPct,"sec-hdr-navy","Evening Sessions This Month");
     h+='</div>';
   } else {
-    h+=attBlock("Attendance Overview",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue");
+    h+=attBlock("Attendance Overview",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue","Morning Sessions This Month");
   }
 
   if(!isHafidh){
@@ -1004,11 +1004,11 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<table class="dtbl"><tr>';
   h+='<td><div class="lbl">Page Numbers</div><div class="val">'+esc(entry.fromPage)+' – '+esc(entry.toPage)+'</div></td>';
   h+='<td><div class="lbl">Total Lines</div><div class="val">'+fmt(calc.I,0)+'</div></td>';
-  h+='<td><div class="lbl">Sabaq Para Total</div><div class="val">'+fmt(calc.totalAvgPages,2)+'</div></td>';
+  h+='<td><div class="lbl">Total Pages Memorised</div><div class="val">'+fmt(calc.totalAvgPages,2)+'</div></td>';
   h+='</tr><tr>';
   const mkC=avgCircleColor==="green"?"#27ae60":avgCircleColor==="orange"?"#e67e22":"#e74c3c";
   h+='<td colspan="2" style="text-align:center;">';
-  h+='<div class="lbl">Average Lines Completed</div>';
+  h+='<div class="lbl">(Daily) Average Lines Memorised</div>';
   h+='<div class="val" style="font-size:22px;margin-bottom:8px;">'+fmt(calc.K,2)+' '+svgCircleLarge(avgCircleColor)+'</div>';
   h+='<div class="legend" style="justify-content:center;border-top:1px solid #ede9e0;padding-top:8px;">';
   h+='<span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27ae60;vertical-align:middle;flex-shrink:0;"></span> <span style="color:#27ae60;">Very Good</span></span>';
@@ -1018,7 +1018,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e74c3c;vertical-align:middle;flex-shrink:0;"></span> <span style="color:#e74c3c;">Concerning, Improvement Needed</span></span>';
   h+='</div></td>';
   h+='<td style="vertical-align:top;">';
-  h+='<div class="lbl">True Running Average</div>';
+  h+='<div class="lbl">True Running Average (Inc. Absences)</div>';
   h+='<div class="val" style="font-size:22px;margin-bottom:6px;">'+incAbsencesVal+'</div>';
   h+=absenceNote;
   h+='</td>';
@@ -1897,6 +1897,34 @@ function App(){
     window.addEventListener("online",onOnline);
     return ()=>window.removeEventListener("online",onOnline);
   },[]);
+  // Supabase Realtime: live multi-device sync
+  React.useEffect(function(){
+    function setup(){
+      if(!window.supabase)return function(){};
+      var client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+      var channel=client.channel('hifz-realtime-v1');
+      ['sabaq_records','dor_records','daily_sabaq','register_data'].forEach(function(tbl){
+        channel.on('postgres_changes',{event:'*',schema:'public',table:tbl},function(){
+          if(Date.now()<realtimeIgnoreUntil.current)return; // our own write — skip
+          clearTimeout(realtimeDebounce.current);
+          realtimeDebounce.current=setTimeout(function(){
+            loadCloud().catch(function(e){console.warn('Realtime reload:',e);});
+          },1500);
+        });
+      });
+      channel.subscribe(function(status){
+        setRealtimeConnected(status==='SUBSCRIBED');
+      });
+      return function(){try{client.removeChannel(channel);}catch(e){}};
+    }
+    if(window.supabase){return setup();}
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js';
+    var cleanup=function(){};
+    s.onload=function(){cleanup=setup();};
+    document.head.appendChild(s);
+    return function(){cleanup();};
+  },[]);
   // Debounced auto-sync: fires 2s after user-driven data change
   // isFirstLoad prevents syncing stale localStorage data on mount
   const syncTimer=React.useRef(null);
@@ -1909,6 +1937,12 @@ function App(){
   // Always-fresh refs so event-listener closures (registered once) can call the latest sync fns
   const syncNowRef=React.useRef(null);
   const scheduleSyncRef=React.useRef(null);
+  // Realtime: ignore events for 5s after our own sync to avoid redundant reloads
+  const realtimeIgnoreUntil=React.useRef(0);
+  const realtimeDebounce=React.useRef(null);
+  const [realtimeConnected,setRealtimeConnected]=React.useState(false);
+  // AI comment generation
+  const [isGeneratingComment,setIsGeneratingComment]=React.useState(false);
   function scheduleSync(){
     if(isFirstLoad.current)return; // skip until loadCloud completes
     if(syncTimer.current)clearTimeout(syncTimer.current);
@@ -2813,6 +2847,37 @@ function App(){
   }
   function fc(f,v){setForm(prev=>({...prev,[f]:v}));}
 
+  async function generateComment(){
+    // Build a brief stats summary to send to the AI
+    const name=form.name||"this student";
+    const sides=parseFloat(form.totalFullSides)||0;
+    const lines=parseFloat(form.plusLines)||0;
+    const absences=parseInt(form.absences)||0;
+    const days=parseInt(form.totalDaysOfSabaq)||0;
+    const dorDays=parseInt(form.paraDorMornings)||0;
+    const behaviour=parseInt(form.behaviour)||3;
+    const fromDate=form.dateFrom||"";
+    const toDate=form.dateTo||"";
+    const avg=days>0?(sides+(lines/16))/days:0;
+    const stats={name,sides,lines,absences,days,dorDays,behaviour,avg:avg.toFixed(2),fromDate,toDate};
+    setIsGeneratingComment(true);
+    try{
+      const resp=await fetch(SUPABASE_URL+"/functions/v1/generate-report-comment",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY},
+        body:JSON.stringify(stats)
+      });
+      if(!resp.ok){const t=await resp.text();throw new Error(t||resp.status);}
+      const data=await resp.json();
+      if(data.comment){fc("teacherComments",data.comment);}
+      else{throw new Error("No comment returned");}
+    }catch(e){
+      showToast("Could not generate comment: "+e.message,"error");
+    }finally{
+      setIsGeneratingComment(false);
+    }
+  }
+
   async function syncNow(){
     if(isFirstLoad.current)return;
     if(isSyncing.current){pendingSync.current=true;return;} // queue if already syncing
@@ -2834,7 +2899,7 @@ function App(){
       const failures=results.filter(r=>r.status==="rejected");
       if(failures.length>0){console.warn("syncNow partial failures:",failures.map(f=>f.reason?.message||f.reason));}
       const anyOk=results.some(r=>r.status==="fulfilled");
-      if(anyOk){setSyncStatus("live");}
+      if(anyOk){setSyncStatus("live");realtimeIgnoreUntil.current=Date.now()+5000;}
       else{setSyncStatus("offline");}
     }catch(e){
       console.error("syncNow",e);
@@ -3445,7 +3510,31 @@ function App(){
 
         /* TEACHER COMMENTS */
         , React.createElement(FormRow, { label: "Teacher Comments" ,}
-          , React.createElement('textarea', { value: form.teacherComments, onChange: e=>fc("teacherComments",e.target.value), placeholder: "Enter comments..." , style: {...inputStyle,height:90,resize:"vertical"},})
+          , React.createElement('div', { style: {position:"relative"} }
+            , React.createElement('textarea', { value: form.teacherComments, onChange: e=>fc("teacherComments",e.target.value), placeholder: "Enter comments or tap ✨ to generate..." , style: {...inputStyle,height:90,resize:"vertical",paddingRight:90},})
+            , React.createElement('button', {
+                onClick: generateComment,
+                disabled: isGeneratingComment||!form.name,
+                title: "Generate comment with AI",
+                style: {
+                  position:"absolute",top:8,right:8,
+                  background:isGeneratingComment?"#374151":"#1d2d44",
+                  border:"1px solid "+GOLD+"66",
+                  borderRadius:8,padding:"4px 10px",
+                  color:isGeneratingComment?MUTED:GOLD,
+                  fontSize:12,fontWeight:"600",cursor:isGeneratingComment||!form.name?"not-allowed":"pointer",
+                  display:"flex",alignItems:"center",gap:4,transition:"all .2s",
+                  opacity:!form.name?0.4:1
+                }
+              }
+              , isGeneratingComment
+                ? React.createElement('span', { style: {display:"inline-flex",alignItems:"center",gap:5} }
+                    , React.createElement('span', { style: {display:"inline-block",width:10,height:10,border:"2px solid "+GOLD,borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.7s linear infinite"} })
+                    , "…"
+                  )
+                : "✨"
+            )
+          )
         )
 
         /* PARENT EMAILS - only shown if new student or no emails saved */
