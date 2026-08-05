@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-520000 | Reports: fix blank screen, period label by dateFrom month, no-data students with add button -->
+<!-- hifz-20260805-530000 | Reports: add Select All / Deselect All button -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-520000';
+const APP_VERSION='hifz-20260805-530000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4256,6 +4256,17 @@ function App(){
             ,React.createElement('div',{style:{fontSize:13}},"Reports appear here once a student's monthly data is filled in.")
           )
           :React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:8}}
+            /* ── Select-all row (only when there are students with data) ── */
+            ,rptStudents.length>0&&(()=>{
+              const allSel=rptStudents.every(s=>selectedStudents.includes(s.id));
+              return React.createElement('div',{style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 4px 0"}}
+                ,React.createElement('div',{style:{fontSize:12,color:MUTED}},rptStudents.length+" report"+(rptStudents.length!==1?"s":""))
+                ,React.createElement('button',{
+                  onClick:()=>setSelectedStudents(allSel?[]:rptStudents.map(s=>s.id)),
+                  style:{background:"none",border:"none",cursor:"pointer",fontSize:12,fontWeight:700,color:GOLD,padding:"4px 0"}
+                },allSel?"Deselect all":"Select all")
+              );
+            })()
             ,rptStudents.map(s=>{
               const isSel=selectedStudents.includes(s.id);
               const _prof=records.find(x=>x.isStudentProfile&&x.name===s.name)||{};
@@ -4289,7 +4300,7 @@ function App(){
             })
             /* ── Students without data for selected period ── */
             ,noDataStudents.length>0&&React.createElement('div',{style:{marginTop:rptStudents.length>0?16:0}}
-              ,rptStudents.length>0&&React.createElement('div',{style:{fontSize:11,letterSpacing:"0.08em",color:MUTED,textTransform:"uppercase",fontWeight:600,marginBottom:8,paddingLeft:4}},"No data yet")
+              ,React.createElement('div',{style:{fontSize:11,letterSpacing:"0.08em",color:MUTED,textTransform:"uppercase",fontWeight:600,marginBottom:6,paddingLeft:4}},rptStudents.length>0?"No data yet":"All students · no data")
               ,React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:6}}
                 ,noDataStudents.map(s=>React.createElement('div',{key:s.id||s.name,style:{background:CARD,borderRadius:14,border:"1.5px solid rgba(0,0,0,0.05)",boxShadow:"0 1px 3px rgba(0,0,0,0.03)",padding:"12px 16px",display:"flex",alignItems:"center",gap:14,opacity:0.75}}
                   ,React.createElement('div',{style:{flex:1,minWidth:0}}
