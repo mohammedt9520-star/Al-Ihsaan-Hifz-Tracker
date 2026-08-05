@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-320000 | realtime sync, AI comment generation, Telegram monthly reminder -->
+<!-- hifz-20260805-330000 | realtime sync, AI comment generation, Telegram monthly reminder -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -27,6 +27,26 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
 </style>
 </head>
 <body>
+<script>
+(function(){
+  var _rp=new URLSearchParams(window.location.search).get('report');
+  if(!_rp)return;
+  // Report viewer mode — replace the document with the stored HTML
+  var _SB_URL='https://yyfkoenhpotzcuwxpnsy.supabase.co';
+  var _SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g';
+  var _MOBILE_CSS='<style>@media screen{body{padding:10px 10px!important;min-height:unset!important;}.card{margin-bottom:7px!important;border-radius:10px!important;}.sec-hdr{padding:7px 12px!important;font-size:10px!important;border-radius:10px 10px 0 0!important;}.meta-cell{padding:7px 10px!important;}.meta-lbl{font-size:9px!important;margin-bottom:1px!important;}.meta-val{font-size:12px!important;}.dtbl td{padding:7px 8px!important;}.dtbl .lbl{font-size:9px!important;margin-bottom:2px!important;}.dtbl .val{font-size:16px!important;}.att-cell{padding:7px 4px!important;}.att-lbl{font-size:9px!important;margin-bottom:2px!important;}.att-val{font-size:18px!important;}.comments-body{padding:10px 12px!important;font-size:12px!important;min-height:unset!important;}.footer-inner{padding:12px 14px!important;font-size:11px!important;}.rpt-header{margin-bottom:10px!important;gap:12px!important;}.rpt-title{font-size:18px!important;}.rpt-title-sub{font-size:10px!important;}.legend{padding:6px 0!important;gap:8px!important;font-size:10px!important;}.pg-num{margin:6px 0 0!important;}}</style>';
+  document.documentElement.innerHTML='<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Loading report…</title><style>body{margin:0;font-family:Arial,sans-serif;background:#0D2318;color:#e8dfc8;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;text-align:center;padding:24px;}.spinner{width:44px;height:44px;border:4px solid #c9a55344;border-top-color:#c9a553;border-radius:50%;animation:spin .9s linear infinite;margin:0 auto 16px;}@keyframes spin{to{transform:rotate(360deg)}}p{color:#c9a553;font-size:15px;}</style></head><body><div class="spinner"></div><p>Loading report…</p></body>';
+  fetch(_SB_URL+'/rest/v1/report_store?id=eq.'+encodeURIComponent(_rp)+'&select=html_content',{
+    headers:{'apikey':_SB_KEY,'Authorization':'Bearer '+_SB_KEY}
+  }).then(function(r){return r.json();}).then(function(rows){
+    if(!rows||!rows.length||!rows[0].html_content)throw new Error('Not found');
+    var html=rows[0].html_content.replace('</head>',_MOBILE_CSS+'</head>');
+    document.open();document.write(html);document.close();
+  }).catch(function(e){
+    document.body.innerHTML='<p style="color:#e74c3c;font-size:16px;font-family:Arial">Report not found.<br><small>'+e.message+'</small></p>';
+  });
+})();
+</script>
 <div id="root"></div>
 <div id="pwa-bar"><span style="flex:1">Install for the best experience</span><button id="pwa-install" style="background:linear-gradient(180deg,#dcbc6e,#c9a553);color:#2a1f06;border:none;border-radius:100px;padding:7px 16px;cursor:pointer;font-weight:800;font-size:12px;white-space:nowrap;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),0 4px 12px rgba(201,165,83,0.3);">Install</button><button id="pwa-close" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:0 4px;flex-shrink:0;">&#x2715;</button></div>
 <script>
@@ -65,7 +85,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-320000';
+const APP_VERSION='hifz-20260805-330000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2532,7 +2552,7 @@ function App(){
             if(r.ok){
               return r.json().then(function(rows){
                 var row=Array.isArray(rows)?rows[0]:rows;
-                var viewUrl="https://alihsaanhifz.pages.dev/report.html?id="+row.id;
+                var viewUrl="https://alihsaanhifz.pages.dev/?report="+row.id;
                 links.push({name:record.name,url:viewUrl});
               });
             }else{
