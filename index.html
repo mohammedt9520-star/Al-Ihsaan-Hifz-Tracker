@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-470000 | Sabaq Champion: daily average strips trailing zeros (max 2dp) -->
+<!-- hifz-20260805-480000 | Champion: Class A/B → Hifz Class A/B -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-470000';
+const APP_VERSION='hifz-20260805-480000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4639,7 +4639,7 @@ function App(){
                 ,React.createElement('div',{style:{height:2,background:"linear-gradient(90deg,transparent,#c9a553 20%,#c9a553 80%,transparent)"}})
                 ,React.createElement('div',{style:{padding:"24px 28px",textAlign:"center"}}
                   ,React.createElement('div',{style:{fontSize:12,letterSpacing:"0.2em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:4}},"Dor Champion")
-                  ,React.createElement('div',{style:{fontSize:10,color:"#c9a553",letterSpacing:"0.05em",marginBottom:20}},((dorChampClass||"HIFZ CLASS A")==="HIFZ CLASS A"?"Class A":"Class B")+" · "+(selPeriod?selPeriod.label:""))
+                  ,React.createElement('div',{style:{fontSize:10,color:"#c9a553",letterSpacing:"0.05em",marginBottom:20}},((dorChampClass||"HIFZ CLASS A")==="HIFZ CLASS A"?"Hifz Class A":"Hifz Class B")+" · "+(selPeriod?selPeriod.label:""))
                   ,React.createElement('div',{style:{fontSize:20,color:"#c9a553",marginBottom:10,lineHeight:1}},"☽")
                   ,React.createElement('div',{style:{fontSize:28,fontWeight:700,color:"#1b241d",letterSpacing:"0.02em",marginBottom:4,lineHeight:1.25,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}},first.name)
                   ,React.createElement('div',{style:{fontSize:9,color:MUTED,letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:18}},"1st Place")
@@ -4712,7 +4712,7 @@ function App(){
                   ,React.createElement('div',{style:{height:2,background:"linear-gradient(90deg,transparent,#c9a553 20%,#c9a553 80%,transparent)"}})
                   ,React.createElement('div',{style:{padding:"24px 28px",textAlign:"center"}}
                     ,React.createElement('div',{style:{fontSize:16,letterSpacing:"0.2em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:4}},"Sabaq Champion")
-                    ,React.createElement('div',{style:{fontSize:12,color:"#c9a553",letterSpacing:"0.05em",marginBottom:20}},(posterClass==="HIFZ CLASS A"?"Class A":"Class B")+" · "+(selPeriod?selPeriod.label:""))
+                    ,React.createElement('div',{style:{fontSize:12,color:"#c9a553",letterSpacing:"0.05em",marginBottom:20}},(posterClass==="HIFZ CLASS A"?"Hifz Class A":"Hifz Class B")+" · "+(selPeriod?selPeriod.label:""))
                     ,React.createElement('div',{style:{fontSize:26,color:"#c9a553",marginBottom:10,lineHeight:1}},"♛")
                     ,React.createElement('div',{style:{fontSize:32,fontWeight:700,color:"#1b241d",letterSpacing:"0.02em",marginBottom:4,lineHeight:1.25,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}},first.name)
                     ,React.createElement('div',{style:{fontSize:9,color:MUTED,letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:18}},"1st Place")
