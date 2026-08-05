@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-460000 | Sabaq Champion: bigger title/crown/name, RANKINGS all-caps, deep column headers -->
+<!-- hifz-20260805-470000 | Sabaq Champion: daily average strips trailing zeros (max 2dp) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-460000';
+const APP_VERSION='hifz-20260805-470000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4722,7 +4722,7 @@ function App(){
                         ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4,lineHeight:1.4}},"Total Sides",React.createElement('br',null),"Memorised")
                       )
                       ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 14px",textAlign:"center",flex:1}}
-                        ,React.createElement('div',{style:{fontSize:18,fontWeight:700,color:"#c9a553",letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},fmt(first.championDailyAverage,3))
+                        ,React.createElement('div',{style:{fontSize:18,fontWeight:700,color:"#c9a553",letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},parseFloat((first.championDailyAverage||0).toFixed(2)))
                         ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4,lineHeight:1.4}},"Daily Average")
                         ,React.createElement('div',{style:{fontSize:8,color:"#a0a8a1",marginTop:2}},"sides / day")
                       )
@@ -4748,7 +4748,7 @@ function App(){
                   )
                   ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
                     ,React.createElement('span',{style:{color:MUTED,width:66,textAlign:"center"}},fmt(second.championTotalSides,2))
-                    ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"right"}},fmt(second.championDailyAverage,3))
+                    ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"right"}},parseFloat((second.championDailyAverage||0).toFixed(2)))
                   )
                 )
                 /* 3rd+ list — no internal header, column-aligned */
@@ -4758,7 +4758,7 @@ function App(){
                     ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.name)
                     ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
                       ,React.createElement('span',{style:{color:MUTED,width:66,textAlign:"center"}},fmt(s.championTotalSides,2))
-                      ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"right"}},fmt(s.championDailyAverage,3))
+                      ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"right"}},parseFloat((s.championDailyAverage||0).toFixed(2)))
                     )
                   ))
                 )
