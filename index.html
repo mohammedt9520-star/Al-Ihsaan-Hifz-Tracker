@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-240000 | realtime sync, AI comment generation, Telegram monthly reminder -->
+<!-- hifz-20260805-250000 | realtime sync, AI comment generation, Telegram monthly reminder -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-240000';
+const APP_VERSION='hifz-20260805-250000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1950,8 +1950,6 @@ function App(){
   const realtimeIgnoreUntil=React.useRef(0);
   const realtimeDebounce=React.useRef(null);
   const [realtimeConnected,setRealtimeConnected]=React.useState(false);
-  // AI comment generation
-  const [isGeneratingComment,setIsGeneratingComment]=React.useState(false);
   function scheduleSync(){
     if(isFirstLoad.current)return; // skip until loadCloud completes
     if(syncTimer.current)clearTimeout(syncTimer.current);
@@ -2856,36 +2854,7 @@ function App(){
   }
   function fc(f,v){setForm(prev=>({...prev,[f]:v}));}
 
-  async function generateComment(){
-    // Build a brief stats summary to send to the AI
-    const name=form.name||"this student";
-    const sides=parseFloat(form.totalFullSides)||0;
-    const lines=parseFloat(form.plusLines)||0;
-    const absences=parseInt(form.absences)||0;
-    const days=parseInt(form.totalDaysOfSabaq)||0;
-    const dorDays=parseInt(form.paraDorMornings)||0;
-    const behaviour=parseInt(form.behaviour)||3;
-    const fromDate=form.dateFrom||"";
-    const toDate=form.dateTo||"";
-    const avg=days>0?(sides+(lines/16))/days:0;
-    const stats={name,sides,lines,absences,days,dorDays,behaviour,avg:avg.toFixed(2),fromDate,toDate};
-    setIsGeneratingComment(true);
-    try{
-      const resp=await fetch(SUPABASE_URL+"/functions/v1/generate-report-comment",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY},
-        body:JSON.stringify(stats)
-      });
-      if(!resp.ok){const t=await resp.text();throw new Error(t||resp.status);}
-      const data=await resp.json();
-      if(data.comment){fc("teacherComments",data.comment);}
-      else{throw new Error("No comment returned");}
-    }catch(e){
-      showToast("Could not generate comment: "+e.message,"error");
-    }finally{
-      setIsGeneratingComment(false);
-    }
-  }
+
 
   async function syncNow(){
     if(isFirstLoad.current)return;
@@ -3519,31 +3488,7 @@ function App(){
 
         /* TEACHER COMMENTS */
         , React.createElement(FormRow, { label: "Teacher Comments" ,}
-          , React.createElement('div', { style: {position:"relative"} }
-            , React.createElement('textarea', { value: form.teacherComments, onChange: e=>fc("teacherComments",e.target.value), placeholder: "Enter comments or tap ✨ to generate..." , style: {...inputStyle,height:90,resize:"vertical",paddingRight:90},})
-            , React.createElement('button', {
-                onClick: generateComment,
-                disabled: isGeneratingComment||!form.name,
-                title: "Generate comment with AI",
-                style: {
-                  position:"absolute",top:8,right:8,
-                  background:isGeneratingComment?"#374151":"#1d2d44",
-                  border:"1px solid "+GOLD+"66",
-                  borderRadius:8,padding:"4px 10px",
-                  color:isGeneratingComment?MUTED:GOLD,
-                  fontSize:12,fontWeight:"600",cursor:isGeneratingComment||!form.name?"not-allowed":"pointer",
-                  display:"flex",alignItems:"center",gap:4,transition:"all .2s",
-                  opacity:!form.name?0.4:1
-                }
-              }
-              , isGeneratingComment
-                ? React.createElement('span', { style: {display:"inline-flex",alignItems:"center",gap:5} }
-                    , React.createElement('span', { style: {display:"inline-block",width:10,height:10,border:"2px solid "+GOLD,borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.7s linear infinite"} })
-                    , "…"
-                  )
-                : "✨"
-            )
-          )
+          , React.createElement('textarea', { value: form.teacherComments, onChange: e=>fc("teacherComments",e.target.value), placeholder: "Enter comments..." , style: {...inputStyle,height:90,resize:"vertical"},})
         )
 
         /* PARENT EMAILS - only shown if new student or no emails saved */
