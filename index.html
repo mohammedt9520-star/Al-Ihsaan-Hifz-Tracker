@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-610000 | Reports: Dor quick-entry grid, card UI refresh -->
+<!-- hifz-20260805-620000 | Reports: Dor quick-entry grid, card UI refresh -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-610000';
+const APP_VERSION='hifz-20260805-620000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1900,6 +1900,7 @@ function App(){
   const [quickDorCtx,setQuickDorCtx]=React.useState(null); // {student,period}
   const [dorGrid,setDorGrid]=React.useState([{}]);          // array of rounds; each round = {juz:{quarter:level 0-4}}
   const [dorRound,setDorRound]=React.useState(0);           // active round index
+  const dorSwipeRef=React.useRef(null);                     // touch-start X for swipe (must be top-level)
   const [dorChampPeriodKey,setDorChampPeriodKey]=React.useState("");
   const [dorChampDateFrom,setDorChampDateFrom]=React.useState("");
   const [dorChampDateTo,setDorChampDateTo]=React.useState("");
@@ -4491,13 +4492,12 @@ function App(){
         showToast("Dor saved for "+_qds.name+" · "+dorGrid.length+" round"+(dorGrid.length>1?"s":""),"success",3000);
         setQuickDorCtx(null);setDorGrid([{}]);setDorRound(0);setView("reports");
       }
-      // Swipe handling
-      var _swipeX=React.useRef(null);
-      function _onTouchStart(e){_swipeX.current=e.touches[0].clientX;}
+      // Swipe handling — uses dorSwipeRef declared at top-level (hooks must not be called conditionally)
+      function _onTouchStart(e){dorSwipeRef.current=e.touches[0].clientX;}
       function _onTouchEnd(e){
-        if(_swipeX.current===null)return;
-        var dx=e.changedTouches[0].clientX-_swipeX.current;
-        _swipeX.current=null;
+        if(dorSwipeRef.current===null)return;
+        var dx=e.changedTouches[0].clientX-dorSwipeRef.current;
+        dorSwipeRef.current=null;
         if(Math.abs(dx)<50)return;
         if(dx<0&&_curRound<_numRounds-1)setDorRound(function(p){return p+1;});
         if(dx>0&&_curRound>0)setDorRound(function(p){return p-1;});
