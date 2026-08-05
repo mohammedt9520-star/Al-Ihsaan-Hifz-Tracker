@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-350000 | realtime sync, AI comment generation, Telegram monthly reminder -->
+<!-- hifz-20260805-360000 | PIN lock screen, teacher view mode, Telegram report digest -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -47,6 +47,75 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
   });
 })();
 </script>
+<script>
+// ── PIN Lock Screen ──────────────────────────────────────────────────────────
+(function(){
+  if(new URLSearchParams(window.location.search).get('report'))return;
+  var _auth=localStorage.getItem('hifz_auth');
+  if(_auth==='admin'||_auth==='teacher'){window._HIFZ_ROLE=_auth;return;}
+  // Inject styles
+  var _css=document.createElement('style');
+  _css.textContent=[
+    '#pin-lock{position:fixed;inset:0;background:#0D2318;z-index:9999;display:flex;align-items:center;justify-content:center;padding:32px 24px;animation:pinIn .25s ease both}',
+    '@keyframes pinIn{from{opacity:0}to{opacity:1}}',
+    '@keyframes pinOut{from{opacity:1}to{opacity:0}}',
+    '@keyframes pinShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-14px)}40%{transform:translateX(14px)}60%{transform:translateX(-9px)}80%{transform:translateX(9px)}}',
+    '#pin-wrap{display:flex;flex-direction:column;align-items:center;width:100%;max-width:300px}',
+    '#pin-emblem{font-size:52px;margin-bottom:14px;line-height:1}',
+    '#pin-title{font-family:Marcellus,Georgia,serif;font-size:27px;color:#c9a553;letter-spacing:.5px;margin-bottom:3px}',
+    '#pin-sub{font-size:11px;color:#4a6350;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:44px}',
+    '#pin-dots{display:flex;gap:16px;margin-bottom:10px}',
+    '.pdot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(201,165,83,.25);background:transparent;transition:all .15s ease}',
+    '.pdot.on{background:#c9a553;border-color:#c9a553;box-shadow:0 0 8px rgba(201,165,83,.5);transform:scale(1.15)}',
+    '#pin-err{height:18px;font-size:12px;color:#e74c3c;opacity:0;transition:opacity .2s;margin-bottom:28px;letter-spacing:.3px}',
+    '#pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%}',
+    '.pk{height:70px;border-radius:20px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.07);color:#e8dfc8;font-size:24px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;user-select:none;transition:background .1s,transform .12s;font-family:inherit}',
+    '.pk:active{background:rgba(201,165,83,.22);transform:scale(.92)}',
+    '.pk.del-k{color:#5a7060;font-size:19px}',
+    '.pk.blank{background:transparent;border:none;pointer-events:none}',
+    '#pin-wrap.shake{animation:pinShake .45s cubic-bezier(.36,.07,.19,.97)}',
+  ].join('');
+  document.head.appendChild(_css);
+  // Build DOM
+  var _lock=document.createElement('div');
+  _lock.id='pin-lock';
+  _lock.innerHTML='<div id="pin-wrap">'
+    +'<div id="pin-emblem">🕌</div>'
+    +'<div id="pin-title">Al-Ihsaan</div>'
+    +'<div id="pin-sub">Hifz Tracker</div>'
+    +'<div id="pin-dots"><div class="pdot"></div><div class="pdot"></div><div class="pdot"></div><div class="pdot"></div></div>'
+    +'<div id="pin-err">Incorrect PIN</div>'
+    +'<div id="pin-pad">'
+    +'<button class="pk" data-d="1">1</button><button class="pk" data-d="2">2</button><button class="pk" data-d="3">3</button>'
+    +'<button class="pk" data-d="4">4</button><button class="pk" data-d="5">5</button><button class="pk" data-d="6">6</button>'
+    +'<button class="pk" data-d="7">7</button><button class="pk" data-d="8">8</button><button class="pk" data-d="9">9</button>'
+    +'<button class="pk blank"></button><button class="pk" data-d="0">0</button><button class="pk del-k" id="pin-del">⌫</button>'
+    +'</div></div>';
+  document.body.insertBefore(_lock,document.getElementById('root'));
+  var _entered='';
+  var _PINS={'4041':'admin','7861':'teacher'};
+  function _dots(){document.querySelectorAll('.pdot').forEach(function(d,i){d.classList.toggle('on',i<_entered.length);});}
+  function _press(d){if(_entered.length>=4)return;_entered+=d;_dots();if(_entered.length===4)_verify();}
+  function _del(){if(!_entered.length)return;_entered=_entered.slice(0,-1);_dots();}
+  function _verify(){
+    var role=_PINS[_entered];
+    if(role){
+      window._HIFZ_ROLE=role;
+      localStorage.setItem('hifz_auth',role);
+      _lock.style.animation='pinOut .3s ease forwards';
+      setTimeout(function(){_lock.remove();},320);
+    }else{
+      var w=document.getElementById('pin-wrap');
+      w.classList.remove('shake');void w.offsetWidth;w.classList.add('shake');
+      document.getElementById('pin-err').style.opacity='1';
+      _entered='';_dots();
+      setTimeout(function(){document.getElementById('pin-err').style.opacity='0';},1600);
+    }
+  }
+  document.querySelectorAll('.pk[data-d]').forEach(function(b){b.addEventListener('click',function(){_press(b.getAttribute('data-d'));});});
+  document.getElementById('pin-del').addEventListener('click',_del);
+})();
+</script>
 <div id="root"></div>
 <div id="pwa-bar"><span style="flex:1">Install for the best experience</span><button id="pwa-install" style="background:linear-gradient(180deg,#dcbc6e,#c9a553);color:#2a1f06;border:none;border-radius:100px;padding:7px 16px;cursor:pointer;font-weight:800;font-size:12px;white-space:nowrap;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),0 4px 12px rgba(201,165,83,0.3);">Install</button><button id="pwa-close" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:0 4px;flex-shrink:0;">&#x2715;</button></div>
 <script>
@@ -85,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-350000';
+const APP_VERSION='hifz-20260805-360000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2521,7 +2590,7 @@ function App(){
     setSelectedTeachers(teacherContacts.map(function(c){return c.id;}));
     setShowTeacherPanel(true);
   }
-  function sendTeacherDigest(emailList){
+  function sendTeacherDigest(emailList,mode){
     var toSend=selectedStudents.map(function(id){return records.find(function(r){return r.id===id;});}).filter(Boolean).filter(hasReportData);
     if(!toSend.length){showToast("No report data for any selected student.","warning");setShowTeacherPanel(false);return;}
     setShowTeacherPanel(false);
@@ -2532,7 +2601,7 @@ function App(){
     var completed=0;
     var firstMonth=toSend[0]&&toSend[0].dateFrom?new Date(toSend[0].dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
     var yearMonth=toSend[0]&&toSend[0].dateFrom?toSend[0].dateFrom.slice(0,7):"unknown";
-    function onAllDone(){_sendDigestLinks(emailList,toSend,links,firstMonth);}
+    function onAllDone(){if(mode==='telegram'){_sendTelegramLinks(toSend,links,firstMonth);}else{_sendDigestLinks(emailList,toSend,links,firstMonth);}}
     toSend.forEach(function(record,i){
       setTimeout(function(){
         try{
@@ -2553,13 +2622,14 @@ function App(){
               return r.json().then(function(rows){
                 var row=Array.isArray(rows)?rows[0]:rows;
                 var viewUrl="https://yyfkoenhpotzcuwxpnsy.supabase.co/functions/v1/view-report?id="+row.id;
-                // Shorten via is.gd (free, no key, CORS-safe); fallback to full URL on any error
+                // Shorten via is.gd for email; store direct appUrl for Telegram
+                var _appUrl='https://alihsaanhifz.pages.dev/?report='+row.id;
                 return fetch("https://is.gd/create.php?format=simple&url="+encodeURIComponent(viewUrl))
                   .then(function(sr){return sr.ok?sr.text():null;})
                   .catch(function(){return null;})
                   .then(function(short){
                     var finalUrl=(short&&short.trim().startsWith("http"))?short.trim():viewUrl;
-                    links.push({name:record.name,url:finalUrl});
+                    links.push({name:record.name,url:finalUrl,appUrl:_appUrl});
                   });
               });
             }else{
@@ -2631,6 +2701,22 @@ function App(){
       else{showToast("❌ Digest failed: "+(data.error||"Unknown error"),"error",7000);}
     })
     .catch(function(e){showToast("❌ Digest send failed: "+e.message,"error",7000);});
+  }
+  function _sendTelegramLinks(toSend,links,firstMonth){
+    var students=links.map(function(l){return {name:l.name,appUrl:l.appUrl||l.url||null};}).filter(function(l){return l.appUrl;});
+    if(!students.length){showToast("No report links available.","warning");return;}
+    showToast("📲 Sending to Telegram…","info",5000);
+    fetch(SUPABASE_URL+"/functions/v1/send-report-telegram",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+      body:JSON.stringify({students:students,month:firstMonth})
+    }).then(function(r){
+      if(!r.ok){return r.text().then(function(t){throw new Error("Server error "+r.status+": "+t.slice(0,200));});}
+      return r.json();
+    }).then(function(data){
+      if(data.ok){showToast("✅ Telegram sent — "+students.length+" report"+(students.length!==1?"s":"")+" shared","success",7000);}
+      else{showToast("❌ Telegram failed: "+(data.error||"Unknown error"),"error",7000);}
+    }).catch(function(e){showToast("❌ Telegram failed: "+e.message,"error",7000);});
   }
   function sendReport(record){
     if(!hasReportData(record)){
@@ -3598,10 +3684,10 @@ function App(){
               )
               , React.createElement('div', { style: {display:"flex",gap:6,flexWrap:"wrap"},}
                 , React.createElement('button', { onClick: ()=>viewReportInBrowser(r), title:"View report in browser", style: {background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.3)",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "👁" )
-                , React.createElement('button', { onClick: ()=>emailReportPDF(r), title:"Email PDF to parent", style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧 PDF" )
+                , window._HIFZ_ROLE!=='teacher'&&React.createElement('button', { onClick: ()=>emailReportPDF(r), title:"Email PDF to parent", style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧 PDF" )
                 , (()=>{var _wp=(records.find(x=>x.isStudentProfile&&x.name===r.name)||{});var _ph=r.fatherPhone||_wp.fatherPhone||r.motherPhone||_wp.motherPhone||"";return _ph?React.createElement('button', { onClick: ()=>whatsappReport(r,_ph), title:"Send via WhatsApp", style: {background:"#25D366",color:"#fff",border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "💬"):null;})()
-                , React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12},}, "Edit")
-                , React.createElement('button', { onClick: ()=>deleteRecord(r.id), style: {background:"#c0392b22",color:RED,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "✕")
+                , window._HIFZ_ROLE!=='teacher'&&React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12},}, "Edit")
+                , window._HIFZ_ROLE!=='teacher'&&React.createElement('button', { onClick: ()=>deleteRecord(r.id), style: {background:"#c0392b22",color:RED,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "✕")
               )
             )
           ))
@@ -4159,9 +4245,9 @@ function App(){
                     )
                     , React.createElement('div', { style: {display:"flex",gap:6,flexWrap:"wrap"},}
                       , React.createElement('button', { onClick: ()=>viewReportInBrowser(r), title:"View report in browser", style: {background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.3)",borderRadius:6,padding:"6px 8px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "👁" )
-                      , React.createElement('button', { onClick: ()=>emailReportPDF(r), title:"Email PDF", style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧")
+                      , window._HIFZ_ROLE!=='teacher'&&React.createElement('button', { onClick: ()=>emailReportPDF(r), title:"Email PDF", style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧")
                       , (()=>{var _wp2=(records.find(x=>x.isStudentProfile&&x.name===r.name)||{});var _ph2=r.fatherPhone||_wp2.fatherPhone||r.motherPhone||_wp2.motherPhone||"";return _ph2?React.createElement('button',{onClick:()=>whatsappReport(r,_ph2),title:"WhatsApp",style:{background:"#25D366",color:"#fff",border:"none",borderRadius:6,padding:"6px 8px",cursor:"pointer",fontSize:12,fontWeight:"bold"}},"💬"):null;})()
-                      , React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "Edit")
+                      , window._HIFZ_ROLE!=='teacher'&&React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "Edit")
                     )
                   )
                 ))
@@ -4266,8 +4352,8 @@ function App(){
         /* ── Floating Send bar ── */
         , totalSel>0&&React.createElement('div', { style: {position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:200,display:"flex",gap:8,alignItems:"center",background:TEXT,borderRadius:40,padding:"8px 8px 8px 18px",boxShadow:"0 8px 32px rgba(0,0,0,0.28)"},}
           , React.createElement('div', { style: {color:"#fff",fontWeight:700,fontSize:13,whiteSpace:"nowrap"},}, totalSel, " selected")
-          , React.createElement('button', { onClick: sendSelected, title:"Send individual PDF email to each student's parents", style: {background:GOLD,color:"#1b1200",border:"none",borderRadius:30,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:12,whiteSpace:"nowrap"}}, "📧 Parents")
-          , React.createElement('button', { onClick: openTeacherPanel, title:"Send all reports in one email to teacher / head of hifz", style: {background:"#2563eb",color:"#fff",border:"none",borderRadius:30,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:12,whiteSpace:"nowrap"}}, "📋 Teacher")
+          , window._HIFZ_ROLE!=='teacher'&&React.createElement('button', { onClick: sendSelected, title:"Send individual PDF email to each student's parents", style: {background:GOLD,color:"#1b1200",border:"none",borderRadius:30,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:12,whiteSpace:"nowrap"}}, "📧 Parents")
+          , window._HIFZ_ROLE!=='teacher'&&React.createElement('button', { onClick: openTeacherPanel, title:"Send all reports in one email to teacher / head of hifz", style: {background:"#2563eb",color:"#fff",border:"none",borderRadius:30,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:12,whiteSpace:"nowrap"}}, "📋 Teacher")
           , React.createElement('button', { onClick: ()=>setSelectedStudents([]), style: {background:"rgba(255,255,255,0.12)",color:"#fff",border:"none",borderRadius:30,padding:"8px 12px",cursor:"pointer",fontSize:13}}, "✕")
         )
         /* ── Missing-data students ── */
@@ -4298,7 +4384,7 @@ function App(){
                       React.createElement('div',{style:{fontWeight:600,fontSize:14,color:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},s.name),
                       React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:1}},s.class||"")
                     ),
-                    React.createElement('button',{
+                    window._HIFZ_ROLE!=='teacher'&&React.createElement('button',{
                       onClick:function(){addDataForStudent(s);},
                       style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}
                     },"+ Add "+nowM+" data")
@@ -4364,18 +4450,24 @@ function App(){
               )
             ),
             /* Panel footer */
-            React.createElement('div',{style:{padding:"14px 20px",borderTop:"1px solid "+BORDER,display:"flex",gap:10}},
-              React.createElement('button',{onClick:()=>setShowTeacherPanel(false),style:{flex:1,background:ACCENT,color:MUTED,border:"none",borderRadius:12,padding:"12px",cursor:"pointer",fontSize:14}},"Cancel"),
+            React.createElement('div',{style:{padding:"14px 20px",borderTop:"1px solid "+BORDER,display:"flex",flexDirection:"column",gap:10}},
               React.createElement('button',{
-                onClick:function(){
-                  var selContacts=teacherContacts.filter(function(c){return selectedTeachers.includes(c.id);});
-                  var emailList=selContacts.map(function(c){return c.email;}).filter(Boolean);
-                  if(!emailList.length){showToast("Select at least one recipient.","warning");return;}
-                  sendTeacherDigest(emailList);
-                },
-                disabled:selectedTeachers.length===0,
-                style:{flex:2,background:selectedTeachers.length>0?"#2563eb":MUTED,color:"#fff",border:"none",borderRadius:12,padding:"12px",cursor:selectedTeachers.length>0?"pointer":"default",fontWeight:800,fontSize:14}
-              },"📋 Send to ",selectedTeachers.length," contact"+(selectedTeachers.length!==1?"s":"")+" →")
+                onClick:function(){setShowTeacherPanel(false);sendTeacherDigest([],'telegram');},
+                style:{width:"100%",background:"#229ED9",color:"#fff",border:"none",borderRadius:12,padding:"13px",cursor:"pointer",fontWeight:800,fontSize:14}
+              },"📲 Send via Telegram"),
+              React.createElement('div',{style:{display:"flex",gap:10}},
+                React.createElement('button',{onClick:()=>setShowTeacherPanel(false),style:{flex:1,background:ACCENT,color:MUTED,border:"none",borderRadius:12,padding:"12px",cursor:"pointer",fontSize:14}},"Cancel"),
+                React.createElement('button',{
+                  onClick:function(){
+                    var selContacts=teacherContacts.filter(function(c){return selectedTeachers.includes(c.id);});
+                    var emailList=selContacts.map(function(c){return c.email;}).filter(Boolean);
+                    if(!emailList.length){showToast("Select at least one recipient.","warning");return;}
+                    sendTeacherDigest(emailList,'email');
+                  },
+                  disabled:selectedTeachers.length===0,
+                  style:{flex:2,background:selectedTeachers.length>0?"#2563eb":MUTED,color:"#fff",border:"none",borderRadius:12,padding:"12px",cursor:selectedTeachers.length>0?"pointer":"default",fontWeight:800,fontSize:14}
+                },"📧 Email ",selectedTeachers.length," contact"+(selectedTeachers.length!==1?"s":"")+" →")
+              )
             )
           )
         )
