@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-120000 | Toast fix, new email body, green dot sent indicator, teacher digest -->
+<!-- hifz-20260805-140000 | Teacher digest: clickable report links in HTML email via Supabase Storage -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-120000';
+const APP_VERSION='hifz-20260805-140000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2427,55 +2427,95 @@ function App(){
     var dest=window.prompt("Teacher / Head of Hifz email(s):\n(Separate multiple with a comma)",saved||"");
     if(!dest||!dest.trim()){return;}
     dest=dest.trim();
-    // Save for next time
     setTeacherEmails(dest);
     try{localStorage.setItem('hifz_teacher_emails',dest);}catch(e){}
     var emailList=dest.split(/[,;\s]+/).map(function(e){return e.trim();}).filter(Boolean);
     if(!emailList.length){showToast("No valid email entered.","warning");return;}
     setSelectedStudents([]);
-    showToast("⏳ Building digest for "+toSend.length+" student"+(toSend.length!==1?"s":"")+"…","info",5000);
-    // Generate all PDFs then send one combined email
-    var attachments=[];
+    showToast("⏳ Uploading "+toSend.length+" report"+(toSend.length!==1?"s":"")+" — links coming…","info",6000);
+    // Generate HTML for each student and upload to Supabase Storage
+    var links=[];
     var completed=0;
+    var firstMonth=toSend[0]&&toSend[0].dateFrom?new Date(toSend[0].dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
+    var yearMonth=toSend[0]&&toSend[0].dateFrom?toSend[0].dateFrom.slice(0,7):"unknown";
+    function onAllDone(){_sendDigestLinks(emailList,toSend,links,firstMonth);}
     toSend.forEach(function(record,i){
       setTimeout(function(){
-        generateReportPDF(record,dorRecords,records,function(err,pdfBlob){
-          if(!err&&pdfBlob){
-            var reader=new FileReader();
-            reader.onload=function(){
-              var monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
-              var safeName=(record.name||"student").replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"_");
-              attachments.push({filename:"Report_"+safeName+(monthStr?"_"+monthStr.replace(/\s/g,"_"):"")+".pdf",pdfBase64:reader.result.split(",")[1]});
-              completed++;
-              if(completed===toSend.length){_sendDigestEmail(emailList,toSend,attachments);}
-            };
-            reader.readAsDataURL(pdfBlob);
-          }else{
+        try{
+          var calc=Object.assign({},record,calcEntry(record));
+          var html=generateReportHTML(record,calc,dorRecords||[],records||[]);
+          var safeName=(record.name||"student").replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"_");
+          var path=yearMonth+"/"+safeName+".html";
+          var publicUrl=SUPABASE_URL+"/storage/v1/object/public/hifz-reports/"+path;
+          // Upload HTML to public Supabase Storage bucket
+          fetch(SUPABASE_URL+"/storage/v1/object/hifz-reports/"+path,{
+            method:"POST",
+            headers:{"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"text/html; charset=utf-8","x-upsert":"true"},
+            body:html
+          }).then(function(){
+            links.push({name:record.name,url:publicUrl});
             completed++;
-            if(completed===toSend.length){_sendDigestEmail(emailList,toSend,attachments);}
-          }
-        });
-      },i*500);
+            if(completed===toSend.length)onAllDone();
+          }).catch(function(e){
+            console.warn("Upload failed for "+record.name,e);
+            links.push({name:record.name,url:null});
+            completed++;
+            if(completed===toSend.length)onAllDone();
+          });
+        }catch(e){
+          links.push({name:record.name,url:null});
+          completed++;
+          if(completed===toSend.length)onAllDone();
+        }
+      },i*200);
     });
   }
-  function _sendDigestEmail(emailList,students,attachments){
-    if(!attachments.length){showToast("No PDFs generated — check student data.","error");return;}
-    var firstMonth=students[0]&&students[0].dateFrom?new Date(students[0].dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
+  function _sendDigestLinks(emailList,students,links,firstMonth){
     var subject="Al-Ihsaan — Hifz Reports"+(firstMonth?" ("+firstMonth+")":"")+" ["+students.length+" student"+(students.length!==1?"s":"")+"]";
-    var nameList=students.map(function(s){return "• "+s.name;}).join("\n");
-    var bodyText="Assalāmu 'Alaykum wa Rahmatullāhi wa Barakātuh\n\nPlease find attached the Hifz monthly reports for the following student"+(students.length!==1?"s":"")+":\n\n"+nameList+(firstMonth?"\n\nMonth: "+firstMonth:"")+"\n\nJazākallāhu Khayran.\n\nHead of Hifz\nMadrasah Al-Ihsaan";
-    showToast("📤 Sending digest to "+emailList.join(", ")+"…","info",5000);
+    // Build HTML email body with clickable student name buttons
+    var btnStyle="display:inline-block;background:#c9a553;color:#1b1200;padding:9px 20px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;font-family:Arial,sans-serif;";
+    var fallbackStyle="color:#888;font-size:13px;font-family:Arial,sans-serif;";
+    var rows=links.map(function(lnk){
+      return '<tr>'
+        +'<td style="padding:10px 16px;font-size:15px;font-family:Arial,sans-serif;color:#1a1a1a;vertical-align:middle;font-weight:600;">'+lnk.name+'</td>'
+        +'<td style="padding:10px 16px;vertical-align:middle;">'
+        +(lnk.url
+          ?'<a href="'+lnk.url+'" style="'+btnStyle+'">View Report →</a>'
+          :'<span style="'+fallbackStyle+'">(upload failed)</span>')
+        +'</td>'
+        +'</tr>';
+    }).join('');
+    var bodyHtml=
+      '<div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#1a1a1a;">'
+      +'<p style="font-size:15px;margin-bottom:8px;">Assalāmu \'Alaykum wa Rahmatullāhi wa Barakātuh</p>'
+      +'<p style="margin-bottom:4px;">Please find below the monthly Hifz reports'+(firstMonth?' for <strong>'+firstMonth+'</strong>':'')+'.</p>'
+      +'<p style="margin-bottom:20px;color:#555;font-size:13px;">Click a student\'s name to open their full report in your browser.</p>'
+      +'<table style="border-collapse:collapse;width:100%;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;">'
+      +'<thead><tr style="background:#f9f6ef;">'
+      +'<th style="text-align:left;padding:10px 16px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#888;font-family:Arial,sans-serif;">Student</th>'
+      +'<th style="text-align:left;padding:10px 16px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#888;font-family:Arial,sans-serif;">Report</th>'
+      +'</tr></thead>'
+      +'<tbody>'+rows+'</tbody>'
+      +'</table>'
+      +'<p style="margin-bottom:4px;">Jazākallāhu Khayran.</p>'
+      +'<p style="margin-top:0;"><strong>Head of Hifz</strong><br>Madrasah Al-Ihsaan</p>'
+      +'</div>';
+    var bodyText="Assalāmu 'Alaykum wa Rahmatullāhi wa Barakātuh\n\nHifz Reports"+(firstMonth?" for "+firstMonth:"")+":\n\n"
+      +links.map(function(lnk){return lnk.name+": "+(lnk.url||"(unavailable)");}).join("\n")
+      +"\n\nJazākallāhu Khayran.\nHead of Hifz\nMadrasah Al-Ihsaan";
+    showToast("📤 Sending to "+emailList.join(", ")+"…","info",5000);
     fetch(SUPABASE_URL+"/functions/v1/send-report-email",{
       method:"POST",
       headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
-      body:JSON.stringify({to:emailList,subject:subject,bodyText:bodyText,attachments:attachments})
+      body:JSON.stringify({to:emailList,subject:subject,bodyText:bodyText,bodyHtml:bodyHtml})
     })
     .then(function(r){
       if(!r.ok){return r.text().then(function(t){throw new Error("Server error "+r.status+": "+t.slice(0,200));});}
       return r.json();
     })
     .then(function(data){
-      if(data.success){showToast("✅ Digest sent to "+emailList.join(" & ")+" ("+attachments.length+" PDF"+(attachments.length!==1?"s":"")+" attached)","success",7000);}
+      var ok=links.filter(function(l){return l.url;}).length;
+      if(data.success){showToast("✅ Teacher digest sent — "+ok+"/"+links.length+" report link"+(links.length!==1?"s":"")+" included","success",7000);}
       else{showToast("❌ Digest failed: "+(data.error||"Unknown error"),"error",7000);}
     })
     .catch(function(e){showToast("❌ Digest send failed: "+e.message,"error",7000);});
