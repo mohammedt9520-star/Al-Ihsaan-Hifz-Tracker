@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-420000 | Fix stray paren in Dor rankings IIFE -->
+<!-- hifz-20260805-430000 | Restructure champion rankings: header strip + runner-up box + 3rd+ box -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-420000';
+const APP_VERSION='hifz-20260805-430000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4656,30 +4656,32 @@ function App(){
                   ,React.createElement('div',{style:{fontSize:12,color:"#8a9a8b",textAlign:"center",marginTop:14,letterSpacing:"0.02em",lineHeight:1.8,direction:"rtl"}},"مَا شَاءَ اللَّهُ، اللَّهُمَّ زِدْ وَبَارِكْ")
                 )
               )
-              /* Runner up */
-              ,second&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.13)",borderRadius:14,padding:"14px 18px",marginBottom:12,display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 10px rgba(0,0,0,0.04)"}}
-                ,React.createElement('div',{style:{fontSize:15,flexShrink:0}},"🥈")
-                ,React.createElement('div',{style:{flex:1,minWidth:0}}
-                  ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:2}},"Runner Up")
-                  ,React.createElement('div',{style:{fontSize:15,fontWeight:600,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},second.name)
-                )
-                ,React.createElement('div',{style:{textAlign:"right",flexShrink:0}}
-                  ,React.createElement('div',{style:{fontSize:13,fontWeight:600,color:MUTED,fontVariantNumeric:"tabular-nums"}},second.cleanQuarters+"Q")
-                  ,React.createElement('div',{style:{fontSize:10,color:second.hasRedOrRepeat?ORANGE:GREEN,fontVariantNumeric:"tabular-nums"}},second.totalMistakes.toFixed(1)+" err")
+              /* Column-header strip */
+              ,React.createElement('div',{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:10,padding:"8px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}
+                ,React.createElement('div',{style:{minWidth:36,flexShrink:0}})
+                ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:MUTED,textTransform:"uppercase",flex:1}},"Rankings")
+                ,React.createElement('div',{style:{display:"flex",gap:0,fontSize:8,letterSpacing:"0.07em",color:MUTED,textTransform:"uppercase"}}
+                  ,React.createElement('div',{style:{width:60,textAlign:"center",lineHeight:1.4}},"Clean",React.createElement('br',null),"Quarters")
+                  ,React.createElement('div',{style:{width:52,textAlign:"right",lineHeight:1.4}},"Total",React.createElement('br',null),"Errors")
                 )
               )
-              /* Full rankings — from #3, hafidh excluded */
-              ,allRanked&&allRanked.filter(s=>!hafidhStudents.has(s.name)).length>2&&(()=>{const dorRankList=allRanked.filter(s=>!hafidhStudents.has(s.name));return React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,0.04)"}}
-                ,React.createElement('div',{style:{padding:"9px 16px",borderBottom:"1px solid rgba(107,114,128,0.07)",display:"flex",alignItems:"center"}}
-                  ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:MUTED,textTransform:"uppercase",flex:1}},"Full Rankings")
-                  ,React.createElement('div',{style:{display:"flex",gap:0,fontSize:8,letterSpacing:"0.07em",color:MUTED,textTransform:"uppercase"}}
-                    ,React.createElement('div',{style:{width:60,textAlign:"center",lineHeight:1.4}},"Clean",React.createElement('br',null),"Quarters")
-                    ,React.createElement('div',{style:{width:52,textAlign:"right",lineHeight:1.4}},"Total",React.createElement('br',null),"Errors")
-                  )
+              /* Runner up — own box, column-aligned */
+              ,second&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.13)",borderRadius:12,padding:"12px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
+                ,React.createElement('div',{style:{minWidth:36,flexShrink:0,fontSize:22,lineHeight:1,textAlign:"center"}},"🥈")
+                ,React.createElement('div',{style:{flex:1,minWidth:0}}
+                  ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:1}},"Runner Up")
+                  ,React.createElement('div',{style:{fontSize:14,fontWeight:600,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},second.name)
                 )
+                ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
+                  ,React.createElement('span',{style:{color:MUTED,width:60,textAlign:"center"}},second.cleanQuarters)
+                  ,React.createElement('span',{style:{color:second.hasRedOrRepeat?ORANGE:GREEN,width:52,textAlign:"right"}},second.totalMistakes.toFixed(1))
+                )
+              )
+              /* 3rd+ list — hafidh excluded, no internal header */
+              ,allRanked&&allRanked.filter(s=>!hafidhStudents.has(s.name)).length>2&&(()=>{const dorRankList=allRanked.filter(s=>!hafidhStudents.has(s.name));return React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
                 ,dorRankList.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.name,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
-                  ,React.createElement('div',{style:{minWidth:28,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums"}},"#"+(i+3))
-                  ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingLeft:8}},s.name)
+                  ,React.createElement('div',{style:{minWidth:36,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",textAlign:"center"}},"#"+(i+3))
+                  ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.name)
                   ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
                     ,React.createElement('span',{style:{color:MUTED,width:60,textAlign:"center"}},s.cleanQuarters)
                     ,React.createElement('span',{style:{color:s.hasRedOrRepeat?ORANGE:GREEN,width:52,textAlign:"right"}},s.totalMistakes.toFixed(1))
@@ -4741,30 +4743,32 @@ function App(){
                     ,React.createElement('div',{style:{fontSize:12,color:"#8a9a8b",textAlign:"center",marginTop:14,letterSpacing:"0.02em",lineHeight:1.8,direction:"rtl"}},"مَا شَاءَ اللَّهُ، اللَّهُمَّ زِدْ وَبَارِكْ")
                   )
                 )
-                /* Runner up */
-                ,second&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.13)",borderRadius:14,padding:"14px 18px",marginBottom:12,display:"flex",alignItems:"center",gap:12,boxShadow:"0 2px 10px rgba(0,0,0,0.04)"}}
-                  ,React.createElement('div',{style:{fontSize:15,flexShrink:0}},"🥈")
-                  ,React.createElement('div',{style:{flex:1,minWidth:0}}
-                    ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:2}},"Runner Up")
-                    ,React.createElement('div',{style:{fontSize:15,fontWeight:600,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},second.name)
-                  )
-                  ,React.createElement('div',{style:{textAlign:"right",flexShrink:0}}
-                    ,React.createElement('div',{style:{fontSize:13,fontWeight:600,color:MUTED,fontVariantNumeric:"tabular-nums"}},fmt(second.championTotalSides,2)+"s")
-                    ,React.createElement('div',{style:{fontSize:10,color:"#b0b8b0",fontVariantNumeric:"tabular-nums"}},fmt(second.championDailyAverage,3)+"/day")
+                /* Column-header strip */
+                ,React.createElement('div',{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:10,padding:"8px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}
+                  ,React.createElement('div',{style:{minWidth:36,flexShrink:0}})
+                  ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:MUTED,textTransform:"uppercase",flex:1}},"Rankings")
+                  ,React.createElement('div',{style:{display:"flex",gap:0,fontSize:8,letterSpacing:"0.07em",color:MUTED,textTransform:"uppercase"}}
+                    ,React.createElement('div',{style:{width:66,textAlign:"center",lineHeight:1.4}},"Total Sides",React.createElement('br',null),"Memorised")
+                    ,React.createElement('div',{style:{width:52,textAlign:"right",lineHeight:1.4}},"Daily",React.createElement('br',null),"Average")
                   )
                 )
-                /* Full rankings — starts from #3 */
-                ,list.length>2&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,0.04)"}}
-                  ,React.createElement('div',{style:{padding:"9px 16px",borderBottom:"1px solid rgba(107,114,128,0.07)",display:"flex",alignItems:"center"}}
-                    ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:MUTED,textTransform:"uppercase",flex:1}},"Full Rankings")
-                    ,React.createElement('div',{style:{display:"flex",gap:0,fontSize:8,letterSpacing:"0.07em",color:MUTED,textTransform:"uppercase"}}
-                      ,React.createElement('div',{style:{width:66,textAlign:"center",lineHeight:1.4}},"Total Sides",React.createElement('br',null),"Memorised")
-                      ,React.createElement('div',{style:{width:52,textAlign:"right",lineHeight:1.4}},"Daily",React.createElement('br',null),"Average")
-                    )
+                /* Runner up — own box, column-aligned */
+                ,second&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.13)",borderRadius:12,padding:"12px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
+                  ,React.createElement('div',{style:{minWidth:36,flexShrink:0,fontSize:22,lineHeight:1,textAlign:"center"}},"🥈")
+                  ,React.createElement('div',{style:{flex:1,minWidth:0}}
+                    ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:1}},"Runner Up")
+                    ,React.createElement('div',{style:{fontSize:14,fontWeight:600,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},second.name)
                   )
+                  ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
+                    ,React.createElement('span',{style:{color:MUTED,width:66,textAlign:"center"}},fmt(second.championTotalSides,2))
+                    ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"right"}},fmt(second.championDailyAverage,3))
+                  )
+                )
+                /* 3rd+ list — no internal header, column-aligned */
+                ,list.length>2&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
                   ,list.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.id,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
-                    ,React.createElement('div',{style:{minWidth:28,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums"}},"#"+(i+3))
-                    ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingLeft:8}},s.name)
+                    ,React.createElement('div',{style:{minWidth:36,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",textAlign:"center"}},"#"+(i+3))
+                    ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.name)
                     ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
                       ,React.createElement('span',{style:{color:MUTED,width:66,textAlign:"center"}},fmt(s.championTotalSides,2))
                       ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"right"}},fmt(s.championDailyAverage,3))
