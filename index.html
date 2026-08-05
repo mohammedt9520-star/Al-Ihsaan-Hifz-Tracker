@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-190000 | One-time cleanup: wipe stale local dor/daily/register on next open -->
+<!-- hifz-20260805-180000 | realtime sync, AI comment generation, Telegram monthly reminder -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -21,7 +21,7 @@ body{background:#f7f4ec;font-family:"Manrope","Inter","Segoe UI",system-ui,sans-
 input,select,textarea,button{font-family:inherit;font-size:16px;}
 input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !important;box-shadow:0 0 0 3px rgba(201,165,83,0.18) !important;}
 ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(201,165,83,0.3);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:rgba(201,165,83,0.55);}
-.profile-chart{width:100%;}table{border-collapse:collapse;}button{transition:filter 0.15s cubic-bezier(0.2,0.8,0.3,1),transform 0.12s cubic-bezier(0.2,0.8,0.3,1);}button:hover{filter:brightness(1.08);}button:active{transform:scale(0.96);}.hl-entrance{animation:hl-in 0.32s cubic-bezier(0.2,0.8,0.3,1) both;}@keyframes hl-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}.hl-section-label::after{content:'';display:inline-block;width:80px;height:1px;background:linear-gradient(90deg,rgba(201,165,83,0.45),transparent);margin-left:10px;vertical-align:middle;}
+.profile-chart{width:100%;}table{border-collapse:collapse;}button{transition:filter 0.15s cubic-bezier(0.2,0.8,0.3,1),transform 0.12s cubic-bezier(0.2,0.8,0.3,1);}button:hover{filter:brightness(1.08);}button:active{transform:scale(0.96);}.hl-entrance{animation:hl-in 0.32s cubic-bezier(0.2,0.8,0.3,1) both;}@keyframes hl-in{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}.hl-section-label::after{content:'';display:inline-block;width:80px;height:1px;background:linear-gradient(90deg,rgba(201,165,83,0.45),transparent);margin-left:10px;vertical-align:middle;}@keyframes spin{to{transform:rotate(360deg);}}
 #pwa-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:#07150e;color:#fff;padding:12px 20px;font-size:13px;align-items:center;gap:10px;z-index:9999;box-shadow:0 -2px 12px rgba(0,0,0,0.3);}
 #pwa-bar.show{display:flex;}
 </style>
@@ -29,7 +29,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
 <body>
 <div id="root"></div>
 <div id="pwa-bar"><span style="flex:1">Install for the best experience</span><button id="pwa-install" style="background:linear-gradient(180deg,#dcbc6e,#c9a553);color:#2a1f06;border:none;border-radius:100px;padding:7px 16px;cursor:pointer;font-weight:800;font-size:12px;white-space:nowrap;flex-shrink:0;box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),0 4px 12px rgba(201,165,83,0.3);">Install</button><button id="pwa-close" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:20px;line-height:1;padding:0 4px;flex-shrink:0;">&#x2715;</button></div>
-<script>window.LOGO_SRC="/icon-192.png";</script>
+<script>
+window.LOGO_SRC="/icon-192.png";
+(function(){
+  fetch("/icon-192.png").then(function(r){return r.blob();}).then(function(blob){
+    var reader=new FileReader();
+    reader.onload=function(){window.LOGO_SRC=reader.result;};
+    reader.readAsDataURL(blob);
+  }).catch(function(){/* keep relative fallback */});
+})();
+</script>
 <script>
 if("serviceWorker"in navigator){
   navigator.serviceWorker.register("/sw.js").then(function(reg){
@@ -56,6 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
+const APP_VERSION='hifz-20260805-180000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -165,7 +175,7 @@ function loadPDFLibs(cb){
    "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"].forEach(function(url){
     var s=document.createElement("script");s.src=url;
     s.onload=tick;
-    s.onerror=function(){showToast("Failed to load PDF library — check connection","error");};
+    s.onerror=function(){showToast("Failed to load PDF library — check connection","error");_pdfLibsState=0;_pdfLibsCbs=[];};
     document.head.appendChild(s);
   });
 }
@@ -646,10 +656,10 @@ function calcEntry(s){
 // A row with just a name/class/dates but no pages or days filled in will return false.
 function hasReportData(entry){
   if(!entry)return false;
+  // Must have actual pages memorised — days-only records (no sides/lines) don't count
   var sides=parseFloat(entry.totalFullSides);
   var lines=parseFloat(entry.plusLines);
-  var days=parseFloat(entry.totalDaysOfSabaq);
-  return (sides>0)||(lines>0)||(days>0);
+  return (sides>0)||(lines>0);
 }
 
 // Convert a UK-format phone number to the bare digits WhatsApp expects (e.g. 447712345678)
@@ -666,68 +676,75 @@ function toWhatsAppNumber(phone){
 // onDone(err, blob) — err is null on success.
 function generateReportPDF(record, dorRecs, allRecs, onDone){
   if(!hasReportData(record)){onDone(new Error("No data"));return;}
-  showToast("Generating PDF… please wait ⏳","info",9000);
   loadPDFLibs(function(){
     try{
       var calc=Object.assign({},record,calcEntry(record));
-      var html=generateReportHTML(record,calc,dorRecs||[],allRecs||[]);
-      // Render in a hidden, same-origin iframe (blob URL = same origin)
-      var blob=new Blob([html],{type:"text/html;charset=utf-8"});
-      var blobUrl=URL.createObjectURL(blob);
-      var iframe=document.createElement("iframe");
-      // Off-screen but sized to A4 width so layout matches
-      iframe.style.cssText="position:fixed;left:-9999px;top:0;width:794px;height:1200px;border:none;";
-      document.body.appendChild(iframe);
-      iframe.onload=function(){
-        // Small delay to let the browser finish painting inside the iframe
-        setTimeout(function(){
+      var html1=generateReportHTML(record,calc,dorRecs||[],allRecs||[],1);
+      var html2=generateReportHTML(record,calc,dorRecs||[],allRecs||[],2);
+      renderPageToCanvas(html1,function(err1,canvas1){
+        if(err1){onDone(err1);return;}
+        renderPageToCanvas(html2,function(err2,canvas2){
+          if(err2){onDone(err2);return;}
           try{
-            var body=iframe.contentDocument&&iframe.contentDocument.body;
-            if(!body){throw new Error("iframe body not accessible");}
-            window.html2canvas(body,{
-              scale:2,useCORS:true,allowTaint:true,logging:false,
-              width:794,windowWidth:794
-            }).then(function(canvas){
-              URL.revokeObjectURL(blobUrl);
-              document.body.removeChild(iframe);
-              try{
-                var jsPDF=window.jspdf&&window.jspdf.jsPDF;
-                if(!jsPDF)throw new Error("jsPDF not loaded");
-                var pdf=new jsPDF({orientation:"portrait",unit:"pt",format:"a4"});
-                var pageW=pdf.internal.pageSize.getWidth();   // 595 pt
-                var pageH=pdf.internal.pageSize.getHeight();  // 842 pt
-                // Scale the canvas to fit A4 width, preserve aspect ratio
-                var imgW=pageW;
-                var imgH=(canvas.height/canvas.width)*pageW;
-                var imgData=canvas.toDataURL("image/jpeg",0.92);
-                // Slice the image across as many A4 pages as needed
-                var pages=Math.ceil(imgH/pageH);
-                for(var p=0;p<pages;p++){
-                  if(p>0)pdf.addPage();
-                  pdf.addImage(imgData,"JPEG",0,-(p*pageH),imgW,imgH);
-                }
-                onDone(null,pdf.output("blob"));
-              }catch(e2){onDone(e2);}
-            }).catch(function(e){
-              URL.revokeObjectURL(blobUrl);
-              try{document.body.removeChild(iframe);}catch(x){}
-              onDone(e);
-            });
-          }catch(e){
-            URL.revokeObjectURL(blobUrl);
-            try{document.body.removeChild(iframe);}catch(x){}
-            onDone(e);
-          }
-        },700);
-      };
-      iframe.onerror=function(){
-        URL.revokeObjectURL(blobUrl);
-        try{document.body.removeChild(iframe);}catch(x){}
-        onDone(new Error("iframe load failed"));
-      };
-      iframe.src=blobUrl;
+            var jsPDF=window.jspdf&&window.jspdf.jsPDF;
+            if(!jsPDF)throw new Error("jsPDF not loaded");
+            var pdf=new jsPDF({orientation:"portrait",unit:"pt",format:"a4"});
+            var pageW=pdf.internal.pageSize.getWidth();
+            var pageH=pdf.internal.pageSize.getHeight();
+            function addCanvasToPdf(c){
+              var imgW=pageW;
+              var imgH=(c.height/c.width)*pageW;
+              var imgData=c.toDataURL("image/jpeg",0.92);
+              if(imgH>pageH){var s=pageH/imgH;pdf.addImage(imgData,"JPEG",0,0,imgW*s,pageH);}
+              else{pdf.addImage(imgData,"JPEG",0,0,imgW,imgH);}
+            }
+            addCanvasToPdf(canvas1);
+            pdf.addPage();
+            addCanvasToPdf(canvas2);
+            onDone(null,pdf.output("blob"));
+          }catch(e2){onDone(e2);}
+        });
+      });
     }catch(e){onDone(e);}
   });
+}
+
+function renderPageToCanvas(html,callback){
+  var blob=new Blob([html],{type:"text/html;charset=utf-8"});
+  var blobUrl=URL.createObjectURL(blob);
+  var iframe=document.createElement("iframe");
+  iframe.style.cssText="position:fixed;left:-9999px;top:0;width:794px;height:1120px;border:none;";
+  document.body.appendChild(iframe);
+  iframe.onload=function(){
+    setTimeout(function(){
+      try{
+        var body=iframe.contentDocument&&iframe.contentDocument.body;
+        if(!body){throw new Error("iframe body not accessible");}
+        window.html2canvas(body,{
+          scale:2,useCORS:true,allowTaint:true,logging:false,
+          width:794,windowWidth:794
+        }).then(function(canvas){
+          URL.revokeObjectURL(blobUrl);
+          document.body.removeChild(iframe);
+          callback(null,canvas);
+        }).catch(function(e){
+          URL.revokeObjectURL(blobUrl);
+          try{document.body.removeChild(iframe);}catch(x){}
+          callback(e);
+        });
+      }catch(e){
+        URL.revokeObjectURL(blobUrl);
+        try{document.body.removeChild(iframe);}catch(x){}
+        callback(e);
+      }
+    },700);
+  };
+  iframe.onerror=function(){
+    URL.revokeObjectURL(blobUrl);
+    try{document.body.removeChild(iframe);}catch(x){}
+    callback(new Error("iframe load failed"));
+  };
+  iframe.src=blobUrl;
 }
 
 // Trigger a file download of a blob
@@ -762,15 +779,15 @@ function getMonthRange(dateFrom, dateTo){
 
 function svgCircle(color){
   const c={green:"#2ecc71",orange:"#f39c12",red:"#e74c3c",grey:"#aaaaaa"}[color]||"#aaaaaa";
-  return '<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;margin:0 1px;"><circle cx="7" cy="7" r="6" fill="'+c+'"/></svg>';
+  return '<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:'+c+';vertical-align:middle;margin:0 2px;flex-shrink:0;"></span>';
 }
 
 function svgCircleLarge(color){
   const c={green:"#2ecc71",orange:"#f39c12",red:"#e74c3c",grey:"#aaaaaa"}[color]||"#aaaaaa";
-  return '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;margin-left:6px;"><circle cx="8" cy="8" r="7" fill="'+c+'"/></svg>';
+  return '<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:'+c+';vertical-align:middle;margin-left:7px;flex-shrink:0;"></span>';
 }
 
-function generateReportHTML(entry, calc, dorRecords, allRecords){
+function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   if(!entry||!calc)return"<html><body><p>No record data available.</p></body></html>";
   if(!Array.isArray(dorRecords))dorRecords=[];
   if(!Array.isArray(allRecords))allRecords=[];
@@ -877,87 +894,69 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   var h="";
   h+='<!DOCTYPE html><html><head><meta charset="UTF-8"/>';
   h+='<style>';
-  h+='@page{margin:12mm 14mm;size:A4;}';
+  h+='@page{margin:0;size:A4;}';
   h+='*{box-sizing:border-box;margin:0;padding:0;}';
-  h+='body{font-family:Arial,sans-serif;color:#222;background:white;font-size:13px;line-height:1.5;}';
-  // Header
-  h+='.rpt-header{display:flex;align-items:center;gap:20px;padding-bottom:14px;border-bottom:3px solid #1a3a6b;margin-bottom:18px;}';
-  h+='.rpt-logo{width:90px;height:90px;object-fit:contain;flex-shrink:0;}';
-  h+='.rpt-title{font-size:26px;font-weight:900;color:#1a3a6b;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;line-height:1.1;}';
-  h+='.rpt-title-sub{font-size:12px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-top:4px;}';
-  // Meta box
-  h+='.meta-box{border:2px solid #1a3a6b;border-radius:6px;margin-bottom:18px;overflow:hidden;}';
-  h+='.meta-row{display:grid;grid-template-columns:140px 1fr 140px 1fr;border-bottom:1px solid #dde;align-items:stretch;}';
-  h+='.meta-row:last-child{border-bottom:none;}';
-  h+='.meta-lbl{background:#f0f4ff;color:#1a3a6b;font-weight:700;font-size:12px;padding:10px 14px;border-right:1px solid #dde;display:flex;align-items:center;}';
-  h+='.meta-val{padding:10px 14px;font-size:14px;font-weight:700;color:#111;display:flex;align-items:center;border-right:1px solid #dde;}';
-  h+='.meta-val:last-child{border-right:none;}';
-  // Section headers
-  h+='.sec{margin-bottom:0;margin-top:16px;}';
-  h+='.sec-hdr{display:flex;align-items:center;gap:10px;padding:9px 14px;color:#fff;font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;border-radius:4px 4px 0 0;}';
-  h+='.sec-hdr-blue{background:linear-gradient(135deg,#1a3a6b 0%,#2a5298 100%);}';
-  h+='.sec-hdr-teal{background:linear-gradient(135deg,#0d6b5e 0%,#1a8a7a 100%);};'; h+='.sec-body-teal{background:linear-gradient(180deg,#f0fffd 0%,#fff 100%);}';
-  h+='.sec-hdr-green{background:linear-gradient(135deg,#1a6b3a 0%,#27ae60 100%);}'; h+='.sec-body-green{background:linear-gradient(180deg,#f0fff6 0%,#fff 100%);}';
-  h+='.sec-hdr-purple{background:linear-gradient(135deg,#4a1a6b 0%,#7b2d8b 100%);}';
-  h+='.sec-hdr-orange{background:linear-gradient(135deg,#b85c00 0%,#e07020 100%);}';
-  h+='.sec-hdr-navy{background:linear-gradient(135deg,#1a3a6b 0%,#1a5298 100%);}';
-  h+='.sec-body{border:2px solid #c8d0e0;border-top:none;border-radius:0 0 4px 4px;overflow:hidden;}';
-  // Data table
+  h+='body{font-family:Arial,sans-serif;color:#2c2c2c;background:#f5f2ed;font-size:13px;line-height:1.5;padding:22px 26px;min-height:1120px;display:flex;flex-direction:column;}';
+  h+='.card{background:#fff;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04);margin-bottom:13px;}';
+  h+='.sec-hdr{display:flex;align-items:center;gap:10px;padding:10px 16px;color:#fff;font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;border-radius:14px 14px 0 0;}';
+  h+='.sec-hdr-blue{background:linear-gradient(135deg,#2d4a8a,#3d5caa);}';
+  h+='.sec-hdr-teal{background:linear-gradient(135deg,#0e6b5a,#1a8870);}';
+  h+='.sec-hdr-green{background:linear-gradient(135deg,#1a5c38,#247a4c);}';
+  h+='.sec-hdr-purple{background:linear-gradient(135deg,#5b2e8a,#7a44b5);}';
+  h+='.sec-hdr-orange{background:linear-gradient(135deg,#b05200,#d0660a);}';
+  h+='.sec-hdr-slate{background:linear-gradient(135deg,#3d5266,#4e6880);}';
+  h+='.sec-hdr-navy{background:linear-gradient(135deg,#2d4a8a,#3d5caa);}';
+  h+='.sec-num{background:rgba(255,255,255,0.22);border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;}';
+  h+='.rpt-header{display:flex;align-items:center;gap:18px;margin-bottom:16px;}';
+  h+='.rpt-title{font-size:23px;font-weight:900;color:#1e2d5a;letter-spacing:1.5px;text-transform:uppercase;line-height:1.1;}';
+  h+='.rpt-title-sub{font-size:11px;color:#9099ae;letter-spacing:1.5px;text-transform:uppercase;margin-top:5px;}';
+  h+='.meta-grid{display:grid;grid-template-columns:1fr 1fr;}';
+  h+='.meta-cell{padding:12px 16px;border-bottom:1px solid #ede9e0;}';
+  h+='.meta-cell:nth-child(odd){border-right:1px solid #ede9e0;}';
+  h+='.meta-lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:3px;}';
+  h+='.meta-val{font-size:14px;font-weight:700;color:#1e2d5a;}';
   h+='.dtbl{width:100%;border-collapse:collapse;text-align:center;}';
-  h+='.dtbl td{border:1.5px solid #c8d0e0;padding:10px 14px;vertical-align:middle;text-align:center;}';
-  h+='.dtbl .lbl{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;text-align:center;}';
-  h+='.dtbl .val{font-size:20px;font-weight:800;color:#1a3a6b;text-align:center;}';
+  h+='.dtbl td{border:1.5px solid #ede9e0;padding:12px 14px;vertical-align:middle;text-align:center;}';
+  h+='.dtbl .lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}';
+  h+='.dtbl .val{font-size:20px;font-weight:800;color:#1e2d5a;}';
   h+='.dtbl .val-red{color:#e74c3c;}';
   h+='.dtbl .val-green{color:#27ae60;}';
-  // Attendance
-  h+='.att-grid{display:grid;gap:0;}';
-  h+='.att-cell{padding:12px 8px;text-align:center;border:1px solid #dde;}';
-  h+='.att-lbl{font-size:10px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}';
-  h+='.att-val{font-size:22px;font-weight:800;text-align:center;}';
-  // Legend
-  h+='.legend{display:flex;gap:18px;justify-content:center;align-items:center;padding:8px 0;font-size:11px;color:#555;flex-wrap:wrap;}';
+  h+='.att-cell{padding:10px 8px;text-align:center;border-right:1.5px solid #d0d5e0;background:#f7f8fb;}';
+  h+='.att-cell:last-child{border-right:none;}';
+  h+='.att-lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}';
+  h+='.att-val{font-size:24px;font-weight:800;text-align:center;}';
+  h+='.legend{display:flex;gap:14px;justify-content:center;align-items:center;padding:10px 0;font-size:11px;color:#666;flex-wrap:wrap;}';
   h+='.legend-item{display:flex;align-items:center;gap:5px;font-weight:600;}';
-  // Comments
-  h+='.comments{padding:14px 16px;font-size:13px;line-height:1.7;min-height:70px;color:#333;}';
-  // Footer
-  h+='.footer{margin-top:20px;padding:16px 20px;border:2px solid #1a3a6b;border-radius:6px;font-size:12px;color:#1a3a6b;text-align:center;line-height:1.9;}';
-  // Page break
-  h+='.pgbreak{page-break-before:always;}';
-  // Page number
-  h+='.pg-num{text-align:center;margin:22px 0 12px;color:#C4963F;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center;letter-spacing:0.5px;}';
-  h+='.pg-num-line{flex:1;height:2px;background:linear-gradient(90deg,transparent,#C4963F 30%,#D4A855 50%,#C4963F 70%,transparent);border-radius:2px;}';
-  // Sec icon
-  h+='.sec-num{background:#fff3;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;}';
-  h+='</style></head><body>';
-
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  h+='.comments-body{padding:16px 18px;font-size:13px;line-height:1.85;min-height:80px;color:#3c3c3c;}';
+  h+='.footer-inner{padding:18px 22px;text-align:center;font-size:12px;color:#3c3c3c;line-height:1.9;background:linear-gradient(135deg,#fffdf5,#fff9e6);}';
+  // (pgbreak CSS removed - two-pass render handles pagination)
+  h+='.pg-num{text-align:center;margin:12px 0 0;color:#c9a553;font-size:11px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center;letter-spacing:0.5px;}';
+  h+='.pg-num-line{flex:1;height:1.5px;background:linear-gradient(90deg,transparent,#c9a553 30%,#d4b065 50%,#c9a553 70%,transparent);border-radius:2px;}';
+  h+='</style></head>';
+  h+='<body>';
+  if(pageNum!==2){
+  h+='<div style="flex:1;display:flex;flex-direction:column;">';
   // PAGE 1
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-  // ── Header ────────────────────────────────────────────────
+  // Header
   h+='<div class="rpt-header">';
-  h+='<img src="'+window.LOGO_SRC+'" class="rpt-logo"/>';
+  // Logo: crop bottom ~38% to remove "Hifz Tracker" text, show crest only
+  h+='<div style="width:72px;height:50px;overflow:hidden;flex-shrink:0;border-radius:3px;">';
+  h+='<img src="'+window.LOGO_SRC+'" style="width:72px;display:block;"/></div>';
   h+='<div><div class="rpt-title">Monthly Hifz Report</div>';
   h+='<div class="rpt-title-sub">Al-Ihsaan Academy</div></div>';
   h+='</div>';
 
-  // ── Meta box ─────────────────────────────────────────────
-  h+='<div class="meta-box">';
-  h+='<div class="meta-row">';
-  h+='<div class="meta-lbl">Student\'s Name:</div>';
-  h+='<div class="meta-val">'+esc(entry.name)+'</div>';
-  h+='<div class="meta-lbl">Date of Report:</div>';
-  h+='<div class="meta-val">'+dateRange+'</div>';
-  h+='</div>';
-  h+='<div class="meta-row">';
-  h+='<div class="meta-lbl">Class:</div>';
-  h+='<div class="meta-val">'+esc(entry.class)+'</div>';
-  h+='<div class="meta-lbl">Month:</div>';
-  h+='<div class="meta-val">'+monthRange+'</div>';
-  h+='</div>';
-  h+='</div>';
+  // Meta card
+  h+='<div class="card">';
+  h+='<div class="meta-grid">';
+  h+='<div class="meta-cell"><div class="meta-lbl">Student\'s Name</div><div class="meta-val">'+esc(entry.name)+'</div></div>';
+  h+='<div class="meta-cell"><div class="meta-lbl">Date of Report</div><div class="meta-val">'+dateRange+'</div></div>';
+  h+='<div class="meta-cell" style="border-bottom:none;"><div class="meta-lbl">Class</div><div class="meta-val">'+esc(entry.class)+'</div></div>';
+  h+='<div class="meta-cell" style="border-bottom:none;"><div class="meta-lbl">Month</div><div class="meta-val">'+monthRange+'</div></div>';
+  h+='</div></div>';
 
-  // ── 1. Attendance Overview ────────────────────────────────
+  // 1. Attendance Overview
   const amPossible=calc.N+calc.G;
   const amAttended=calc.N;
   const amAbsences=calc.G;
@@ -965,18 +964,19 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
 
   function attBlock(title,possible,absences,attended,pct,hdrClass){
     const col=attPctColor(pct);
-    var s='<div class="sec"><div class="sec-hdr '+hdrClass+'"><span class="sec-num">1</span> '+title+'</div>';
-    s+='<div class="sec-body"><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">';
-    s+='<div class="att-cell"><div class="att-lbl">Possible Days of Sabaq</div><div class="att-val" style="color:#1a3a6b;">'+possible+'</div></div>';
+    var s='<div class="card">';
+    s+='<div class="sec-hdr '+hdrClass+'"><span class="sec-num">1</span> '+title+'</div>';
+    s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">';
+    s+='<div class="att-cell"><div class="att-lbl">Possible Days of Sabaq</div><div class="att-val" style="color:#2d4a8a;">'+possible+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Absences</div><div class="att-val '+(absences>0?"val-red":"")+'">'+absences+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Attended</div><div class="att-val val-green">'+attended+'</div></div>';
-    s+='<div class="att-cell"><div class="att-lbl">Attendance %</div><div style="display:flex;justify-content:center;">'+svgDonut(pct,col)+'</div></div>';
-    s+='</div></div></div>';
+    s+='<div class="att-cell"><div class="att-lbl">Attendance %</div><div style="display:flex;justify-content:center;padding:6px 0;">'+svgDonut(pct,col)+'</div></div>';
+    s+='</div></div>';
     return s;
   }
 
   if(hasEvening){
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:0;">';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">';
     h+=attBlock("AM Session (Morning)",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue");
     h+=attBlock("PM Session (Evening)",eveningPossible,eveningAbsences,eveningAttended,eveningPct,"sec-hdr-navy");
     h+='</div>';
@@ -985,9 +985,10 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   }
 
   if(!isHafidh){
-  // ── 2. Sabaq Target Given ─────────────────────────────────
-  h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Sabaq Target Given</div>';
-  h+='<div class="sec-body sec-body-teal"><table class="dtbl"><tr>';
+  // 2. Sabaq Target Given
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-orange"><span class="sec-num">2</span> Sabaq Target Given</div>';
+  h+='<table class="dtbl"><tr>';
   h+='<td><div class="lbl">Total Sabaq Days</div><div class="val">'+calc.N+'</div></td>';
   h+='<td><div class="lbl">Minus Days of Absence</div><div class="val">'+calc.G+'</div></td>';
   h+='<td><div class="lbl">Minus Days of Para Dor</div><div class="val">'+calc.H+'</div></td>';
@@ -995,41 +996,41 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
   h+='</tr><tr>';
   h+='<td colspan="2" style="text-align:center;"><div class="lbl">Target Given</div><div class="val" style="font-size:20px;">'+calc.O+' Lines/Day</div></td>';
   h+='<td colspan="2" style="text-align:center;"><div class="lbl">Total Lines Target</div><div class="val" style="font-size:20px;">'+calc.P+'</div></td>';
-  h+='</tr></table></div></div>';
+  h+='</tr></table></div>';
 
-  // ── 3. Sabaq Completed This Month ────────────────────────
-  h+='<div class="sec"><div class="sec-hdr sec-hdr-green"><span class="sec-num">3</span> Sabaq Completed This Month</div>';
-  h+='<div class="sec-body sec-body-green"><table class="dtbl"><tr>';
-  h+='<td><div class="lbl">Page Numbers</div><div class="val">'+esc(entry.fromPage)+' \u2013 '+esc(entry.toPage)+'</div></td>';
+  // 3. Sabaq Completed This Month
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-green"><span class="sec-num">3</span> Sabaq Completed This Month</div>';
+  h+='<table class="dtbl"><tr>';
+  h+='<td><div class="lbl">Page Numbers</div><div class="val">'+esc(entry.fromPage)+' – '+esc(entry.toPage)+'</div></td>';
   h+='<td><div class="lbl">Total Lines</div><div class="val">'+fmt(calc.I,0)+'</div></td>';
   h+='<td><div class="lbl">Sabaq Para Total</div><div class="val">'+fmt(calc.totalAvgPages,2)+'</div></td>';
   h+='</tr><tr>';
-  // Average Lines Completed — legend goes BELOW inside this cell
   const mkC=avgCircleColor==="green"?"#27ae60":avgCircleColor==="orange"?"#e67e22":"#e74c3c";
   h+='<td colspan="2" style="text-align:center;">';
   h+='<div class="lbl">Average Lines Completed</div>';
   h+='<div class="val" style="font-size:22px;margin-bottom:8px;">'+fmt(calc.K,2)+' '+svgCircleLarge(avgCircleColor)+'</div>';
-  h+='<div class="legend" style="justify-content:center;border-top:1px solid #eee;padding-top:8px;">';
-  h+='<span class="legend-item"><svg width="11" height="11"><circle cx="5.5" cy="5.5" r="5" fill="#27ae60"/></svg> <span style="color:#27ae60;">Very Good</span></span>';
-  h+='<span style="color:#ccc;">|</span>';
-  h+='<span class="legend-item"><svg width="11" height="11"><circle cx="5.5" cy="5.5" r="5" fill="#e67e22"/></svg> <span style="color:#e67e22;">Good, However Could Be Better</span></span>';
-  h+='<span style="color:#ccc;">|</span>';
-  h+='<span class="legend-item"><svg width="11" height="11"><circle cx="5.5" cy="5.5" r="5" fill="#e74c3c"/></svg> <span style="color:#e74c3c;">Concerning, Improvement Needed</span></span>';
+  h+='<div class="legend" style="justify-content:center;border-top:1px solid #ede9e0;padding-top:8px;">';
+  h+='<span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#27ae60;vertical-align:middle;flex-shrink:0;"></span> <span style="color:#27ae60;">Very Good</span></span>';
+  h+='<span style="color:#ddd;">|</span>';
+  h+='<span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e67e22;vertical-align:middle;flex-shrink:0;"></span> <span style="color:#e67e22;">Good, However Could Be Better</span></span>';
+  h+='<span style="color:#ddd;">|</span>';
+  h+='<span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e74c3c;vertical-align:middle;flex-shrink:0;"></span> <span style="color:#e74c3c;">Concerning, Improvement Needed</span></span>';
   h+='</div></td>';
-  // True Running Average (inc absences)
   h+='<td style="vertical-align:top;">';
   h+='<div class="lbl">True Running Average</div>';
   h+='<div class="val" style="font-size:22px;margin-bottom:6px;">'+incAbsencesVal+'</div>';
   h+=absenceNote;
   h+='</td>';
-  h+='</tr></table></div></div>';
+  h+='</tr></table></div>';
 
-  // ── 4. Target for Next Month ──────────────────────────────
-  h+='<div class="sec"><div class="sec-hdr sec-hdr-purple"><span class="sec-num">4</span> Target for Next Month</div>';
-  h+='<div class="sec-body"><table class="dtbl"><tr>';
-  h+='<td style="text-align:left;"><div class="lbl">Sabaq Lines Per Day</div></td>';
-  h+='<td style="text-align:left;"><div class="val" style="font-size:22px;">'+calc.Q+'</div></td>';
-  h+='</tr></table></div></div>';
+  // 4. Target for Next Month
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-purple"><span class="sec-num">4</span> Target for Next Month</div>';
+  h+='<table class="dtbl"><tr>';
+  h+='<td style="text-align:left;padding:14px 18px;"><div class="lbl">Sabaq Lines Per Day</div></td>';
+  h+='<td style="text-align:left;padding:14px 18px;"><div class="val" style="font-size:22px;">'+calc.Q+'</div></td>';
+  h+='</tr></table></div>';
 
   } // end !isHafidh sabaq sections
   if(isHafidh){
@@ -1048,73 +1049,82 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
     var _jns=Object.keys(_jm).map(Number).sort(function(a,b){return a-b;});
     var _tq1=0,_tq2=0,_tq3=0,_tq4=0,_tmk=0;
     _jns.forEach(function(n){var rw=_jm[n];_tq1+=rw.q1;_tq2+=rw.q2;_tq3+=rw.q3;_tq4+=rw.q4;_tmk+=rw.mistakes;});
-    h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Hafidh Dor Record This Month</div>';
-    h+='<div class="sec-body"><table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;">';
-    h+='<thead><tr style="background:#f0f4ff;">';
+    h+='<div class="card">';
+    h+='<div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Hafidh Dor Record This Month</div>';
+    h+='<table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;">';
+    h+='<thead><tr style="background:#f5f8ff;">';
     ['Juz','Q1','Q2','Q3','Q4','Mistakes'].forEach(function(lbl){
-      h+='<th style="padding:10px 12px;font-size:11px;font-weight:700;color:#1a3a6b;border:1.5px solid #c8d0e0;text-transform:uppercase;letter-spacing:0.5px;">'+lbl+'</th>';
+      h+='<th style="padding:11px 12px;font-size:10px;font-weight:700;color:#a0a8b8;border:1.5px solid #ede9e0;text-transform:uppercase;letter-spacing:0.5px;">'+lbl+'</th>';
     });
     h+='</tr></thead><tbody>';
     if(_jns.length===0){
-      h+='<tr><td colspan="6" style="padding:20px;color:#888;font-style:italic;">No Dor sessions recorded for this period.</td></tr>';
+      h+='<tr><td colspan="6" style="padding:20px;color:#aaa;font-style:italic;">No Dor sessions recorded for this period.</td></tr>';
     } else {
       _jns.forEach(function(n,i){
         var rw=_jm[n];
-        var bg=i%2===0?'#fff':'#f9fafb';
+        var bg=i%2===0?'#fff':'#fafaf8';
         var mkC=rw.mistakes>10?'#e74c3c':rw.mistakes>5?'#e67e22':'#27ae60';
         h+='<tr style="background:'+bg+';">';
-        h+='<td style="padding:9px 12px;font-weight:700;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+n+'</td>';
-        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q1+'</td>';
-        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q2+'</td>';
-        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q3+'</td>';
-        h+='<td style="padding:9px 12px;border:1.5px solid #c8d0e0;">'+rw.q4+'</td>';
-        h+='<td style="padding:9px 12px;font-weight:700;color:'+mkC+';border:1.5px solid #c8d0e0;">'+rw.mistakes+'</td>';
+        h+='<td style="padding:10px 12px;font-weight:700;color:#1e2d5a;border:1.5px solid #ede9e0;">'+n+'</td>';
+        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q1+'</td>';
+        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q2+'</td>';
+        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q3+'</td>';
+        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q4+'</td>';
+        h+='<td style="padding:10px 12px;font-weight:700;color:'+mkC+';border:1.5px solid #ede9e0;">'+rw.mistakes+'</td>';
         h+='</tr>';
       });
-      h+='<tr style="background:#f0f4ff;font-weight:700;">';
-      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;font-size:11px;letter-spacing:0.5px;">TOTAL</td>';
-      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq1+'</td>';
-      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq2+'</td>';
-      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq3+'</td>';
-      h+='<td style="padding:10px 12px;color:#1a3a6b;border:1.5px solid #c8d0e0;">'+_tq4+'</td>';
-      h+='<td style="padding:10px 12px;color:#e74c3c;border:1.5px solid #c8d0e0;">'+_tmk+'</td>';
+      h+='<tr style="background:#f5f8ff;font-weight:700;">';
+      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;font-size:11px;letter-spacing:0.5px;">TOTAL</td>';
+      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq1+'</td>';
+      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq2+'</td>';
+      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq3+'</td>';
+      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq4+'</td>';
+      h+='<td style="padding:11px 12px;color:#e74c3c;border:1.5px solid #ede9e0;">'+_tmk+'</td>';
       h+='</tr>';
     }
-    h+='</tbody></table></div></div>';
+    h+='</tbody></table></div>';
   }
-  // Page 1 number
-  h+='<div class="pg-num"><div class="pg-num-line"></div>Page 1<div class="pg-num-line"></div></div>';
-
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // PAGE 2
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  h+='<div class="pgbreak"></div>';
-
-  // ── 5. Dor (Revision) Record — CSS Grid Heatmap ──────────
-  h+='<div style="background:#fff;border-radius:10px;overflow:hidden;border:1.5px solid #dde;margin-bottom:14px;">';
-  h+='<div style="background:#CF5B0C;display:flex;align-items:center;gap:10px;padding:9px 16px;">';
-  h+='<div style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;">5</div>';
-  h+='<div style="font-size:11px;font-weight:800;color:#fff;letter-spacing:0.8px;text-transform:uppercase;">Dor (Revision) Record This Month</div>';
+  // Page 1 footer — invisible spacer pushes pg-num to bottom
+  h+='<div style="flex:1;min-height:20px;"></div>';
+  h+='<div class="pg-num"><div class="pg-num-line"></div><span style="white-space:nowrap;font-size:10px;font-weight:700;color:#c9a553;letter-spacing:1.5px;padding:0 10px;">Page 1</span><div class="pg-num-line"></div></div>';
   h+='</div>';
+  }
+  if(pageNum!==1){
+  h+='<div style="flex:1;display:flex;flex-direction:column;">';
+  if(pageNum===2){
+  h+='<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;padding-bottom:12px;border-bottom:1.5px solid #ede9e0;">';
+  h+='<div style="width:54px;height:38px;overflow:hidden;flex-shrink:0;border-radius:3px;">';
+  h+='<img src="'+window.LOGO_SRC+'" style="width:54px;display:block;"/></div>';
+  h+='<div style="flex:1;"><div style="font-size:14px;font-weight:900;color:#1e2d5a;letter-spacing:1px;text-transform:uppercase;line-height:1.1;">Monthly Hifz Report</div>';
+  h+='<div style="font-size:10px;color:#9099ae;letter-spacing:1.2px;text-transform:uppercase;margin-top:3px;">Al-Ihsaan Academy</div></div>';
+  h+='<div style="text-align:right;"><div style="font-size:11px;font-weight:700;color:#1e2d5a;">'+esc(entry.name)+'</div>';
+  h+='<div style="font-size:9px;color:#a0a8b8;letter-spacing:0.5px;margin-top:2px;">'+dateRange+'</div></div>';
+  h+='</div>';
+  }
+
+  // 5. Dor (Revision) Record
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-orange"><span class="sec-num">5</span> Dor (Revision) Record This Month</div>';
   if(juzList.length>0){
-    h+='<div style="max-height:400px;overflow-y:auto;">'+hmHTML+'</div>';
-    h+='<div style="display:flex;justify-content:space-evenly;align-items:center;padding:10px 8px;border-top:1.5px solid #e5e7eb;">';
+    h+='<div>'+hmHTML+'</div>';
+    h+='<div style="display:flex;justify-content:space-evenly;align-items:center;padding:10px 12px;border-top:1.5px solid #ede9e0;">';
     [["#22c55e","Good (0–1.5)"],["#f59e0b","Needs Work (2–3)"],["#ef4444","Weak (3.5+)"],["#c0c0c0","Record Missing"]].forEach(function(item){
-      h+='<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;"><div style="width:10px;height:10px;border-radius:50%;background:'+item[0]+';"></div><span style="color:'+item[0]+'">'+item[1]+'</span></div>';
+      h+='<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;"><div style="width:10px;height:10px;border-radius:50%;background:'+item[0]+';flex-shrink:0;"></div><span style="color:'+item[0]+';">'+item[1]+'</span></div>';
     });
     h+='</div>';
     if(totalDorStr){
-      h+='<div style="border-top:1px solid #e5e7eb;padding:8px 16px;"><div style="font-size:9px;font-weight:500;color:#6b7280;margin-bottom:1px;">Total Dor Completed This Month</div><div style="font-size:13px;font-weight:800;color:#1e3a5f;">'+totalDorStr+'</div></div>';
+      h+='<div style="border-top:1px solid #ede9e0;padding:10px 18px;"><div style="font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Total Dor Completed This Month</div><div style="font-size:14px;font-weight:800;color:#1e2d5a;">'+totalDorStr+'</div></div>';
     }
   } else {
-    h+='<div style="padding:14px 16px;color:#888;font-size:12px;">No Dor entries recorded for this period.</div>';
+    h+='<div style="padding:16px 18px;color:#aaa;font-size:12px;font-style:italic;">No Dor entries recorded for this period.</div>';
   }
   h+='</div>';
 
-  // ── Daily Sabaq Analysis (if data exists) ─────────────────
+  // Daily Sabaq Analysis
   if(hasQuality&&!isHafidh){
-    h+='<div class="sec"><div class="sec-hdr sec-hdr-teal"><span class="sec-num">6</span> Daily Sabaq Analysis</div>';
-    h+='<div class="sec-body sec-body-teal"><table class="dtbl"><tr>';
+    h+='<div class="card">';
+    h+='<div class="sec-hdr sec-hdr-teal"><span class="sec-num">6</span> Daily Sabaq Analysis</div>';
+    h+='<table class="dtbl"><tr>';
     const mkColor=avgSpM>3?"#e74c3c":avgSpM>1.5?"#e67e22":"#27ae60";
     h+='<td><div class="lbl">Avg SP Mistakes/day</div><div class="val" style="color:'+mkColor+';">'+avgSpM+'</div></td>';
     h+='<td><div class="lbl">SP Scraped</div><div class="val" style="color:#e67e22;">'+spScrCt+' day'+(spScrCt!==1?"s":"")+'</div></td>';
@@ -1127,37 +1137,43 @@ function generateReportHTML(entry, calc, dorRecords, allRecords){
       if(llCt>0)h+='<td><div class="lbl">Less Lines than Target</div><div class="val" style="color:#2563eb;">'+llCt+' day'+(llCt!==1?"s":"")+'</div></td>';
       h+='</tr></table>';
     }
-    h+='</div></div>';
+    h+='</div>';
   }
 
   // Behaviour section number shifts if quality section shown
-  const bhvNum=hasQuality?7:6;
+  const bhvNum=hasQuality&&!isHafidh?7:6;
   const cmtNum=bhvNum+1;
 
-  // ── Behaviour ─────────────────────────────────────────────
-  h+='<div class="sec"><div class="sec-hdr sec-hdr-blue"><span class="sec-num">'+bhvNum+'</span> Behaviour</div>';
-  h+='<div class="sec-body"><table class="dtbl"><tr>';
-  h+='<td style="padding:14px;text-align:center;">';
+  // Behaviour
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-slate"><span class="sec-num">'+bhvNum+'</span> Behaviour</div>';
+  h+='<table class="dtbl"><tr>';
+  h+='<td style="padding:16px;text-align:center;">';
   h+='<div class="lbl">Behaviour Rating</div>';
-  h+='<div style="font-size:22px;font-weight:700;color:'+bhvColor+';margin:6px 0;">'+entry.behaviour+'/5 \u2013 '+bhvLabel+'</div>';
-  h+='<div style="font-size:11px;color:#888;margin-top:4px;">1 = Very Poor &nbsp;|&nbsp; 2 = Poor &nbsp;|&nbsp; 3 = Average &nbsp;|&nbsp; 4 = Good &nbsp;|&nbsp; 5 = Very Good</div>';
-  h+='</td></tr></table></div></div>';
+  h+='<div style="font-size:22px;font-weight:700;color:'+bhvColor+';margin:8px 0;">'+entry.behaviour+'/5 – '+bhvLabel+'</div>';
+  h+='<div style="font-size:11px;color:#a0a8b8;margin-top:4px;">1 = Very Poor &nbsp;|&nbsp; 2 = Poor &nbsp;|&nbsp; 3 = Average &nbsp;|&nbsp; 4 = Good &nbsp;|&nbsp; 5 = Very Good</div>';
+  h+='</td></tr></table></div>';
 
-  // ── Teacher Comments ──────────────────────────────────────
-  h+='<div class="sec"><div class="sec-hdr sec-hdr-navy"><span class="sec-num">'+cmtNum+'</span> Teacher\'s Comments</div>';
-  h+='<div class="sec-body"><div class="comments">'+esc(entry.teacherComments||"No comments recorded.")+'</div></div></div>';
-
-  // ── Footer ────────────────────────────────────────────────
-  h+='<div class="footer">';
-  h+='<strong>Please review your report with your child and address any concerns.<br/>';
-  h+='If the Madrasah is concerned regarding your child\u2019s performance, we will arrange a meeting soon <em>Insha\u2019Allah</em>.</strong><br/><br/>';
-  h+='<span style="color:#555;">If you have any questions regarding your child\u2019s report please contact the Head of Hifz</span><br/>';
-  h+='<strong>Ustaadh Tanweer &nbsp;|&nbsp; 07943 673 287</strong>';
+  // Teacher Comments
+  h+='<div class="card">';
+  h+='<div class="sec-hdr sec-hdr-blue"><span class="sec-num">'+cmtNum+'</span> Teacher\'s Comments</div>';
+  h+='<div class="comments-body">'+esc(entry.teacherComments||"No comments recorded.")+'</div>';
   h+='</div>';
 
-  // Page 2 number
-  h+='<div class="pg-num"><div class="pg-num-line"></div>Page 2<div class="pg-num-line"></div></div>';
+  // Footer
+  h+='<div class="card" style="border:1.5px solid #e0c97a;">';
+  h+='<div class="footer-inner">';
+  h+='<strong>Please review your report with your child and address any concerns.<br/>';
+  h+='If the Madrasah is concerned regarding your child’s performance, we will arrange a meeting soon <em>Insha’Allah</em>.</strong><br/><br/>';
+  h+='<span style="color:#7a7a6a;">If you have any questions regarding your child’s report please contact the Head of Hifz</span><br/>';
+  h+='<strong>Ustaadh Tanweer &nbsp;|&nbsp; 07943 673 287</strong>';
+  h+='</div></div>';
 
+  h+='<div style="flex:1;min-height:16px;"></div>';
+  // Page 2 number
+  h+='<div class="pg-num"><div class="pg-num-line"></div><span style="white-space:nowrap;font-size:10px;font-weight:700;color:#c9a553;letter-spacing:1.5px;padding:0 10px;">Page 2</span><div class="pg-num-line"></div></div>';
+  h+='</div>';
+  }
   h+='</body></html>';
   return h;
 }
@@ -1711,6 +1727,23 @@ function App(){
   const [editingId,setEditingId]=React.useState(null);
   const [syncStatus,setSyncStatus]=React.useState("loading");
   const [selectedStudents,setSelectedStudents]=React.useState([]);
+  const [emailsSent,setEmailsSent]=React.useState(function(){try{return JSON.parse(localStorage.getItem('hifz_emails_sent')||'{}');}catch(e){return {};}});
+  const [teacherContacts,setTeacherContacts]=React.useState(function(){
+    try{
+      var saved=localStorage.getItem('hifz_teacher_contacts');
+      if(saved)return JSON.parse(saved);
+      // Migrate from old single-string format
+      var old=localStorage.getItem('hifz_teacher_emails');
+      if(old)return old.split(/[,;\s]+/).filter(Boolean).map(function(e){return{id:Math.random().toString(36).slice(2),name:'',email:e.trim()};});
+    }catch(e){}
+    return[];
+  });
+  const [showTeacherPanel,setShowTeacherPanel]=React.useState(false);
+  const [selectedTeachers,setSelectedTeachers]=React.useState([]);
+  const [newTcName,setNewTcName]=React.useState('');
+  const [newTcEmail,setNewTcEmail]=React.useState('');
+  const [postSaveView,setPostSaveView]=React.useState("menu");
+  const [missingOpen,setMissingOpen]=React.useState(false);
   const [profileName,setProfileName]=React.useState("");
   const [historyClass,setHistoryClass]=React.useState("");
   const [historyDateFrom,setHistoryDateFrom]=React.useState("");
@@ -1864,6 +1897,34 @@ function App(){
     window.addEventListener("online",onOnline);
     return ()=>window.removeEventListener("online",onOnline);
   },[]);
+  // Supabase Realtime: live multi-device sync
+  React.useEffect(function(){
+    function setup(){
+      if(!window.supabase)return function(){};
+      var client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+      var channel=client.channel('hifz-realtime-v1');
+      ['sabaq_records','dor_records','daily_sabaq','register_data'].forEach(function(tbl){
+        channel.on('postgres_changes',{event:'*',schema:'public',table:tbl},function(){
+          if(Date.now()<realtimeIgnoreUntil.current)return; // our own write — skip
+          clearTimeout(realtimeDebounce.current);
+          realtimeDebounce.current=setTimeout(function(){
+            loadCloud().catch(function(e){console.warn('Realtime reload:',e);});
+          },1500);
+        });
+      });
+      channel.subscribe(function(status){
+        setRealtimeConnected(status==='SUBSCRIBED');
+      });
+      return function(){try{client.removeChannel(channel);}catch(e){}};
+    }
+    if(window.supabase){return setup();}
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js';
+    var cleanup=function(){};
+    s.onload=function(){cleanup=setup();};
+    document.head.appendChild(s);
+    return function(){cleanup();};
+  },[]);
   // Debounced auto-sync: fires 2s after user-driven data change
   // isFirstLoad prevents syncing stale localStorage data on mount
   const syncTimer=React.useRef(null);
@@ -1876,6 +1937,12 @@ function App(){
   // Always-fresh refs so event-listener closures (registered once) can call the latest sync fns
   const syncNowRef=React.useRef(null);
   const scheduleSyncRef=React.useRef(null);
+  // Realtime: ignore events for 5s after our own sync to avoid redundant reloads
+  const realtimeIgnoreUntil=React.useRef(0);
+  const realtimeDebounce=React.useRef(null);
+  const [realtimeConnected,setRealtimeConnected]=React.useState(false);
+  // AI comment generation
+  const [isGeneratingComment,setIsGeneratingComment]=React.useState(false);
   function scheduleSync(){
     if(isFirstLoad.current)return; // skip until loadCloud completes
     if(syncTimer.current)clearTimeout(syncTimer.current);
@@ -2389,11 +2456,133 @@ function App(){
   }
   function sendSelected(){
     if(!selectedStudents||selectedStudents.length===0){showToast("No students selected.","warning");return;}
-    selectedStudents.forEach(function(id){
-      var record=records.find(function(r){return r.id===id;});
-      if(record)sendReport(record);
-    });
+    var toSend=selectedStudents.map(function(id){return records.find(function(r){return r.id===id;});}).filter(Boolean);
     setSelectedStudents([]);
+    if(toSend.length===1){
+      emailReportPDF(toSend[0]);
+      return;
+    }
+    showToast("Queuing "+toSend.length+" reports… each will confirm when sent ✉️","info",4000);
+    toSend.forEach(function(record,i){
+      setTimeout(function(){emailReportPDF(record);},i*2000);
+    });
+  }
+  function addDataForStudent(student){
+    var now=new Date();
+    var y=now.getFullYear(),mo=String(now.getMonth()+1).padStart(2,'0');
+    var lastDay=new Date(y,now.getMonth()+1,0).getDate();
+    var df=y+'-'+mo+'-01',dt=y+'-'+mo+'-'+String(lastDay).padStart(2,'0');
+    if(student.id&&!student.isStudentProfile){
+      // Has an existing (empty) record — edit it
+      openEdit(student.id);
+    }else{
+      // Profile-only student — create a new record pre-filled
+      setForm(Object.assign({},defaultEntry,{name:student.name,class:student.class||'HIFZ CLASS A',dateFrom:df,dateTo:dt}));
+      setEditingId(null);
+      setView("addEntry");
+    }
+    setPostSaveView("reports");
+  }
+  function openTeacherPanel(){
+    if(!selectedStudents||selectedStudents.length===0){showToast("Select students first.","warning");return;}
+    var toCheck=selectedStudents.map(function(id){return records.find(function(r){return r.id===id;});}).filter(Boolean).filter(hasReportData);
+    if(!toCheck.length){showToast("No report data for any selected student.","warning");return;}
+    // Pre-select all contacts by default
+    setSelectedTeachers(teacherContacts.map(function(c){return c.id;}));
+    setShowTeacherPanel(true);
+  }
+  function sendTeacherDigest(emailList){
+    var toSend=selectedStudents.map(function(id){return records.find(function(r){return r.id===id;});}).filter(Boolean).filter(hasReportData);
+    if(!toSend.length){showToast("No report data for any selected student.","warning");setShowTeacherPanel(false);return;}
+    setShowTeacherPanel(false);
+    setSelectedStudents([]);
+    showToast("⏳ Uploading "+toSend.length+" report"+(toSend.length!==1?"s":"")+" — links coming…","info",6000);
+    // Generate HTML for each student and upload to Supabase Storage
+    var links=[];
+    var completed=0;
+    var firstMonth=toSend[0]&&toSend[0].dateFrom?new Date(toSend[0].dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
+    var yearMonth=toSend[0]&&toSend[0].dateFrom?toSend[0].dateFrom.slice(0,7):"unknown";
+    function onAllDone(){_sendDigestLinks(emailList,toSend,links,firstMonth);}
+    toSend.forEach(function(record,i){
+      setTimeout(function(){
+        try{
+          var calc=Object.assign({},record,calcEntry(record));
+          var html=generateReportHTML(record,calc,dorRecords||[],records||[]);
+          var safeName=(record.name||"student").replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"_");
+          var path=yearMonth+"/"+safeName+".html";
+          var publicUrl=SUPABASE_URL+"/storage/v1/object/public/hifz-reports/"+path;
+          // Upload HTML to public Supabase Storage bucket
+          fetch(SUPABASE_URL+"/storage/v1/object/hifz-reports/"+path,{
+            method:"POST",
+            headers:{"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"text/html; charset=utf-8","x-upsert":"true"},
+            body:html
+          }).then(function(){
+            links.push({name:record.name,url:publicUrl});
+            completed++;
+            if(completed===toSend.length)onAllDone();
+          }).catch(function(e){
+            console.warn("Upload failed for "+record.name,e);
+            links.push({name:record.name,url:null});
+            completed++;
+            if(completed===toSend.length)onAllDone();
+          });
+        }catch(e){
+          links.push({name:record.name,url:null});
+          completed++;
+          if(completed===toSend.length)onAllDone();
+        }
+      },i*200);
+    });
+  }
+  function _sendDigestLinks(emailList,students,links,firstMonth){
+    var subject="Al-Ihsaan — Hifz Reports"+(firstMonth?" ("+firstMonth+")":"")+" ["+students.length+" student"+(students.length!==1?"s":"")+"]";
+    // Build HTML email body with clickable student name buttons
+    var btnStyle="display:inline-block;background:#c9a553;color:#1b1200;padding:9px 20px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;font-family:Arial,sans-serif;";
+    var fallbackStyle="color:#888;font-size:13px;font-family:Arial,sans-serif;";
+    var rows=links.map(function(lnk){
+      return '<tr>'
+        +'<td style="padding:10px 16px;font-size:15px;font-family:Arial,sans-serif;color:#1a1a1a;vertical-align:middle;font-weight:600;">'+lnk.name+'</td>'
+        +'<td style="padding:10px 16px;vertical-align:middle;">'
+        +(lnk.url
+          ?'<a href="'+lnk.url+'" style="'+btnStyle+'">View Report →</a>'
+          :'<span style="'+fallbackStyle+'">(upload failed)</span>')
+        +'</td>'
+        +'</tr>';
+    }).join('');
+    var bodyHtml=
+      '<div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#1a1a1a;">'
+      +'<p style="font-size:15px;margin-bottom:8px;">Assalāmu \'Alaykum wa Rahmatullāhi wa Barakātuh</p>'
+      +'<p style="margin-bottom:4px;">Please find below the monthly Hifz reports'+(firstMonth?' for <strong>'+firstMonth+'</strong>':'')+'.</p>'
+      +'<p style="margin-bottom:20px;color:#555;font-size:13px;">Click a student\'s name to open their full report in your browser.</p>'
+      +'<table style="border-collapse:collapse;width:100%;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;">'
+      +'<thead><tr style="background:#f9f6ef;">'
+      +'<th style="text-align:left;padding:10px 16px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#888;font-family:Arial,sans-serif;">Student</th>'
+      +'<th style="text-align:left;padding:10px 16px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#888;font-family:Arial,sans-serif;">Report</th>'
+      +'</tr></thead>'
+      +'<tbody>'+rows+'</tbody>'
+      +'</table>'
+      +'<p style="margin-bottom:4px;">Jazākallāhu Khayran.</p>'
+      +'<p style="margin-top:0;"><strong>Head of Hifz</strong><br>Madrasah Al-Ihsaan</p>'
+      +'</div>';
+    var bodyText="Assalāmu 'Alaykum wa Rahmatullāhi wa Barakātuh\n\nHifz Reports"+(firstMonth?" for "+firstMonth:"")+":\n\n"
+      +links.map(function(lnk){return lnk.name+": "+(lnk.url||"(unavailable)");}).join("\n")
+      +"\n\nJazākallāhu Khayran.\nHead of Hifz\nMadrasah Al-Ihsaan";
+    showToast("📤 Sending to "+emailList.join(", ")+"…","info",5000);
+    fetch(SUPABASE_URL+"/functions/v1/send-report-email",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+      body:JSON.stringify({to:emailList,subject:subject,bodyText:bodyText,bodyHtml:bodyHtml})
+    })
+    .then(function(r){
+      if(!r.ok){return r.text().then(function(t){throw new Error("Server error "+r.status+": "+t.slice(0,200));});}
+      return r.json();
+    })
+    .then(function(data){
+      var ok=links.filter(function(l){return l.url;}).length;
+      if(data.success){showToast("✅ Teacher digest sent — "+ok+"/"+links.length+" report link"+(links.length!==1?"s":"")+" included","success",7000);}
+      else{showToast("❌ Digest failed: "+(data.error||"Unknown error"),"error",7000);}
+    })
+    .catch(function(e){showToast("❌ Digest send failed: "+e.message,"error",7000);});
   }
   function sendReport(record){
     if(!hasReportData(record)){
@@ -2429,34 +2618,60 @@ function App(){
     }
   }
 
-  // ── Email PDF: generate PDF, save it, open Gmail compose pre-filled ───────
+  // ── Email PDF: generate PDF and send via Supabase Edge Function ─────────
   function emailReportPDF(record){
     if(!hasReportData(record)){showToast("No data for "+record.name+" yet — add their pages/days first.","warning",4000);return;}
-    // Resolve phone/email from monthly record, falling back to student profile
     var profile=(records||[]).find(function(r){return r.isStudentProfile&&r.name===record.name;});
     var email1=record.parentEmail1||(profile&&profile.parentEmail1)||"";
     var email2=record.parentEmail2||(profile&&profile.parentEmail2)||"";
     var emails=[email1,email2].filter(Boolean);
+    if(!emails.length){showToast("No parent email on file for "+record.name+" — add one in their profile first.","warning",5000);return;}
     var monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
     var safeName=(record.name||"student").replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"_");
+    var filename="Report_"+safeName+(monthStr?"_"+monthStr.replace(/\s/g,"_"):"")+".pdf";
+    showToast("⏳ Preparing report for "+record.name+"…","info",3500);
     generateReportPDF(record,dorRecords,records,function(err,pdfBlob){
       if(err){showToast("PDF error: "+err.message,"error");return;}
-      // 1. Download the PDF to the user's device
-      downloadBlob(pdfBlob,"Report_"+safeName+(monthStr?"_"+monthStr.replace(/\s/g,"_"):"")+".pdf");
-      // 2. Open Gmail compose with parent email(s) pre-filled
-      var subject=encodeURIComponent("Al-Ihsaan Academy — Hifz Report: "+record.name+(monthStr?" ("+monthStr+")":""));
-      var body=encodeURIComponent(
-        "السلام عليكم ورحمة الله وبركاته\n\n"+
-        "Dear Parent,\n\n"+
-        "Please find the Hifz monthly report for "+record.name+" attached.\n\n"+
-        (monthStr?"Month: "+monthStr+"\n\n":"")+
-        "JazakAllahu Khayran\nAl-Ihsaan Academy — Hifz Department"
-      );
-      var gmailUrl="https://mail.google.com/mail/?view=cm&fs=1"+
-        (emails.length?"&to="+encodeURIComponent(emails.join(",")):"")+"&su="+subject+"&body="+body;
-      setTimeout(function(){window.open(gmailUrl,"_blank");},600);
-      showToast("✅ PDF saved to Downloads — attach it in the Gmail tab that just opened, then send!","success",7000);
+      var reader=new FileReader();
+      reader.onload=function(){
+        var pdfBase64=reader.result.split(",")[1];
+        var subject="Al-Ihsaan Academy — Hifz Report: "+record.name+(monthStr?" ("+monthStr+")":"");
+        var bodyText="Assalāmu 'Alaykum wa Rahmatullāhi wa Barakātuh\n\nDear Parent,\n\nPlease find attached the Monthly Hifz Report for "+record.name+".\n\n"+(monthStr?"Month: "+monthStr+"\n\n":"")+"We encourage all parents to review this report with their child, discuss their progress, and support them in working towards their targets.\n\nJazākallāhu Khayran.\n\nHead of Hifz\nMadrasah Al-Ihsaan";
+        fetch(SUPABASE_URL+"/functions/v1/send-report-email",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+          body:JSON.stringify({to:emails,subject:subject,bodyText:bodyText,pdfBase64:pdfBase64,filename:filename})
+        })
+        .then(function(r){
+          if(!r.ok){return r.text().then(function(t){throw new Error("Server error "+r.status+": "+t.slice(0,200));});}
+          return r.json();
+        })
+        .then(function(data){
+          if(data.success){
+            showToast("✅ Report sent to "+emails.join(" & "),"success",5000);
+            var sentKey=record.name+"_"+(monthStr||"unknown");
+            setEmailsSent(function(prev){var next=Object.assign({},prev);next[sentKey]=new Date().toISOString();try{localStorage.setItem('hifz_emails_sent',JSON.stringify(next));}catch(e){}return next;});
+          }else{
+            showToast("❌ Email failed: "+(data.error||"Unknown error"),"error",7000);
+          }
+        })
+        .catch(function(e){showToast("❌ Send failed: "+e.message,"error",7000);});
+      };
+      reader.readAsDataURL(pdfBlob);
     });
+  }
+
+  // ── View report inline in a new browser tab (no download needed) ──────────
+  function viewReportInBrowser(record){
+    if(!hasReportData(record)){showToast("No data for "+record.name+" yet — add their pages/days first.","warning",4000);return;}
+    try{
+      var calc=Object.assign({},record,calcEntry(record));
+      var html=generateReportHTML(record,calc,dorRecords||[],records||[]);
+      var blob=new Blob([html],{type:"text/html;charset=utf-8"});
+      var url=URL.createObjectURL(blob);
+      window.open(url,"_blank");
+      setTimeout(function(){URL.revokeObjectURL(url);},20000);
+    }catch(e){showToast("Preview error: "+e.message,"error");}
   }
 
   // ── WhatsApp PDF: generate PDF, save it, open WhatsApp Web pre-filled ─────
@@ -2546,7 +2761,9 @@ function App(){
       setRecords(prev=>[...prev,{...savedForm,id:uid()}]);
     }
     showToast(editingId?"Changes saved":"Entry saved","success");
-    setView("menu");setEditingId(null);setForm(defaultEntry);setAddNewStudent(false);
+    var _dest=postSaveView||"menu";
+    setPostSaveView("menu");
+    setView(_dest);setEditingId(null);setForm(defaultEntry);setAddNewStudent(false);
   }
   async function clearAllData(){
     if(!await checkAdminPassword(clearPwd)){showToast("Incorrect password.","error");return;}
@@ -2630,6 +2847,37 @@ function App(){
   }
   function fc(f,v){setForm(prev=>({...prev,[f]:v}));}
 
+  async function generateComment(){
+    // Build a brief stats summary to send to the AI
+    const name=form.name||"this student";
+    const sides=parseFloat(form.totalFullSides)||0;
+    const lines=parseFloat(form.plusLines)||0;
+    const absences=parseInt(form.absences)||0;
+    const days=parseInt(form.totalDaysOfSabaq)||0;
+    const dorDays=parseInt(form.paraDorMornings)||0;
+    const behaviour=parseInt(form.behaviour)||3;
+    const fromDate=form.dateFrom||"";
+    const toDate=form.dateTo||"";
+    const avg=days>0?(sides+(lines/16))/days:0;
+    const stats={name,sides,lines,absences,days,dorDays,behaviour,avg:avg.toFixed(2),fromDate,toDate};
+    setIsGeneratingComment(true);
+    try{
+      const resp=await fetch(SUPABASE_URL+"/functions/v1/generate-report-comment",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+SUPABASE_KEY},
+        body:JSON.stringify(stats)
+      });
+      if(!resp.ok){const t=await resp.text();throw new Error(t||resp.status);}
+      const data=await resp.json();
+      if(data.comment){fc("teacherComments",data.comment);}
+      else{throw new Error("No comment returned");}
+    }catch(e){
+      showToast("Could not generate comment: "+e.message,"error");
+    }finally{
+      setIsGeneratingComment(false);
+    }
+  }
+
   async function syncNow(){
     if(isFirstLoad.current)return;
     if(isSyncing.current){pendingSync.current=true;return;} // queue if already syncing
@@ -2651,7 +2899,7 @@ function App(){
       const failures=results.filter(r=>r.status==="rejected");
       if(failures.length>0){console.warn("syncNow partial failures:",failures.map(f=>f.reason?.message||f.reason));}
       const anyOk=results.some(r=>r.status==="fulfilled");
-      if(anyOk){setSyncStatus("live");}
+      if(anyOk){setSyncStatus("live");realtimeIgnoreUntil.current=Date.now()+5000;}
       else{setSyncStatus("offline");}
     }catch(e){
       console.error("syncNow",e);
@@ -2715,13 +2963,16 @@ function App(){
   return React.createElement(React.Fragment,null,
 
     /* ── SW UPDATE BANNER ── */
-    swUpdate&&React.createElement('div',{style:{position:"fixed",top:0,left:0,right:0,zIndex:9999,background:"#1e3a5f",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 18px",gap:12,boxShadow:"0 2px 16px rgba(0,0,0,0.4)",flexWrap:"wrap"}},
-      React.createElement('span',{style:{fontSize:14,fontWeight:"600"}},"🔄 A new version of the app is available"),
+    swUpdate&&React.createElement('div',{style:{position:"fixed",top:0,left:0,right:0,zIndex:9999,background:"linear-gradient(135deg,#0a1e12 0%,#07150e 100%)",color:"#f7f4ec",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 18px",gap:12,boxShadow:"0 2px 20px rgba(0,0,0,0.55)",borderBottom:"1.5px solid rgba(201,165,83,0.45)",flexWrap:"wrap"}},
+      React.createElement('span',{style:{fontSize:13,fontWeight:"600",display:"flex",alignItems:"center",gap:9}},
+        React.createElement('span',{style:{fontSize:13,color:"#c9a553",fontWeight:"800",flexShrink:0}},"✦"),
+        React.createElement('span',null,"A new version of Al-Ihsaan Hifz is available")
+      ),
       React.createElement('button',{onClick:function(){
         var w=swWaitingRef.current;
         if(w){w.postMessage({type:'SKIP_WAITING'});}
         else{window.location.reload();}
-      },style:{background:"#fff",color:"#1e3a5f",border:"none",borderRadius:8,padding:"8px 20px",cursor:"pointer",fontWeight:"700",fontSize:13,whiteSpace:"nowrap"}},"Refresh Now")
+      },style:{background:"linear-gradient(135deg,#c9a553,#d4b860)",color:"#07150e",border:"none",borderRadius:8,padding:"7px 18px",cursor:"pointer",fontWeight:"800",fontSize:12,whiteSpace:"nowrap",letterSpacing:"0.5px",boxShadow:"0 2px 8px rgba(201,165,83,0.3)"}},"Refresh Now")
     ),
 
   React.createElement('div',{style:{minHeight:"100vh",background:DARK,display:"flex",flexDirection:"column",fontFamily:"'Inter','Segoe UI',Georgia,sans-serif",paddingTop:swUpdate?"44px":"0"}},
@@ -2909,7 +3160,15 @@ function App(){
         ]},
       ];
 
-      return GROUPS.map(group=>React.createElement('div',{key:group.label,style:{marginBottom:24}},
+      var vTag=React.createElement('div',{style:{
+        textAlign:"center",padding:"8px 0 4px",
+        fontSize:10,letterSpacing:"0.12em",
+        color:"rgba(201,165,83,0.38)",
+        fontFamily:"Manrope,'Inter',sans-serif",
+        fontWeight:"600",
+        userSelect:"none"
+      }},APP_VERSION.replace('hifz-','v '));
+      return[...GROUPS.map(group=>React.createElement('div',{key:group.label,style:{marginBottom:24}},
         /* Group label */
         React.createElement('div',{style:{
           color:"#c9a553",fontSize:10,fontWeight:"800",
@@ -2969,7 +3228,7 @@ function App(){
             }},"›")
           ))
         )
-      ));
+      )),vTag];
     })()
   )
 ))
@@ -3251,7 +3510,31 @@ function App(){
 
         /* TEACHER COMMENTS */
         , React.createElement(FormRow, { label: "Teacher Comments" ,}
-          , React.createElement('textarea', { value: form.teacherComments, onChange: e=>fc("teacherComments",e.target.value), placeholder: "Enter comments..." , style: {...inputStyle,height:90,resize:"vertical"},})
+          , React.createElement('div', { style: {position:"relative"} }
+            , React.createElement('textarea', { value: form.teacherComments, onChange: e=>fc("teacherComments",e.target.value), placeholder: "Enter comments or tap ✨ to generate..." , style: {...inputStyle,height:90,resize:"vertical",paddingRight:90},})
+            , React.createElement('button', {
+                onClick: generateComment,
+                disabled: isGeneratingComment||!form.name,
+                title: "Generate comment with AI",
+                style: {
+                  position:"absolute",top:8,right:8,
+                  background:isGeneratingComment?"#374151":"#1d2d44",
+                  border:"1px solid "+GOLD+"66",
+                  borderRadius:8,padding:"4px 10px",
+                  color:isGeneratingComment?MUTED:GOLD,
+                  fontSize:12,fontWeight:"600",cursor:isGeneratingComment||!form.name?"not-allowed":"pointer",
+                  display:"flex",alignItems:"center",gap:4,transition:"all .2s",
+                  opacity:!form.name?0.4:1
+                }
+              }
+              , isGeneratingComment
+                ? React.createElement('span', { style: {display:"inline-flex",alignItems:"center",gap:5} }
+                    , React.createElement('span', { style: {display:"inline-block",width:10,height:10,border:"2px solid "+GOLD,borderTopColor:"transparent",borderRadius:"50%",animation:"spin 0.7s linear infinite"} })
+                    , "…"
+                  )
+                : "✨"
+            )
+          )
         )
 
         /* PARENT EMAILS - only shown if new student or no emails saved */
@@ -3319,6 +3602,7 @@ function App(){
                 , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Attend: " ), React.createElement('span', { style: {color:TEXT},}, fmt(r.attendancePct,2), "%"))
               )
               , React.createElement('div', { style: {display:"flex",gap:6,flexWrap:"wrap"},}
+                , React.createElement('button', { onClick: ()=>viewReportInBrowser(r), title:"View report in browser", style: {background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.3)",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "👁" )
                 , React.createElement('button', { onClick: ()=>emailReportPDF(r), title:"Email PDF to parent", style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧 PDF" )
                 , (()=>{var _wp=(records.find(x=>x.isStudentProfile&&x.name===r.name)||{});var _ph=r.fatherPhone||_wp.fatherPhone||r.motherPhone||_wp.motherPhone||"";return _ph?React.createElement('button', { onClick: ()=>whatsappReport(r,_ph), title:"Send via WhatsApp", style: {background:"#25D366",color:"#fff",border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "💬"):null;})()
                 , React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 12px",cursor:"pointer",fontSize:12},}, "Edit")
@@ -3879,6 +4163,7 @@ function App(){
                       , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:BEHAVIOUR_COLORS[r.behaviour]||GREEN},}, r.behaviour, "/5"))
                     )
                     , React.createElement('div', { style: {display:"flex",gap:6,flexWrap:"wrap"},}
+                      , React.createElement('button', { onClick: ()=>viewReportInBrowser(r), title:"View report in browser", style: {background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.3)",borderRadius:6,padding:"6px 8px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "👁" )
                       , React.createElement('button', { onClick: ()=>emailReportPDF(r), title:"Email PDF", style: {background:GOLD,color:DARK,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12,fontWeight:"bold"},}, "📧")
                       , (()=>{var _wp2=(records.find(x=>x.isStudentProfile&&x.name===r.name)||{});var _ph2=r.fatherPhone||_wp2.fatherPhone||r.motherPhone||_wp2.motherPhone||"";return _ph2?React.createElement('button',{onClick:()=>whatsappReport(r,_ph2),title:"WhatsApp",style:{background:"#25D366",color:"#fff",border:"none",borderRadius:6,padding:"6px 8px",cursor:"pointer",fontSize:12,fontWeight:"bold"}},"💬"):null;})()
                       , React.createElement('button', { onClick: ()=>openEdit(r.id), style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"6px 10px",cursor:"pointer",fontSize:12},}, "Edit")
@@ -3895,57 +4180,212 @@ function App(){
 
 
     /* REPORTS */
-    , view==="reports"&&(
-    React.createElement('div', { style: {padding:24},}
-      , React.createElement('div', { style: {display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12},}
-        , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:16},}, "📄 Send Reports"  )
-        , selectedStudents.length>0&&React.createElement('button', { onClick: sendSelected, style: {background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"10px 20px",cursor:"pointer",fontWeight:"bold",fontSize:13},}, "📧 Send "  , selectedStudents.length, " Selected" )
-      )
-      , [...CLASSES].map(cls=>{
-        const clsRecords=latestPerStudent.filter(s=>s.class===cls);
-        if(!clsRecords.length)return null;
-        const allIds=clsRecords.map(s=>s.id);
-        const allSel=allIds.every(id=>selectedStudents.includes(id));
-        return(
-          React.createElement('div', { key: cls, style: {marginBottom:28},}
-            , React.createElement('div', { style: {display:"flex",alignItems:"center",gap:12,marginBottom:12},}
-              , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:14,letterSpacing:2},}, cls)
-              , React.createElement('button', { onClick: ()=>{if(allSel)setSelectedStudents(p=>p.filter(id=>!allIds.includes(id)));else setSelectedStudents(p=>[...new Set([...p,...allIds])]);}, style: {background:ACCENT,color:TEXT,border:"none",borderRadius:6,padding:"4px 12px",cursor:"pointer",fontSize:12},}, allSel?"Deselect All":"Select All")
+    , view==="reports"&&(()=>{
+      const rptStudents=latestPerStudent.filter(s=>hasReportData(s));
+      const totalSel=selectedStudents.length;
+      return React.createElement('div', { style: {padding:"20px 16px 100px"},}
+        /* ── Header ── */
+        , React.createElement('div', { style: {display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24},}
+          , React.createElement('div', null
+            , React.createElement('div', { style: {fontSize:20,fontWeight:800,color:TEXT,letterSpacing:"-0.3px"},}, "Reports")
+            , React.createElement('div', { style: {fontSize:12,color:MUTED,marginTop:2},}, rptStudents.length, " student", rptStudents.length!==1?"s":"", " ready to send")
+          )
+          , totalSel>0&&React.createElement('button', { onClick: ()=>{setSelectedStudents([]);}, style: {background:"transparent",border:"none",color:MUTED,fontSize:12,cursor:"pointer",padding:"6px 10px",borderRadius:8}}, "Clear")
+        )
+        /* ── Class sections ── */
+        , rptStudents.length===0
+          ? React.createElement('div', { style: {textAlign:"center",padding:"60px 20px",color:MUTED},}
+              , React.createElement('div', { style: {fontSize:36,marginBottom:12},}, "📭")
+              , React.createElement('div', { style: {fontWeight:700,fontSize:15,color:TEXT,marginBottom:6},}, "No reports ready yet")
+              , React.createElement('div', { style: {fontSize:13},}, "Reports appear here once a student's monthly data is filled in.")
             )
-            , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12},}
-              , clsRecords.map(s=>{
-                const isSel=selectedStudents.includes(s.id);
-                return(
-                  React.createElement('div', { key: s.id, style: {background:isSel?"#FFFBEB":CARD,borderRadius:16,padding:18,border:"2px solid "+(isSel?GOLD:"rgba(0,0,0,0.07)"),boxShadow:"0 1px 6px rgba(0,0,0,0.05)"},}
-                    , React.createElement('div', { style: {display:"flex",alignItems:"center",gap:10,marginBottom:12},}
-                      , React.createElement('input', { type: "checkbox", checked: isSel, onChange: ()=>toggleSelect(s.id), style: {width:18,height:18,cursor:"pointer",accentColor:GOLD},})
-                      , React.createElement('div', null, React.createElement('div', { style: {color:isSel?GOLD:TEXT,fontWeight:"bold"},}, s.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, s.monthName))
-                    )
-                    , React.createElement('div', { style: {fontSize:12,color:MUTED,marginBottom:12},}
-                      , React.createElement('div', null, "📊 Avg: "  , React.createElement('span', { style: {color:getAvgColor(s.K),fontWeight:"bold"},}, fmt(s.K,2)))
-                      , (()=>{var _rp=(records.find(x=>x.isStudentProfile&&x.name===s.name)||{});var _em1=s.parentEmail1||_rp.parentEmail1||"";var _em2=s.parentEmail2||_rp.parentEmail2||"";var _fph=s.fatherPhone||_rp.fatherPhone||"";var _mph=s.motherPhone||_rp.motherPhone||"";return React.createElement('div',{style:{marginTop:6,display:"grid",gap:3}},[_em1&&React.createElement('div',{key:"e1",style:{fontSize:11}},"📧 "+_em1),_em2&&React.createElement('div',{key:"e2",style:{fontSize:11}},"📧 "+_em2),_fph&&React.createElement('div',{key:"fp",style:{fontSize:11,color:"#25D366"}},"💬 Dad: "+_fph),_mph&&React.createElement('div',{key:"mp",style:{fontSize:11,color:"#25D366"}},"💬 Mum: "+_mph)]);})()
-                    )
-                    , React.createElement('button', { onClick: ()=>emailReportPDF(s), style: {width:"100%",background:GOLD,color:DARK,border:"none",borderRadius:8,padding:"9px",cursor:"pointer",fontWeight:"bold",fontSize:13,marginBottom:6},}, "📧 Email PDF"  )
-                    , (()=>{
-                        var _rp3=(records.find(x=>x.isStudentProfile&&x.name===s.name)||{});
-                        var _fph3=s.fatherPhone||_rp3.fatherPhone||"";
-                        var _mph3=s.motherPhone||_rp3.motherPhone||"";
-                        if(!_fph3&&!_mph3)return null;
-                        return React.createElement('div',{style:{display:"flex",gap:6}},
-                          _fph3&&React.createElement('button',{onClick:()=>whatsappReport(s,_fph3),style:{flex:1,background:"#25D366",color:"#fff",border:"none",borderRadius:8,padding:"8px 4px",cursor:"pointer",fontWeight:"bold",fontSize:12}},"💬 Dad"),
-                          _mph3&&React.createElement('button',{onClick:()=>whatsappReport(s,_mph3),style:{flex:1,background:"#128C7E",color:"#fff",border:"none",borderRadius:8,padding:"8px 4px",cursor:"pointer",fontWeight:"bold",fontSize:12}},"💬 Mum")
-                        );
-                      })()
-                  )
+          : [...CLASSES].map(cls=>{
+              const clsRecs=rptStudents.filter(s=>s.class===cls);
+              if(!clsRecs.length)return null;
+              const allIds=clsRecs.map(s=>s.id);
+              const allSel=allIds.every(id=>selectedStudents.includes(id));
+              return React.createElement('div', { key: cls, style: {marginBottom:32},}
+                /* Class header */
+                , React.createElement('div', { style: {display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10},}
+                  , React.createElement('div', { style: {fontSize:11,fontWeight:700,letterSpacing:"1.8px",textTransform:"uppercase",color:MUTED},}, cls)
+                  , React.createElement('button', {
+                      onClick: ()=>{ if(allSel) setSelectedStudents(p=>p.filter(id=>!allIds.includes(id))); else setSelectedStudents(p=>[...new Set([...p,...allIds])]); },
+                      style: {background:"none",border:"none",fontSize:12,color:allSel?RED:GOLD,fontWeight:600,cursor:"pointer",padding:"4px 0"}
+                    }, allSel?"Deselect all":"Select all")
+                )
+                /* Student rows */
+                , React.createElement('div', { style: {display:"flex",flexDirection:"column",gap:8},}
+                  , clsRecs.map(s=>{
+                    const isSel=selectedStudents.includes(s.id);
+                    const _prof=records.find(x=>x.isStudentProfile&&x.name===s.name)||{};
+                    const _fph=s.fatherPhone||_prof.fatherPhone||"";
+                    const _mph=s.motherPhone||_prof.motherPhone||"";
+                    const _hasWA=!!(_fph||_mph);
+                    const _monthStr=s.dateFrom?new Date(s.dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
+                    const _sentKey=s.name+"_"+(_monthStr||"unknown");
+                    const _wasSent=!!emailsSent[_sentKey];
+                    return React.createElement('div', {
+                        key: s.id,
+                        onClick: ()=>toggleSelect(s.id),
+                        style: {
+                          background: isSel?"#fffbeb":CARD,
+                          borderRadius:14,
+                          border:"1.5px solid "+(isSel?GOLD:"rgba(0,0,0,0.06)"),
+                          boxShadow: isSel?"0 0 0 3px rgba(201,165,83,0.12)":"0 1px 4px rgba(0,0,0,0.04)",
+                          padding:"14px 16px",
+                          display:"flex",
+                          alignItems:"center",
+                          gap:14,
+                          cursor:"pointer",
+                          transition:"all 0.15s ease"
+                        }
+                      }
+                      /* Selection dot */
+                      , React.createElement('div', { style: {width:20,height:20,borderRadius:"50%",flexShrink:0,border:"2px solid "+(isSel?GOLD:"#d0d5de"),background:isSel?GOLD:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s"},}
+                        , isSel&&React.createElement('div', { style: {width:8,height:8,borderRadius:"50%",background:"#fff"},})
+                      )
+                      /* Name + month */
+                      , React.createElement('div', { style: {flex:1,minWidth:0},}
+                        , React.createElement('div', { style: {fontWeight:700,fontSize:14,color:isSel?GOLD:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"},}, s.name)
+                        , React.createElement('div', { style: {fontSize:11,color:MUTED,marginTop:2},}, s.monthName||"")
+                      )
+                      /* Score chip */
+                      , React.createElement('div', { style: {background:ACCENT,borderRadius:8,padding:"5px 10px",textAlign:"center",flexShrink:0},}
+                        , React.createElement('div', { style: {fontSize:10,color:MUTED,fontWeight:600,letterSpacing:"0.5px",textTransform:"uppercase"},}, "Avg")
+                        , React.createElement('div', { style: {fontSize:15,fontWeight:800,color:getAvgColor(s.K),lineHeight:1.1},}, fmt(s.K,1))
+                      )
+                      /* Actions */
+                      , React.createElement('div', { style: {display:"flex",gap:6,flexShrink:0},onClick:e=>e.stopPropagation()}
+                        , React.createElement('button', { onClick: ()=>viewReportInBrowser(s), title:"View", style: {background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.25)",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}}, "👁")
+                        , React.createElement('div', { style: {position:"relative",display:"inline-flex"} }
+                          , React.createElement('button', { onClick: ()=>emailReportPDF(s), title:"Email PDF", style: {background:GOLD,color:"#1b1200",border:"none",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}}, "📧")
+                          , _wasSent&&React.createElement('div', { title:"Report sent this month", style: {position:"absolute",top:-4,right:-4,width:11,height:11,borderRadius:"50%",background:"#22c55e",border:"2px solid "+CARD,pointerEvents:"none"}})
+                        )
+                        , _hasWA&&React.createElement('button', { onClick: ()=>whatsappReport(s,_fph||_mph), title:"WhatsApp", style: {background:"#25D366",color:"#fff",border:"none",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}}, "💬")
+                      )
+                    );
+                  })
+                )
+              );
+            })
+        /* ── Floating Send bar ── */
+        , totalSel>0&&React.createElement('div', { style: {position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:200,display:"flex",gap:8,alignItems:"center",background:TEXT,borderRadius:40,padding:"8px 8px 8px 18px",boxShadow:"0 8px 32px rgba(0,0,0,0.28)"},}
+          , React.createElement('div', { style: {color:"#fff",fontWeight:700,fontSize:13,whiteSpace:"nowrap"},}, totalSel, " selected")
+          , React.createElement('button', { onClick: sendSelected, title:"Send individual PDF email to each student's parents", style: {background:GOLD,color:"#1b1200",border:"none",borderRadius:30,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:12,whiteSpace:"nowrap"}}, "📧 Parents")
+          , React.createElement('button', { onClick: openTeacherPanel, title:"Send all reports in one email to teacher / head of hifz", style: {background:"#2563eb",color:"#fff",border:"none",borderRadius:30,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:12,whiteSpace:"nowrap"}}, "📋 Teacher")
+          , React.createElement('button', { onClick: ()=>setSelectedStudents([]), style: {background:"rgba(255,255,255,0.12)",color:"#fff",border:"none",borderRadius:30,padding:"8px 12px",cursor:"pointer",fontSize:13}}, "✕")
+        )
+        /* ── Missing-data students ── */
+        , (()=>{
+            var noData=latestPerStudent.filter(function(s){return!hasReportData(s);});
+            var profileNames=new Set(latestPerStudent.map(function(s){return s.name;}));
+            var profileOnly=records.filter(function(r){return r.isStudentProfile&&!profileNames.has(r.name);});
+            var missing=[...noData,...profileOnly];
+            if(!missing.length)return null;
+            var nowM=new Date().toLocaleString("default",{month:"long",year:"numeric"});
+            return React.createElement('div',{style:{marginTop:32}},
+              React.createElement('button',{
+                onClick:()=>setMissingOpen(function(o){return!o;}),
+                style:{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"none",border:"none",padding:"0 0 10px",cursor:"pointer",textAlign:"left"}
+              },
+                React.createElement('div',{style:{fontSize:11,fontWeight:700,letterSpacing:"1.8px",textTransform:"uppercase",color:MUTED}},
+                  "No data yet — "+missing.length+" student"+(missing.length!==1?"s":"")
+                ),
+                React.createElement('div',{style:{color:MUTED,fontSize:13,transition:"transform 0.2s",transform:missingOpen?"rotate(180deg)":"none"}},"▾")
+              ),
+              missingOpen&&React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:6}},
+                missing.map(function(s,i){
+                  return React.createElement('div',{
+                    key:s.id||s.name+i,
+                    style:{background:CARD,borderRadius:12,padding:"12px 16px",border:"1px solid "+MUTED+"22",display:"flex",alignItems:"center",gap:12}
+                  },
+                    React.createElement('div',{style:{flex:1,minWidth:0}},
+                      React.createElement('div',{style:{fontWeight:600,fontSize:14,color:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},s.name),
+                      React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:1}},s.class||"")
+                    ),
+                    React.createElement('button',{
+                      onClick:function(){addDataForStudent(s);},
+                      style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}
+                    },"+ Add "+nowM+" data")
+                  );
+                })
+              )
+            );
+          })()
+        /* ── Teacher contacts panel (overlay) ── */
+        , showTeacherPanel&&React.createElement('div',{
+            style:{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"flex-end",justifyContent:"center"},
+            onClick:function(e){if(e.target===e.currentTarget)setShowTeacherPanel(false);}
+          },
+          React.createElement('div',{style:{background:CARD,borderRadius:"24px 24px 0 0",width:"100%",maxWidth:540,maxHeight:"85vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 -8px 40px rgba(0,0,0,0.3)"}},
+            /* Panel header */
+            React.createElement('div',{style:{padding:"20px 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid "+BORDER}},
+              React.createElement('div',null,
+                React.createElement('div',{style:{fontWeight:800,fontSize:16,color:TEXT}},"📋 Send Teacher Digest"),
+                React.createElement('div',{style:{fontSize:12,color:MUTED,marginTop:2}},selectedStudents.length+" student"+(selectedStudents.length!==1?"s":"")+" selected")
+              ),
+              React.createElement('button',{onClick:()=>setShowTeacherPanel(false),style:{background:"none",border:"none",fontSize:20,color:MUTED,cursor:"pointer",padding:"4px 8px"}},"✕")
+            ),
+            /* Scrollable contact list */
+            React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"16px 20px"}},
+              teacherContacts.length===0&&React.createElement('div',{style:{color:MUTED,fontSize:13,textAlign:"center",padding:"20px 0"}},"No contacts yet — add one below"),
+              teacherContacts.map(function(c){
+                var isSel=selectedTeachers.includes(c.id);
+                return React.createElement('div',{key:c.id,style:{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid "+BORDER+"66"}},
+                  React.createElement('div',{
+                    onClick:function(){setSelectedTeachers(function(prev){return isSel?prev.filter(function(x){return x!==c.id;}):[...prev,c.id];});},
+                    style:{width:22,height:22,borderRadius:6,border:"2px solid "+(isSel?GOLD:MUTED),background:isSel?GOLD:"transparent",flexShrink:0,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}
+                  }, isSel&&React.createElement('div',{style:{color:"#1b1200",fontSize:13,fontWeight:"bold",lineHeight:1}},"✓")),
+                  React.createElement('div',{style:{flex:1,minWidth:0},onClick:function(){setSelectedTeachers(function(prev){return isSel?prev.filter(function(x){return x!==c.id;}):[...prev,c.id];});},cursor:"pointer"},
+                    React.createElement('div',{style:{fontWeight:600,fontSize:14,color:TEXT}},c.name||c.email),
+                    c.name&&React.createElement('div',{style:{fontSize:11,color:MUTED}},c.email)
+                  ),
+                  React.createElement('button',{
+                    onClick:function(){var next=teacherContacts.filter(function(x){return x.id!==c.id;});setTeacherContacts(next);try{localStorage.setItem('hifz_teacher_contacts',JSON.stringify(next));}catch(e){}setSelectedTeachers(function(prev){return prev.filter(function(x){return x!==c.id;});});},
+                    style:{background:"none",border:"none",color:RED,fontSize:16,cursor:"pointer",padding:"4px 6px",flexShrink:0}
+                  },"×")
                 );
-              })
+              }),
+              /* Add new contact */
+              React.createElement('div',{style:{marginTop:16,paddingTop:16,borderTop:"1px solid "+BORDER}},
+                React.createElement('div',{style:{fontSize:12,color:MUTED,fontWeight:600,marginBottom:8,textTransform:"uppercase",letterSpacing:"1px"}},"Add contact"),
+                React.createElement('div',{style:{display:"flex",gap:6,flexWrap:"wrap"}},
+                  React.createElement('input',{type:"text",placeholder:"Name (e.g. Ustadh Ibrahim)",value:newTcName,onChange:function(e){setNewTcName(e.target.value);},style:{flex:"1 1 120px",minWidth:0,background:DARK,border:"1px solid "+BORDER,borderRadius:8,padding:"8px 10px",color:TEXT,fontSize:13}}),
+                  React.createElement('input',{type:"email",placeholder:"Email address",value:newTcEmail,onChange:function(e){setNewTcEmail(e.target.value);},style:{flex:"2 1 160px",minWidth:0,background:DARK,border:"1px solid "+BORDER,borderRadius:8,padding:"8px 10px",color:TEXT,fontSize:13}}),
+                  React.createElement('button',{
+                    onClick:function(){
+                      var em=newTcEmail.trim();
+                      if(!em||!em.includes("@")){showToast("Enter a valid email.","warning");return;}
+                      var nc={id:Math.random().toString(36).slice(2),name:newTcName.trim(),email:em};
+                      var next=[...teacherContacts,nc];
+                      setTeacherContacts(next);
+                      setSelectedTeachers(function(prev){return[...prev,nc.id];});
+                      try{localStorage.setItem('hifz_teacher_contacts',JSON.stringify(next));}catch(e){}
+                      setNewTcName('');setNewTcEmail('');
+                    },
+                    style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontWeight:700,fontSize:13,flexShrink:0}
+                  },"+ Add")
+                )
+              )
+            ),
+            /* Panel footer */
+            React.createElement('div',{style:{padding:"14px 20px",borderTop:"1px solid "+BORDER,display:"flex",gap:10}},
+              React.createElement('button',{onClick:()=>setShowTeacherPanel(false),style:{flex:1,background:ACCENT,color:MUTED,border:"none",borderRadius:12,padding:"12px",cursor:"pointer",fontSize:14}},"Cancel"),
+              React.createElement('button',{
+                onClick:function(){
+                  var selContacts=teacherContacts.filter(function(c){return selectedTeachers.includes(c.id);});
+                  var emailList=selContacts.map(function(c){return c.email;}).filter(Boolean);
+                  if(!emailList.length){showToast("Select at least one recipient.","warning");return;}
+                  sendTeacherDigest(emailList);
+                },
+                disabled:selectedTeachers.length===0,
+                style:{flex:2,background:selectedTeachers.length>0?"#2563eb":MUTED,color:"#fff",border:"none",borderRadius:12,padding:"12px",cursor:selectedTeachers.length>0?"pointer":"default",fontWeight:800,fontSize:14}
+              },"📋 Send to ",selectedTeachers.length," contact"+(selectedTeachers.length!==1?"s":"")+" →")
             )
           )
-        );
-      })
-      , records.length===0&&React.createElement('div', { style: {textAlign:"center",padding:60,color:MUTED},}, "No records yet."  )
-    )
-    )
+        )
+      );
+    })()
 
     /* HEAD TEACHER */
     , view==="headteacher"&&(
