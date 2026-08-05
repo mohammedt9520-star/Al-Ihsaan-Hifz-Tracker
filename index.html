@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-200000 | realtime sync, AI comment generation, Telegram monthly reminder -->
+<!-- hifz-20260805-210000 | realtime sync, AI comment generation, Telegram monthly reminder -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-200000';
+const APP_VERSION='hifz-20260805-210000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -905,7 +905,8 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='.sec-hdr-purple{background:linear-gradient(135deg,#5b2e8a,#7a44b5);}';
   h+='.sec-hdr-orange{background:linear-gradient(135deg,#b05200,#d0660a);}';
   h+='.sec-hdr-slate{background:linear-gradient(135deg,#3d5266,#4e6880);}';
-  h+='.sec-hdr-navy{background:linear-gradient(135deg,#2d4a8a,#3d5caa);}';
+  h+='.sec-hdr-crimson{background:linear-gradient(135deg,#8b1a2e,#b02040);}';
+  h+='.sec-hdr-navy{background:linear-gradient(135deg,#1a5674,#226690);}';
   h+='.sec-num{background:rgba(255,255,255,0.22);border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;}';
   h+='.rpt-header{display:flex;align-items:center;gap:18px;margin-bottom:16px;}';
   h+='.rpt-title{font-size:23px;font-weight:900;color:#1e2d5a;letter-spacing:1.5px;text-transform:uppercase;line-height:1.1;}';
@@ -948,7 +949,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='</div>';
 
   // Meta card
-  h+='<div class="card">';
+  h+='<div class="card" style="border:1.5px solid #e0c97a;">';
   h+='<div class="meta-grid">';
   h+='<div class="meta-cell"><div class="meta-lbl">Student\'s Name</div><div class="meta-val">'+esc(entry.name)+'</div></div>';
   h+='<div class="meta-cell"><div class="meta-lbl">Date of Report</div><div class="meta-val">'+dateRange+'</div></div>';
@@ -1104,7 +1105,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
 
   // 5. Dor (Revision) Record
   h+='<div class="card">';
-  h+='<div class="sec-hdr sec-hdr-orange"><span class="sec-num">5</span> Dor (Revision) Record This Month</div>';
+  h+='<div class="sec-hdr sec-hdr-crimson"><span class="sec-num">5</span> Dor (Revision) Record This Month</div>';
   if(juzList.length>0){
     h+='<div>'+hmHTML+'</div>';
     h+='<div style="display:flex;justify-content:space-evenly;align-items:center;padding:10px 12px;border-top:1.5px solid #ede9e0;">';

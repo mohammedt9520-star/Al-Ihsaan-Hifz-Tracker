@@ -1,4 +1,4 @@
-const CACHE='hifz-20260805-200000';
+const CACHE='hifz-20260805-210000';
 const CDN=['https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js','https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>Promise.allSettled(CDN.map(u=>c.add(u).catch(()=>{})))));
