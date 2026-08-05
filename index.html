@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-510000 | Reports: period+class filter, remove History page -->
+<!-- hifz-20260805-520000 | Reports: fix blank screen, period label by dateFrom month, no-data students with add button -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-510000';
+const APP_VERSION='hifz-20260805-520000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1679,7 +1679,7 @@ function getAvailablePeriods(records){
     }
   });
   // Build labels after collecting all dates
-  const result=Object.values(seen).map(p=>({...p,label:getMonthRange(p.dateFrom,p.dateTo)})).filter(p=>p.label);
+  const result=Object.values(seen).map(p=>{const d=new Date(p.dateFrom+"T12:00:00");const label=isNaN(d.getTime())?"":d.toLocaleString("default",{month:"long",year:"numeric"});return{...p,label};}).filter(p=>p.label);
   return result.sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""));
 }
 
@@ -4226,7 +4226,18 @@ function App(){
       const activeClass=rptClass||"HIFZ CLASS A";
       const periodCalced=selPeriod?calced.filter(r=>recordMatchesPeriod(r,selPeriod)&&!r.isStudentProfile&&!r.name.startsWith("(")&&!r.name.startsWith("*")&&!["instances","1-5"].some(w=>r.name.toLowerCase().includes(w))):[];
       const rptStudents=periodCalced.filter(s=>s.class===activeClass&&hasReportData(s));
+      // Students in this class with no data for the selected period
+      const rptWithDataNames=new Set(rptStudents.map(s=>s.name));
+      const noDataStudents=records.filter(r=>r.isStudentProfile&&(r.class||"HIFZ CLASS A")===activeClass&&!rptWithDataNames.has(r.name)).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
       const totalSel=selectedStudents.length;
+      // Open addEntry pre-filled with selected period dates
+      function openAddForPeriod(student){
+        var df=selPeriod?selPeriod.dateFrom:"";
+        var dt=selPeriod?selPeriod.dateTo:"";
+        if(student&&student.id&&!student.isStudentProfile){openEdit(student.id);}
+        else{setForm(Object.assign({},defaultEntry,{name:student?student.name:"",class:activeClass,dateFrom:df,dateTo:dt}));setEditingId(null);setView("addEntry");}
+        setPostSaveView("reports");
+      }
       return React.createElement('div',{style:{padding:"20px 16px 100px"}}
         /* ── Period + Class controls ── */
         ,React.createElement('div',{style:{marginBottom:20,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}
@@ -4237,8 +4248,8 @@ function App(){
             ,CLASSES.map((c,i)=>React.createElement('button',{key:c,onClick:()=>setRptClass(c),style:{background:activeClass===c?"#c9a553":"transparent",color:activeClass===c?"#fff":"#6d7a6e",border:"none",borderRight:i===0?"1px solid rgba(201,165,83,0.3)":"none",padding:"8px 20px",cursor:"pointer",fontWeight:activeClass===c?"600":"400",fontSize:12,letterSpacing:"0.05em"}},c))
           )
         )
-        /* ── Student list ── */
-        ,rptStudents.length===0
+        /* ── Student lists ── */
+        ,rptStudents.length===0&&noDataStudents.length===0
           ?React.createElement('div',{style:{textAlign:"center",padding:"60px 20px",color:MUTED}}
             ,React.createElement('div',{style:{fontSize:36,marginBottom:12}},"📭")
             ,React.createElement('div',{style:{fontWeight:700,fontSize:15,color:TEXT,marginBottom:6}},"No reports ready yet")
@@ -4251,7 +4262,7 @@ function App(){
               const _fph=s.fatherPhone||_prof.fatherPhone||"";
               const _mph=s.motherPhone||_prof.motherPhone||"";
               const _hasWA=!!(_fph||_mph);
-              const _monthStr=s.dateFrom?new Date(s.dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
+              const _monthStr=s.dateFrom?new Date(s.dateFrom+"T12:00:00").toLocaleString("default",{month:"long",year:"numeric"}):"";
               const _sentKey=s.name+"_"+(_monthStr||"unknown");
               const _wasSent=!!emailsSent[_sentKey];
               return React.createElement('div',{key:s.id,onClick:()=>toggleSelect(s.id),style:{background:isSel?"#fffbeb":CARD,borderRadius:14,border:"1.5px solid "+(isSel?GOLD:"rgba(0,0,0,0.06)"),boxShadow:isSel?"0 0 0 3px rgba(201,165,83,0.12)":"0 1px 4px rgba(0,0,0,0.04)",padding:"14px 16px",display:"flex",alignItems:"center",gap:14,cursor:"pointer",transition:"all 0.15s ease"}}
@@ -4276,6 +4287,22 @@ function App(){
                 )
               );
             })
+            /* ── Students without data for selected period ── */
+            ,noDataStudents.length>0&&React.createElement('div',{style:{marginTop:rptStudents.length>0?16:0}}
+              ,rptStudents.length>0&&React.createElement('div',{style:{fontSize:11,letterSpacing:"0.08em",color:MUTED,textTransform:"uppercase",fontWeight:600,marginBottom:8,paddingLeft:4}},"No data yet")
+              ,React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:6}}
+                ,noDataStudents.map(s=>React.createElement('div',{key:s.id||s.name,style:{background:CARD,borderRadius:14,border:"1.5px solid rgba(0,0,0,0.05)",boxShadow:"0 1px 3px rgba(0,0,0,0.03)",padding:"12px 16px",display:"flex",alignItems:"center",gap:14,opacity:0.75}}
+                  ,React.createElement('div',{style:{flex:1,minWidth:0}}
+                    ,React.createElement('div',{style:{fontWeight:600,fontSize:14,color:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},s.name)
+                    ,React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:2}},"No data for "+(selPeriod?selPeriod.label:"this period"))
+                  )
+                  ,window._HIFZ_ROLE!=='teacher'&&React.createElement('button',{
+                    onClick:function(){openAddForPeriod(s);},
+                    style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}
+                  },"+ Add data")
+                ))
+              )
+            )
           )
         /* ── Floating Send bar ── */
         ,totalSel>0&&React.createElement('div',{style:{position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:200,display:"flex",gap:8,alignItems:"center",background:TEXT,borderRadius:40,padding:"8px 8px 8px 18px",boxShadow:"0 8px 32px rgba(0,0,0,0.28)"}}
@@ -4284,20 +4311,6 @@ function App(){
           ,window._HIFZ_ROLE!=='teacher'&&React.createElement('button',{onClick:openTeacherPanel,title:"Send all reports in one email to teacher / head of hifz",style:{background:"#2563eb",color:"#fff",border:"none",borderRadius:30,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:12,whiteSpace:"nowrap"}},"📋 Teacher")
           ,React.createElement('button',{onClick:()=>setSelectedStudents([]),style:{background:"rgba(255,255,255,0.12)",color:"#fff",border:"none",borderRadius:30,padding:"8px 12px",cursor:"pointer",fontSize:13}},"✕")
         )
-        /* ── [removed missing-data section — now handled by period filter] ── */
-        ,null
-                      React.createElement('div',{style:{fontWeight:600,fontSize:14,color:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},s.name),
-                      React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:1}},s.class||"")
-                    ),
-                    window._HIFZ_ROLE!=='teacher'&&React.createElement('button',{
-                      onClick:function(){addDataForStudent(s);},
-                      style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}
-                    },"+ Add "+nowM+" data")
-                  );
-                })
-              )
-            );
-          })()
         /* ── Teacher contacts panel (overlay) ── */
         , showTeacherPanel&&React.createElement('div',{
             style:{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"flex-end",justifyContent:"center"},
