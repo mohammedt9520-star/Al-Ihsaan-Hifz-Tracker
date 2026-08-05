@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-210000 | realtime sync, AI comment generation, Telegram monthly reminder -->
+<!-- hifz-20260805-220000 | realtime sync, AI comment generation, Telegram monthly reminder -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-210000';
+const APP_VERSION='hifz-20260805-220000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -812,7 +812,15 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   const eveningPct=eveningPossible>0?(eveningAttended/eveningPossible)*100:0;
   const hasEvening=eveningPossible>0;
   const incAbsencesVal=calc.G===0?"N/A":fmt(calc.R,2);
-  const absenceNote=calc.G>0?'<div style="margin-top:8px;padding:8px 12px;border:1.5px solid #e74c3c;border-radius:4px;background:#fff8f8;font-size:11px;color:#c0392b;font-style:italic;line-height:1.5;"><strong>Please Note:</strong> Though your child\u2019s absence(s) may have been genuine, they were expected to make up the missed Sabaq. Hence above is your child\u2019s true running average.</div>':"";
+  var absenceNote="";
+  if(calc.G>0){
+    if(calc.R>=calc.O){
+      var _moreStr=calc.R>calc.O?" and more":"";
+      absenceNote='<div style="margin-top:8px;padding:8px 12px;border:1.5px solid #27ae60;border-radius:4px;background:#f0fff4;font-size:11px;color:#1a6b3a;font-style:italic;line-height:1.5;">We understand that your child\u2019s absence(s) may have been genuine. M\u0101sh\u0101All\u0101h, it is pleasing to see that he was able to make up the missed Sabaq'+_moreStr+'. Hence above is your child\u2019s true running average.</div>';
+    }else{
+      absenceNote='<div style="margin-top:8px;padding:8px 12px;border:1.5px solid #e74c3c;border-radius:4px;background:#fff8f8;font-size:11px;color:#c0392b;font-style:italic;line-height:1.5;"><strong>Please Note:</strong> Though your child\u2019s absence(s) may have been genuine, they were expected to make up the missed Sabaq. Hence above is your child\u2019s true running average.</div>';
+    }
+  }
 
   // Para tests
   const paraTests=(dorRecords||[]).filter(function(d){
