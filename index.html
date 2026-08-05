@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260804-300000 | One-click email send via Supabase Edge Function with PDF attached -->
+<!-- hifz-20260805-100000 | Fix sendSelected bulk email, loadPDFLibs error recovery, r.ok fetch check -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260804-300000';
+const APP_VERSION='hifz-20260805-100000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -175,7 +175,7 @@ function loadPDFLibs(cb){
    "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"].forEach(function(url){
     var s=document.createElement("script");s.src=url;
     s.onload=tick;
-    s.onerror=function(){showToast("Failed to load PDF library — check connection","error");};
+    s.onerror=function(){showToast("Failed to load PDF library — check connection","error");_pdfLibsState=0;_pdfLibsCbs=[];};
     document.head.appendChild(s);
   });
 }
@@ -676,7 +676,6 @@ function toWhatsAppNumber(phone){
 // onDone(err, blob) — err is null on success.
 function generateReportPDF(record, dorRecs, allRecs, onDone){
   if(!hasReportData(record)){onDone(new Error("No data"));return;}
-  showToast("Generating PDF… please wait ⏳","info",9000);
   loadPDFLibs(function(){
     try{
       var calc=Object.assign({},record,calcEntry(record));
@@ -2406,11 +2405,16 @@ function App(){
   }
   function sendSelected(){
     if(!selectedStudents||selectedStudents.length===0){showToast("No students selected.","warning");return;}
-    selectedStudents.forEach(function(id){
-      var record=records.find(function(r){return r.id===id;});
-      if(record)sendReport(record);
-    });
+    var toSend=selectedStudents.map(function(id){return records.find(function(r){return r.id===id;});}).filter(Boolean);
     setSelectedStudents([]);
+    if(toSend.length===1){
+      emailReportPDF(toSend[0]);
+      return;
+    }
+    showToast("Sending "+toSend.length+" reports… ⏳","info",toSend.length*20000);
+    toSend.forEach(function(record,i){
+      setTimeout(function(){emailReportPDF(record);},i*2000);
+    });
   }
   function sendReport(record){
     if(!hasReportData(record)){
@@ -2470,7 +2474,10 @@ function App(){
           headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
           body:JSON.stringify({to:emails,subject:subject,bodyText:bodyText,pdfBase64:pdfBase64,filename:filename})
         })
-        .then(function(r){return r.json();})
+        .then(function(r){
+          if(!r.ok){return r.text().then(function(t){throw new Error("Server error "+r.status+": "+t.slice(0,200));});}
+          return r.json();
+        })
         .then(function(data){
           if(data.success){
             showToast("✅ Report sent to "+emails.join(" & "),"success",5000);
