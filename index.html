@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-570000 | Reports: wa.me pre-filled group announcement -->
+<!-- hifz-20260805-580000 | Reports: group announcement copies to clipboard -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-570000';
+const APP_VERSION='hifz-20260805-580000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4330,7 +4330,7 @@ function App(){
           const noDataNames=noDataStudents.map(function(s){return s.name;});
           const msg="Assalaamu 'Alaykum wa Rahmatullahi wa Barakaatuh\n\nDear Parents,\n\nThe Monthly Hifz Reports for "+monthLabel+" have now been sent.\n\nWe encourage all parents to review the report together with your child, acknowledge their achievements, and discuss any areas for improvement to help them continue making positive progress next month, Insha'Allah.\n\n_If you have not received the report, please check your Spam/Junk folder first._"+(noDataNames.length>0?"\n\n------------------------\nThe following students have not received a report as they were absent when the report data was being collected:\n\n"+noDataNames.join("\n"):"") +"\n\nHifz Management | Madrasah Al-Ihsaan";
           function sendGroupMsg(){
-            window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");
+            try{navigator.clipboard.writeText(msg);showToast("Message copied — open the parents group and paste to send 💬","success",5000);}catch(e){showToast("Copy failed — please copy manually.","warning",4000);}
           }
           return React.createElement('div',{style:{marginTop:20}}
             ,React.createElement('button',{
