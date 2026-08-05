@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-370000 | PIN lock screen, teacher view mode, Telegram report digest -->
+<!-- hifz-20260805-380000 | v1.0 — audit fixes: PIN try-catch, auth headers, dead code removed -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -51,7 +51,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
 // ── PIN Lock Screen ──────────────────────────────────────────────────────────
 (function(){
   if(new URLSearchParams(window.location.search).get('report'))return;
-  var _auth=localStorage.getItem('hifz_auth');
+  var _auth;try{_auth=localStorage.getItem('hifz_auth');}catch(e){_auth=null;}
   if(_auth==='admin'||_auth==='teacher'){window._HIFZ_ROLE=_auth;return;}
   // Inject styles
   var _css=document.createElement('style');
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-370000';
+const APP_VERSION='hifz-20260805-380000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2596,7 +2596,7 @@ function App(){
     setShowTeacherPanel(false);
     setSelectedStudents([]);
     showToast("⏳ Uploading "+toSend.length+" report"+(toSend.length!==1?"s":"")+" — links coming…","info",6000);
-    // Generate HTML for each student and upload to Supabase Storage
+    // Generate HTML for each student and store in report_store table
     var links=[];
     var completed=0;
     var firstMonth=toSend[0]&&toSend[0].dateFrom?new Date(toSend[0].dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
@@ -2621,8 +2621,7 @@ function App(){
             if(r.ok){
               return r.json().then(function(rows){
                 var row=Array.isArray(rows)?rows[0]:rows;
-                var viewUrl="https://yyfkoenhpotzcuwxpnsy.supabase.co/functions/v1/view-report?id="+row.id;
-                // Use direct app URL for both email and Telegram (PIN lock protects the app)
+                // Direct app URL — PIN lock protects the app; ?report= param bypasses lock screen
                 var _appUrl='https://alihsaanhifz.pages.dev/?report='+row.id;
                 links.push({name:record.name,url:_appUrl,appUrl:_appUrl});
               });
@@ -2682,7 +2681,7 @@ function App(){
     showToast("📤 Sending to "+emailList.join(", ")+"…","info",5000);
     fetch(SUPABASE_URL+"/functions/v1/send-report-email",{
       method:"POST",
-      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},
       body:JSON.stringify({to:emailList,subject:subject,bodyText:bodyText,bodyHtml:bodyHtml})
     })
     .then(function(r){
@@ -2702,7 +2701,7 @@ function App(){
     showToast("📲 Sending to Telegram…","info",5000);
     fetch(SUPABASE_URL+"/functions/v1/send-report-telegram",{
       method:"POST",
-      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},
       body:JSON.stringify({students:students,month:firstMonth})
     }).then(function(r){
       if(!r.ok){return r.text().then(function(t){throw new Error("Server error "+r.status+": "+t.slice(0,200));});}
@@ -2767,7 +2766,7 @@ function App(){
         var bodyText="Assalāmu 'Alaykum wa Rahmatullāhi wa Barakātuh\n\nDear Parent,\n\nPlease find attached the Monthly Hifz Report for "+record.name+".\n\n"+(monthStr?"Month: "+monthStr+"\n\n":"")+"We encourage all parents to review this report with their child, discuss their progress, and support them in working towards their targets.\n\nJazākallāhu Khayran.\n\nHead of Hifz\nMadrasah Al-Ihsaan";
         fetch(SUPABASE_URL+"/functions/v1/send-report-email",{
           method:"POST",
-          headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+          headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},
           body:JSON.stringify({to:emails,subject:subject,bodyText:bodyText,pdfBase64:pdfBase64,filename:filename})
         })
         .then(function(r){
@@ -3266,7 +3265,7 @@ function App(){
         fontFamily:"Manrope,'Inter',sans-serif",
         fontWeight:"600",
         userSelect:"none"
-      }},APP_VERSION.replace('hifz-','v '));
+      },'v1.0');
       return[...GROUPS.map(group=>React.createElement('div',{key:group.label,style:{marginBottom:24}},
         /* Group label */
         React.createElement('div',{style:{
