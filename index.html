@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-280000 | realtime sync, AI comment generation, Telegram monthly reminder -->
+<!-- hifz-20260805-290000 | realtime sync, AI comment generation, Telegram monthly reminder -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-280000';
+const APP_VERSION='hifz-20260805-290000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2518,25 +2518,31 @@ function App(){
         try{
           var calc=Object.assign({},record,calcEntry(record));
           var html=generateReportHTML(record,calc,dorRecords||[],records||[]);
-          var safeName=(record.name||"student").replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"_");
-          var path=yearMonth+"/"+safeName+".html";
-          var publicUrl=SUPABASE_URL+"/storage/v1/object/public/hifz-reports/"+path;
-          // Upload HTML to public Supabase Storage bucket
-          fetch(SUPABASE_URL+"/storage/v1/object/hifz-reports/"+path,{
+          // Store report HTML in database; serve via view-report Edge Function
+          fetch(SUPABASE_URL+"/rest/v1/report_store",{
             method:"POST",
-            headers:{"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"text/html","x-upsert":"true"},
-            body:html
+            headers:{
+              "apikey":SUPABASE_KEY,
+              "Authorization":"Bearer "+SUPABASE_KEY,
+              "Content-Type":"application/json",
+              "Prefer":"resolution=merge-duplicates,return=representation"
+            },
+            body:JSON.stringify({student_name:record.name||"student",year_month:yearMonth,html_content:html})
           }).then(function(r){
             if(r.ok){
-              links.push({name:record.name,url:publicUrl});
+              return r.json().then(function(rows){
+                var row=Array.isArray(rows)?rows[0]:rows;
+                var viewUrl=SUPABASE_URL+"/functions/v1/view-report?id="+row.id;
+                links.push({name:record.name,url:viewUrl});
+              });
             }else{
-              return r.text().then(function(t){console.warn("Upload failed for "+record.name+": "+r.status+" "+t.slice(0,200));links.push({name:record.name,url:null});});
+              return r.text().then(function(t){console.warn("Report store failed for "+record.name+": "+r.status+" "+t.slice(0,200));links.push({name:record.name,url:null});});
             }
           }).then(function(){
             completed++;
             if(completed===toSend.length)onAllDone();
           }).catch(function(e){
-            console.warn("Upload error for "+record.name,e);
+            console.warn("Report store error for "+record.name,e);
             links.push({name:record.name,url:null});
             completed++;
             if(completed===toSend.length)onAllDone();
