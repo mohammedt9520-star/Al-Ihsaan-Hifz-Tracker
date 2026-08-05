@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-540000 | Reports: Select this class + Select A+B across both classes -->
+<!-- hifz-20260805-550000 | Reports: fix missing ternary colon causing blank screen -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-540000';
+const APP_VERSION='hifz-20260805-550000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4263,7 +4263,7 @@ function App(){
               const allBothIds=(selPeriod?calced.filter(r=>recordMatchesPeriod(r,selPeriod)&&!r.isStudentProfile&&!r.name.startsWith("(")&&!r.name.startsWith("*")&&!["instances","1-5"].some(w=>r.name.toLowerCase().includes(w))&&hasReportData(r)):[]).map(s=>s.id);
               const allBothSel=allBothIds.length>0&&allBothIds.every(id=>selectedStudents.includes(id));
               return React.createElement('div',{style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 4px 0",gap:8}}
-                ,React.createElement('div',{style:{fontSize:12,color:MUTED}},rptStudents.length+" report"+(rptStudents.length!==1?"s")+(totalSel>rptStudents.length?" · "+totalSel+" total selected":""))
+                ,React.createElement('div',{style:{fontSize:12,color:MUTED}},rptStudents.length+" report"+(rptStudents.length!==1?"s":"")+(totalSel>rptStudents.length?" · "+totalSel+" total selected":""))
                 ,React.createElement('div',{style:{display:"flex",gap:12}}
                   ,React.createElement('button',{
                     onClick:()=>setSelectedStudents(prev=>allSelHere?prev.filter(id=>!rptStudents.some(s=>s.id===id)):[...new Set([...prev,...rptStudents.map(s=>s.id)])]),
