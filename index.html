@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-250000 | realtime sync, AI comment generation, Telegram monthly reminder -->
+<!-- hifz-20260805-260000 | realtime sync, AI comment generation, Telegram monthly reminder -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-250000';
+const APP_VERSION='hifz-20260805-260000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -107,6 +107,9 @@ async function sbFetchAll(q){
 }
 
 async function sbGetToken(){return SUPABASE_KEY;}
+// School contact — update here if details change
+const SCHOOL_CONTACT_NAME="Ustaadh Tanweer";
+const SCHOOL_CONTACT_PHONE="07943 673 287";
 const GOLD="#c9a553";
 const DARK="#f7f4ec";
 const CARD="#FFFFFF";
@@ -464,7 +467,7 @@ function DorHeatmapView({heatmap}){
 
 
 function fmt(n,dec=2){if(!isFinite(n)||isNaN(n))return"—";return n.toFixed(dec);}
-function getAvgColor(avg){if(avg>=11)return GREEN;if(avg>=10)return ORANGE;return RED;}
+function getAvgColor(avg){if(!avg||avg===0)return MUTED;if(avg>=11)return GREEN;if(avg>=10)return ORANGE;return RED;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 // ── SHA-256 password hashing (crypto.subtle) ──────────────────
 // Replaces btoa() encoding. Async; callers that need sync result
@@ -512,7 +515,7 @@ function lsSaveHT(e){try{localStorage.setItem("htEmail",e||"");}catch(ex){consol
 
 function formatDateDMY(s){
   if(!s)return"";
-  try{const d=new Date(s);return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();}
+  try{const d=new Date(s.length===10?s+"T12:00:00":s);return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();}
   catch (e4){return s;}
 }
 
@@ -561,6 +564,7 @@ function sanitiseRecord(r){
   var _tds=parseInt(out.totalDaysOfSabaq)||0;
   var _abs=parseInt(out.absences)||0;
   var _pdm=parseInt(out.paraDorMornings)||0;
+  if(_abs>_tds){out.absences=String(_tds);}
   if(_abs+_pdm>_tds){out.paraDorMornings=String(Math.max(0,_tds-_abs));}
   return out;
 }
@@ -1175,7 +1179,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<strong>Please review your report with your child and address any concerns.<br/>';
   h+='If the Madrasah is concerned regarding your child’s performance, we will arrange a meeting soon <em>Insha’Allah</em>.</strong><br/><br/>';
   h+='<span style="color:#7a7a6a;">If you have any questions regarding your child’s report please contact the Head of Hifz</span><br/>';
-  h+='<strong>Ustaadh Tanweer &nbsp;|&nbsp; 07943 673 287</strong>';
+  h+='<strong>'+esc(SCHOOL_CONTACT_NAME)+' &nbsp;|&nbsp; '+esc(SCHOOL_CONTACT_PHONE)+'</strong>';
   h+='</div></div>';
 
   h+='<div style="flex:1;min-height:16px;"></div>';
@@ -1602,8 +1606,6 @@ function recordMatchesPeriod(r,period){
 
 
 
-function lsGetHafidh(){try{return new Set(JSON.parse(localStorage.getItem("hafidhStudents")||"[]"));}catch(e){return new Set();}}
-function lsSaveHafidh(s){localStorage.setItem("hafidhStudents",JSON.stringify([...s]));}
 function getLatesForMonth(registerData,month){
   var map={};
   registerData.forEach(function(rec){
@@ -1887,7 +1889,6 @@ function App(){
       setDorRecords([]);
       setDailySabaqEntries([]);
       setRegisterData([]);
-      console.log("hifzCleanV1: wiped stale local dor/daily/register data");
     }
   },[]);
   // Reset form/editingId when navigating away from addEntry
@@ -1968,11 +1969,11 @@ function App(){
   function handleLoadFromCloud(){
     loadCloud().then(function(){showSyncMsg("Loaded ✓");}).catch(function(e){showSyncMsg("Error ✗");console.warn("Load failed:",e.message);});
   }
-  React.useEffect(()=>{lsSave(records);scheduleSync();},[records]);
-  React.useEffect(()=>{lsSaveDor(dorRecords);scheduleSync();},[dorRecords]);
-  React.useEffect(()=>{lsSaveYearPlan(yearPlan);scheduleSync();},[yearPlan]);
-  React.useEffect(()=>{lsSaveRegister(registerData);scheduleSync();},[registerData]);
-  React.useEffect(()=>{lsSaveDailySabaq(dailySabaqEntries);scheduleSync();},[dailySabaqEntries]);
+  React.useEffect(()=>{
+    lsSave(records);lsSaveDor(dorRecords);lsSaveYearPlan(yearPlan);
+    lsSaveRegister(registerData);lsSaveDailySabaq(dailySabaqEntries);
+    scheduleSync();
+  },[records,dorRecords,yearPlan,registerData,dailySabaqEntries]);
   React.useEffect(()=>{lsSaveHT(htEmail);},[htEmail]);
 
   const studentNames=React.useMemo(()=>{
@@ -2548,10 +2549,10 @@ function App(){
     var fallbackStyle="color:#888;font-size:13px;font-family:Arial,sans-serif;";
     var rows=links.map(function(lnk){
       return '<tr>'
-        +'<td style="padding:10px 16px;font-size:15px;font-family:Arial,sans-serif;color:#1a1a1a;vertical-align:middle;font-weight:600;">'+lnk.name+'</td>'
+        +'<td style="padding:10px 16px;font-size:15px;font-family:Arial,sans-serif;color:#1a1a1a;vertical-align:middle;font-weight:600;">'+esc(lnk.name)+'</td>'
         +'<td style="padding:10px 16px;vertical-align:middle;">'
         +(lnk.url
-          ?'<a href="'+lnk.url+'" style="'+btnStyle+'">View Report →</a>'
+          ?'<a href="'+encodeURI(lnk.url||'')+'" style="'+btnStyle+'">View Report →</a>'
           :'<span style="'+fallbackStyle+'">(upload failed)</span>')
         +'</td>'
         +'</tr>';
@@ -4463,7 +4464,7 @@ function App(){
               // No password set yet — allow any current password if first run
               const isFirstRun=!getAdminPassword();
               if(!isFirstRun&&!await checkAdminPassword(htOldPwd)){setHtPwdMsg("❌ Current password is incorrect.");return;}
-              if(htNewPwd.length<4){setHtPwdMsg("❌ New password must be at least 4 characters.");return;}
+              if(htNewPwd.length<8){setHtPwdMsg("❌ New password must be at least 8 characters.");return;}
               if(htNewPwd!==htConfirmPwd){setHtPwdMsg("❌ New passwords do not match.");return;}
               await setAdminPassword(htNewPwd);
               setHtOldPwd("");setHtNewPwd("");setHtConfirmPwd("");
@@ -7038,8 +7039,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
 
   // ── 1. Get all daily entries for this student/class/period ──
   const dailies = (dailySabaqEntries||[]).filter(e=>{
-    if(!e.studentName===studentName||e.class!==cls||!e.date)return false;
-    if(e.studentName!==studentName)return false;
+    if(e.studentName!==studentName||e.class!==cls||!e.date)return false;
     if(useRange) return e.date>=dateFrom && e.date<=dateTo;
     return e.date.startsWith(yearMonth);
   });
@@ -7321,7 +7321,7 @@ if(typeof React==="undefined"||typeof ReactDOM==="undefined"){
     );
   } catch(e) {
     var el=document.getElementById("root");
-    if(el){el.innerHTML='<div style="font-family:sans-serif;padding:40px;text-align:center;"><h2>Startup error</h2><p>'+String(e.message)+'</p><button onclick="location.reload()" style="margin-top:20px;padding:10px 24px;background:#C4963F;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:15px;">Reload</button></div>';}
+    if(el){var _em=String(e.message).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');el.innerHTML='<div style="font-family:sans-serif;padding:40px;text-align:center;"><h2>Startup error</h2><p>'+_em+'</p><button onclick="location.reload()" style="margin-top:20px;padding:10px 24px;background:#C4963F;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:15px;">Reload</button></div>';}
   }
 }
 
