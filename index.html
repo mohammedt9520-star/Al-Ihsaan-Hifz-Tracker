@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-490000 | Sabaq Champion: centre daily average numbers under heading -->
+<!-- hifz-20260805-500000 | Sabaq Champion: gap:16 between columns, no cramping -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-490000';
+const APP_VERSION='hifz-20260805-500000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4734,7 +4734,7 @@ function App(){
                 ,React.createElement('div',{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:10,padding:"8px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}
                   ,React.createElement('div',{style:{minWidth:36,flexShrink:0}})
                   ,React.createElement('div',{style:{fontSize:11,letterSpacing:"0.12em",color:"#5a6b5c",fontWeight:700,textTransform:"uppercase",flex:1}},"Rankings")
-                  ,React.createElement('div',{style:{display:"flex",gap:0,fontSize:8,letterSpacing:"0.07em",color:"#5a6b5c",fontWeight:600,textTransform:"uppercase"}}
+                  ,React.createElement('div',{style:{display:"flex",gap:16,fontSize:8,letterSpacing:"0.07em",color:"#5a6b5c",fontWeight:600,textTransform:"uppercase"}}
                     ,React.createElement('div',{style:{width:66,textAlign:"center",lineHeight:1.4}},"Total Sides",React.createElement('br',null),"Memorised")
                     ,React.createElement('div',{style:{width:52,textAlign:"center",lineHeight:1.4}},"Daily",React.createElement('br',null),"Average")
                   )
@@ -4746,7 +4746,7 @@ function App(){
                     ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:1}},"Runner Up")
                     ,React.createElement('div',{style:{fontSize:14,fontWeight:600,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},second.name)
                   )
-                  ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
+                  ,React.createElement('div',{style:{display:"flex",gap:16,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
                     ,React.createElement('span',{style:{color:MUTED,width:66,textAlign:"center"}},fmt(second.championTotalSides,2))
                     ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"center"}},parseFloat((second.championDailyAverage||0).toFixed(2)))
                   )
@@ -4756,7 +4756,7 @@ function App(){
                   ,list.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.id,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
                     ,React.createElement('div',{style:{minWidth:36,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",textAlign:"center"}},"#"+(i+3))
                     ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.name)
-                    ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
+                    ,React.createElement('div',{style:{display:"flex",gap:16,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
                       ,React.createElement('span',{style:{color:MUTED,width:66,textAlign:"center"}},fmt(s.championTotalSides,2))
                       ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"center"}},parseFloat((s.championDailyAverage||0).toFixed(2)))
                     )
