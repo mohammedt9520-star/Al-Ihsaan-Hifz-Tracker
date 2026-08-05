@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-140000 | Teacher digest: clickable report links in HTML email via Supabase Storage -->
+<!-- hifz-20260805-160000 | hasReportData strict, missing students section, teacher contacts panel -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-140000';
+const APP_VERSION='hifz-20260805-160000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -656,10 +656,10 @@ function calcEntry(s){
 // A row with just a name/class/dates but no pages or days filled in will return false.
 function hasReportData(entry){
   if(!entry)return false;
+  // Must have actual pages memorised — days-only records (no sides/lines) don't count
   var sides=parseFloat(entry.totalFullSides);
   var lines=parseFloat(entry.plusLines);
-  var days=parseFloat(entry.totalDaysOfSabaq);
-  return (sides>0)||(lines>0)||(days>0);
+  return (sides>0)||(lines>0);
 }
 
 // Convert a UK-format phone number to the bare digits WhatsApp expects (e.g. 447712345678)
@@ -1728,7 +1728,22 @@ function App(){
   const [syncStatus,setSyncStatus]=React.useState("loading");
   const [selectedStudents,setSelectedStudents]=React.useState([]);
   const [emailsSent,setEmailsSent]=React.useState(function(){try{return JSON.parse(localStorage.getItem('hifz_emails_sent')||'{}');}catch(e){return {};}});
-  const [teacherEmails,setTeacherEmails]=React.useState(function(){try{return localStorage.getItem('hifz_teacher_emails')||'';}catch(e){return '';}});
+  const [teacherContacts,setTeacherContacts]=React.useState(function(){
+    try{
+      var saved=localStorage.getItem('hifz_teacher_contacts');
+      if(saved)return JSON.parse(saved);
+      // Migrate from old single-string format
+      var old=localStorage.getItem('hifz_teacher_emails');
+      if(old)return old.split(/[,;\s]+/).filter(Boolean).map(function(e){return{id:Math.random().toString(36).slice(2),name:'',email:e.trim()};});
+    }catch(e){}
+    return[];
+  });
+  const [showTeacherPanel,setShowTeacherPanel]=React.useState(false);
+  const [selectedTeachers,setSelectedTeachers]=React.useState([]);
+  const [newTcName,setNewTcName]=React.useState('');
+  const [newTcEmail,setNewTcEmail]=React.useState('');
+  const [postSaveView,setPostSaveView]=React.useState("menu");
+  const [missingOpen,setMissingOpen]=React.useState(false);
   const [profileName,setProfileName]=React.useState("");
   const [historyClass,setHistoryClass]=React.useState("");
   const [historyDateFrom,setHistoryDateFrom]=React.useState("");
@@ -2418,19 +2433,34 @@ function App(){
       setTimeout(function(){emailReportPDF(record);},i*2000);
     });
   }
-  function sendTeacherDigest(){
+  function addDataForStudent(student){
+    var now=new Date();
+    var y=now.getFullYear(),mo=String(now.getMonth()+1).padStart(2,'0');
+    var lastDay=new Date(y,now.getMonth()+1,0).getDate();
+    var df=y+'-'+mo+'-01',dt=y+'-'+mo+'-'+String(lastDay).padStart(2,'0');
+    if(student.id&&!student.isStudentProfile){
+      // Has an existing (empty) record — edit it
+      openEdit(student.id);
+    }else{
+      // Profile-only student — create a new record pre-filled
+      setForm(Object.assign({},defaultEntry,{name:student.name,class:student.class||'HIFZ CLASS A',dateFrom:df,dateTo:dt}));
+      setEditingId(null);
+      setView("addEntry");
+    }
+    setPostSaveView("reports");
+  }
+  function openTeacherPanel(){
     if(!selectedStudents||selectedStudents.length===0){showToast("Select students first.","warning");return;}
+    var toCheck=selectedStudents.map(function(id){return records.find(function(r){return r.id===id;});}).filter(Boolean).filter(hasReportData);
+    if(!toCheck.length){showToast("No report data for any selected student.","warning");return;}
+    // Pre-select all contacts by default
+    setSelectedTeachers(teacherContacts.map(function(c){return c.id;}));
+    setShowTeacherPanel(true);
+  }
+  function sendTeacherDigest(emailList){
     var toSend=selectedStudents.map(function(id){return records.find(function(r){return r.id===id;});}).filter(Boolean).filter(hasReportData);
-    if(!toSend.length){showToast("No report data for any selected student.","warning");return;}
-    // Get/save teacher email
-    var saved=teacherEmails;
-    var dest=window.prompt("Teacher / Head of Hifz email(s):\n(Separate multiple with a comma)",saved||"");
-    if(!dest||!dest.trim()){return;}
-    dest=dest.trim();
-    setTeacherEmails(dest);
-    try{localStorage.setItem('hifz_teacher_emails',dest);}catch(e){}
-    var emailList=dest.split(/[,;\s]+/).map(function(e){return e.trim();}).filter(Boolean);
-    if(!emailList.length){showToast("No valid email entered.","warning");return;}
+    if(!toSend.length){showToast("No report data for any selected student.","warning");setShowTeacherPanel(false);return;}
+    setShowTeacherPanel(false);
     setSelectedStudents([]);
     showToast("⏳ Uploading "+toSend.length+" report"+(toSend.length!==1?"s":"")+" — links coming…","info",6000);
     // Generate HTML for each student and upload to Supabase Storage
@@ -2697,7 +2727,9 @@ function App(){
       setRecords(prev=>[...prev,{...savedForm,id:uid()}]);
     }
     showToast(editingId?"Changes saved":"Entry saved","success");
-    setView("menu");setEditingId(null);setForm(defaultEntry);setAddNewStudent(false);
+    var _dest=postSaveView||"menu";
+    setPostSaveView("menu");
+    setView(_dest);setEditingId(null);setForm(defaultEntry);setAddNewStudent(false);
   }
   async function clearAllData(){
     if(!await checkAdminPassword(clearPwd)){showToast("Incorrect password.","error");return;}
@@ -4151,8 +4183,117 @@ function App(){
         , totalSel>0&&React.createElement('div', { style: {position:"fixed",bottom:80,left:"50%",transform:"translateX(-50%)",zIndex:200,display:"flex",gap:8,alignItems:"center",background:TEXT,borderRadius:40,padding:"8px 8px 8px 18px",boxShadow:"0 8px 32px rgba(0,0,0,0.28)"},}
           , React.createElement('div', { style: {color:"#fff",fontWeight:700,fontSize:13,whiteSpace:"nowrap"},}, totalSel, " selected")
           , React.createElement('button', { onClick: sendSelected, title:"Send individual PDF email to each student's parents", style: {background:GOLD,color:"#1b1200",border:"none",borderRadius:30,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:12,whiteSpace:"nowrap"}}, "📧 Parents")
-          , React.createElement('button', { onClick: sendTeacherDigest, title:"Send all reports in one email to teacher / head of hifz", style: {background:"#2563eb",color:"#fff",border:"none",borderRadius:30,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:12,whiteSpace:"nowrap"}}, "📋 Teacher")
+          , React.createElement('button', { onClick: openTeacherPanel, title:"Send all reports in one email to teacher / head of hifz", style: {background:"#2563eb",color:"#fff",border:"none",borderRadius:30,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:12,whiteSpace:"nowrap"}}, "📋 Teacher")
           , React.createElement('button', { onClick: ()=>setSelectedStudents([]), style: {background:"rgba(255,255,255,0.12)",color:"#fff",border:"none",borderRadius:30,padding:"8px 12px",cursor:"pointer",fontSize:13}}, "✕")
+        )
+        /* ── Missing-data students ── */
+        , (()=>{
+            var noData=latestPerStudent.filter(function(s){return!hasReportData(s);});
+            var profileNames=new Set(latestPerStudent.map(function(s){return s.name;}));
+            var profileOnly=records.filter(function(r){return r.isStudentProfile&&!profileNames.has(r.name);});
+            var missing=[...noData,...profileOnly];
+            if(!missing.length)return null;
+            var nowM=new Date().toLocaleString("default",{month:"long",year:"numeric"});
+            return React.createElement('div',{style:{marginTop:32}},
+              React.createElement('button',{
+                onClick:()=>setMissingOpen(function(o){return!o;}),
+                style:{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"none",border:"none",padding:"0 0 10px",cursor:"pointer",textAlign:"left"}
+              },
+                React.createElement('div',{style:{fontSize:11,fontWeight:700,letterSpacing:"1.8px",textTransform:"uppercase",color:MUTED}},
+                  "No data yet — "+missing.length+" student"+(missing.length!==1?"s":"")
+                ),
+                React.createElement('div',{style:{color:MUTED,fontSize:13,transition:"transform 0.2s",transform:missingOpen?"rotate(180deg)":"none"}},"▾")
+              ),
+              missingOpen&&React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:6}},
+                missing.map(function(s,i){
+                  return React.createElement('div',{
+                    key:s.id||s.name+i,
+                    style:{background:CARD,borderRadius:12,padding:"12px 16px",border:"1px solid "+MUTED+"22",display:"flex",alignItems:"center",gap:12}
+                  },
+                    React.createElement('div',{style:{flex:1,minWidth:0}},
+                      React.createElement('div',{style:{fontWeight:600,fontSize:14,color:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},s.name),
+                      React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:1}},s.class||"")
+                    ),
+                    React.createElement('button',{
+                      onClick:function(){addDataForStudent(s);},
+                      style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}
+                    },"+ Add "+nowM+" data")
+                  );
+                })
+              )
+            );
+          })()
+        /* ── Teacher contacts panel (overlay) ── */
+        , showTeacherPanel&&React.createElement('div',{
+            style:{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"flex-end",justifyContent:"center"},
+            onClick:function(e){if(e.target===e.currentTarget)setShowTeacherPanel(false);}
+          },
+          React.createElement('div',{style:{background:CARD,borderRadius:"24px 24px 0 0",width:"100%",maxWidth:540,maxHeight:"85vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 -8px 40px rgba(0,0,0,0.3)"}},
+            /* Panel header */
+            React.createElement('div',{style:{padding:"20px 20px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid "+BORDER}},
+              React.createElement('div',null,
+                React.createElement('div',{style:{fontWeight:800,fontSize:16,color:TEXT}},"📋 Send Teacher Digest"),
+                React.createElement('div',{style:{fontSize:12,color:MUTED,marginTop:2}},selectedStudents.length+" student"+(selectedStudents.length!==1?"s":"")+" selected")
+              ),
+              React.createElement('button',{onClick:()=>setShowTeacherPanel(false),style:{background:"none",border:"none",fontSize:20,color:MUTED,cursor:"pointer",padding:"4px 8px"}},"✕")
+            ),
+            /* Scrollable contact list */
+            React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"16px 20px"}},
+              teacherContacts.length===0&&React.createElement('div',{style:{color:MUTED,fontSize:13,textAlign:"center",padding:"20px 0"}},"No contacts yet — add one below"),
+              teacherContacts.map(function(c){
+                var isSel=selectedTeachers.includes(c.id);
+                return React.createElement('div',{key:c.id,style:{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid "+BORDER+"66"}},
+                  React.createElement('div',{
+                    onClick:function(){setSelectedTeachers(function(prev){return isSel?prev.filter(function(x){return x!==c.id;}):[...prev,c.id];});},
+                    style:{width:22,height:22,borderRadius:6,border:"2px solid "+(isSel?GOLD:MUTED),background:isSel?GOLD:"transparent",flexShrink:0,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}
+                  }, isSel&&React.createElement('div',{style:{color:"#1b1200",fontSize:13,fontWeight:"bold",lineHeight:1}},"✓")),
+                  React.createElement('div',{style:{flex:1,minWidth:0},onClick:function(){setSelectedTeachers(function(prev){return isSel?prev.filter(function(x){return x!==c.id;}):[...prev,c.id];});},cursor:"pointer"},
+                    React.createElement('div',{style:{fontWeight:600,fontSize:14,color:TEXT}},c.name||c.email),
+                    c.name&&React.createElement('div',{style:{fontSize:11,color:MUTED}},c.email)
+                  ),
+                  React.createElement('button',{
+                    onClick:function(){var next=teacherContacts.filter(function(x){return x.id!==c.id;});setTeacherContacts(next);try{localStorage.setItem('hifz_teacher_contacts',JSON.stringify(next));}catch(e){}setSelectedTeachers(function(prev){return prev.filter(function(x){return x!==c.id;});});},
+                    style:{background:"none",border:"none",color:RED,fontSize:16,cursor:"pointer",padding:"4px 6px",flexShrink:0}
+                  },"×")
+                );
+              }),
+              /* Add new contact */
+              React.createElement('div',{style:{marginTop:16,paddingTop:16,borderTop:"1px solid "+BORDER}},
+                React.createElement('div',{style:{fontSize:12,color:MUTED,fontWeight:600,marginBottom:8,textTransform:"uppercase",letterSpacing:"1px"}},"Add contact"),
+                React.createElement('div',{style:{display:"flex",gap:6,flexWrap:"wrap"}},
+                  React.createElement('input',{type:"text",placeholder:"Name (e.g. Ustadh Ibrahim)",value:newTcName,onChange:function(e){setNewTcName(e.target.value);},style:{flex:"1 1 120px",minWidth:0,background:DARK,border:"1px solid "+BORDER,borderRadius:8,padding:"8px 10px",color:TEXT,fontSize:13}}),
+                  React.createElement('input',{type:"email",placeholder:"Email address",value:newTcEmail,onChange:function(e){setNewTcEmail(e.target.value);},style:{flex:"2 1 160px",minWidth:0,background:DARK,border:"1px solid "+BORDER,borderRadius:8,padding:"8px 10px",color:TEXT,fontSize:13}}),
+                  React.createElement('button',{
+                    onClick:function(){
+                      var em=newTcEmail.trim();
+                      if(!em||!em.includes("@")){showToast("Enter a valid email.","warning");return;}
+                      var nc={id:Math.random().toString(36).slice(2),name:newTcName.trim(),email:em};
+                      var next=[...teacherContacts,nc];
+                      setTeacherContacts(next);
+                      setSelectedTeachers(function(prev){return[...prev,nc.id];});
+                      try{localStorage.setItem('hifz_teacher_contacts',JSON.stringify(next));}catch(e){}
+                      setNewTcName('');setNewTcEmail('');
+                    },
+                    style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontWeight:700,fontSize:13,flexShrink:0}
+                  },"+ Add")
+                )
+              )
+            ),
+            /* Panel footer */
+            React.createElement('div',{style:{padding:"14px 20px",borderTop:"1px solid "+BORDER,display:"flex",gap:10}},
+              React.createElement('button',{onClick:()=>setShowTeacherPanel(false),style:{flex:1,background:ACCENT,color:MUTED,border:"none",borderRadius:12,padding:"12px",cursor:"pointer",fontSize:14}},"Cancel"),
+              React.createElement('button',{
+                onClick:function(){
+                  var selContacts=teacherContacts.filter(function(c){return selectedTeachers.includes(c.id);});
+                  var emailList=selContacts.map(function(c){return c.email;}).filter(Boolean);
+                  if(!emailList.length){showToast("Select at least one recipient.","warning");return;}
+                  sendTeacherDigest(emailList);
+                },
+                disabled:selectedTeachers.length===0,
+                style:{flex:2,background:selectedTeachers.length>0?"#2563eb":MUTED,color:"#fff",border:"none",borderRadius:12,padding:"12px",cursor:selectedTeachers.length>0?"pointer":"default",fontWeight:800,fontSize:14}
+              },"📋 Send to ",selectedTeachers.length," contact"+(selectedTeachers.length!==1?"s":"")+" →")
+            )
+          )
         )
       );
     })()
