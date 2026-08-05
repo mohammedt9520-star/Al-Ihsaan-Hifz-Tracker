@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-600000 | Reports: Dor quick-entry grid, card UI refresh -->
+<!-- hifz-20260805-610000 | Reports: Dor quick-entry grid, card UI refresh -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-600000';
+const APP_VERSION='hifz-20260805-610000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1898,7 +1898,8 @@ function App(){
   const [rptPeriodKey,setRptPeriodKey]=React.useState("");
   const [rptClass,setRptClass]=React.useState("");
   const [quickDorCtx,setQuickDorCtx]=React.useState(null); // {student,period}
-  const [dorGrid,setDorGrid]=React.useState({});            // {juz:{quarter:level 0-4}}
+  const [dorGrid,setDorGrid]=React.useState([{}]);          // array of rounds; each round = {juz:{quarter:level 0-4}}
+  const [dorRound,setDorRound]=React.useState(0);           // active round index
   const [dorChampPeriodKey,setDorChampPeriodKey]=React.useState("");
   const [dorChampDateFrom,setDorChampDateFrom]=React.useState("");
   const [dorChampDateTo,setDorChampDateTo]=React.useState("");
@@ -4300,7 +4301,7 @@ function App(){
                   ,React.createElement('button',{onClick:()=>viewReportInBrowser(s),title:"View Report",style:{background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.25)",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"📄")
                   ,_hasDor
                     ?React.createElement('button',{disabled:true,title:"Dor already entered",style:{background:"#f0f0f0",color:"#aaa",border:"1px solid #e0e0e0",borderRadius:8,width:36,height:36,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",cursor:"default"}},"✓")
-                    :React.createElement('button',{onClick:()=>{setQuickDorCtx({student:s,period:selPeriod});setDorGrid({});setView("quickDor");},title:"Add Dor record",style:{background:"#1b241d",color:GOLD,border:"1px solid rgba(201,165,83,0.3)",borderRadius:8,width:36,height:36,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},"Dor")
+                    :React.createElement('button',{onClick:()=>{setQuickDorCtx({student:s,period:selPeriod});setDorGrid([{}]);setDorRound(0);setView("quickDor");},title:"Add Dor record",style:{background:"#1b241d",color:GOLD,border:"1px solid rgba(201,165,83,0.3)",borderRadius:8,width:36,height:36,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},"Dor")
                   ,React.createElement('div',{style:{position:"relative",display:"inline-flex"}}
                     ,React.createElement('button',{onClick:()=>emailReportPDF(s),title:"Email PDF",style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"📧")
                     ,_wasSent&&React.createElement('div',{title:"Report sent this month",style:{position:"absolute",top:-4,right:-4,width:11,height:11,borderRadius:"50%",background:"#22c55e",border:"2px solid "+CARD,pointerEvents:"none"}})
@@ -4432,33 +4433,34 @@ function App(){
       );
     })()
 
-    /* QUICK DOR ENTRY */
+    /* QUICK DOR ENTRY — round-per-page carousel */
     , view==="quickDor"&&quickDorCtx&&(()=>{
       const _qds=quickDorCtx.student;
       const _qdp=quickDorCtx.period;
       const DOR_LEVELS=[
         {bg:"#dde8de",label:""},
-        {bg:"#22c55e",label:""},
-        {bg:"#eab308",label:""},
+        {bg:"#22c55e",label:"0–1.5"},
+        {bg:"#eab308",label:"2–2.5"},
         {bg:"#f97316",label:"Scrape"},
         {bg:"#dc2626",label:"Kacha"},
       ];
-      // dorGrid[juz][q] = [level0, level1, level2, ...] — unlimited rounds
-      function _getRounds(juz,q){return(dorGrid[juz]&&dorGrid[juz][q])||[];}
-      function _cycleRound(juz,q,r){
+      // dorGrid = [{juz:{q:level}}, ...] — one object per round
+      var _numRounds=dorGrid.length||1;
+      var _curRound=Math.min(dorRound,_numRounds-1);
+      var _curGrid=dorGrid[_curRound]||{};
+      function _getLevel(juz,q){return(_curGrid[juz]&&_curGrid[juz][q])||0;}
+      function _cycleCell(juz,q){
         setDorGrid(function(prev){
-          var arr=(prev[juz]&&prev[juz][q])||[];
-          var next=arr.slice();next[r]=((next[r]||0)+1)%5;
-          var nj=Object.assign({},prev[juz]||{});nj[q]=next;
-          var ng=Object.assign({},prev);ng[juz]=nj;return ng;
+          var rounds=prev.slice();
+          var grid=Object.assign({},rounds[_curRound]||{});
+          var row=Object.assign({},grid[juz]||{});
+          row[q]=((row[q]||0)+1)%5;
+          grid[juz]=row;rounds[_curRound]=grid;return rounds;
         });
       }
-      function _addRound(juz,q){
-        setDorGrid(function(prev){
-          var arr=(prev[juz]&&prev[juz][q])||[];
-          var nj=Object.assign({},prev[juz]||{});nj[q]=arr.concat([0]);
-          var ng=Object.assign({},prev);ng[juz]=nj;return ng;
-        });
+      function _addNewRound(){
+        setDorGrid(function(prev){return prev.concat([{}]);});
+        setDorRound(function(prev){return prev+1;});
       }
       var _baseDate=_qdp?_qdp.dateFrom:getTodayStr();
       function _roundDate(r){
@@ -4475,85 +4477,103 @@ function App(){
       }
       function _saveDorGrid(){
         var recs=[];
-        for(var _j=1;_j<=30;_j++){for(var _q=1;_q<=4;_q++){
-          var rounds=_getRounds(_j,_q);
-          for(var _r=0;_r<rounds.length;_r++){
-            if(rounds[_r])recs.push(_makeRec(_j,_q,rounds[_r],_roundDate(_r)));
-          }
-        }}
+        for(var _ri=0;_ri<dorGrid.length;_ri++){
+          var grid=dorGrid[_ri]||{};
+          var date=_roundDate(_ri);
+          for(var _j=1;_j<=30;_j++){for(var _q=1;_q<=4;_q++){
+            var lv=(grid[_j]&&grid[_j][_q])||0;
+            if(lv)recs.push(_makeRec(_j,_q,lv,date));
+          }}
+        }
         if(!recs.length){showToast("No cells filled in yet.","warning",2500);return;}
         setDorRecords(function(prev){var n=[...prev,...recs];if(typeof lsSaveDor==="function")lsSaveDor(n);return n;});
         scheduleSync();if(typeof syncNow==="function")syncNow().catch(function(){});
-        showToast("Dor saved for "+_qds.name,"success",3000);
-        setQuickDorCtx(null);setDorGrid({});setView("reports");
+        showToast("Dor saved for "+_qds.name+" · "+dorGrid.length+" round"+(dorGrid.length>1?"s":""),"success",3000);
+        setQuickDorCtx(null);setDorGrid([{}]);setDorRound(0);setView("reports");
       }
-      function _cellDots(juz,q){
-        var rounds=_getRounds(juz,q);
-        var n=rounds.length;
-        // Dot size scales down as more rounds are added
-        var sz=n<=2?22:n<=4?17:n<=6?14:11;
-        var br=n<=2?6:n<=4?5:4;
-        var dotEls=rounds.map(function(lv,r){
-          var dl=DOR_LEVELS[lv];
-          var _r=r; // capture
-          return React.createElement('div',{key:_r,
-            onClick:function(e){e.stopPropagation();_cycleRound(juz,q,_r);},
-            style:{width:sz,height:sz,borderRadius:br,background:dl.bg,
-              border:lv===0?"1.5px dashed #b8c8ba":"none",
-              cursor:"pointer",transition:"background 0.1s",flexShrink:0,
-              boxShadow:lv>0?"0 1px 3px rgba(0,0,0,0.15)":"none"}
-          });
-        });
-        // "+" button: always shown, small
-        var plusSz=n===0?22:Math.max(10,sz-2);
-        var plusEl=React.createElement('div',{key:"plus",
-          onClick:function(e){e.stopPropagation();_addRound(juz,q);},
-          style:{width:plusSz,height:plusSz,borderRadius:br,
-            background:"rgba(0,0,0,0.05)",border:"1.5px dashed #b0bfb1",
-            cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
-            fontSize:plusSz<=12?8:10,color:MUTED,flexShrink:0,fontWeight:800,lineHeight:1,
-            userSelect:"none"}
-        },n===0?"·":"+");
-        var allEls=dotEls.concat([plusEl]);
-        return React.createElement('div',{
-          style:{display:"inline-flex",flexWrap:"wrap",gap:2,
-            alignItems:"center",justifyContent:"center",
-            maxWidth:n<=2?56:n<=4?44:n<=6?48:52,minWidth:26}}
-          ,...allEls
-        );
+      // Swipe handling
+      var _swipeX=React.useRef(null);
+      function _onTouchStart(e){_swipeX.current=e.touches[0].clientX;}
+      function _onTouchEnd(e){
+        if(_swipeX.current===null)return;
+        var dx=e.changedTouches[0].clientX-_swipeX.current;
+        _swipeX.current=null;
+        if(Math.abs(dx)<50)return;
+        if(dx<0&&_curRound<_numRounds-1)setDorRound(function(p){return p+1;});
+        if(dx>0&&_curRound>0)setDorRound(function(p){return p-1;});
       }
       return React.createElement('div',{style:{display:"flex",flexDirection:"column",height:"100vh",background:"#f8faf8"}}
-        ,React.createElement('div',{style:{padding:"16px 16px 12px",background:CARD,borderBottom:"1px solid rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:12,flexShrink:0}}
-          ,React.createElement('button',{onClick:function(){setQuickDorCtx(null);setDorGrid({});setView("reports");},style:{background:"none",border:"none",fontSize:22,cursor:"pointer",color:MUTED,padding:"0 4px",lineHeight:1}},"←")
+        /* Header */
+        ,React.createElement('div',{style:{padding:"14px 16px 10px",background:CARD,borderBottom:"1px solid rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:10,flexShrink:0}}
+          ,React.createElement('button',{onClick:function(){setQuickDorCtx(null);setDorGrid([{}]);setDorRound(0);setView("reports");},style:{background:"none",border:"none",fontSize:22,cursor:"pointer",color:MUTED,padding:"0 4px",lineHeight:1}},"←")
           ,React.createElement('div',{style:{flex:1,minWidth:0}}
             ,React.createElement('div',{style:{fontWeight:800,fontSize:15,color:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},_qds.name)
-            ,React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:1}},"Dor Entry · "+(_qdp?_qdp.label:"")+" · tap dot to cycle · [·] or [+] to add round")
+            ,React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:1}},(_qdp?_qdp.label:"")+" · tap cell to cycle colour")
           )
-          ,React.createElement('button',{onClick:_saveDorGrid,style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:10,padding:"8px 18px",cursor:"pointer",fontWeight:800,fontSize:13,flexShrink:0}},"Save")
+          ,React.createElement('button',{onClick:_saveDorGrid,style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:10,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:13,flexShrink:0}},"Save")
         )
-        ,React.createElement('div',{style:{padding:"8px 16px",background:CARD,borderBottom:"1px solid rgba(0,0,0,0.04)",display:"flex",gap:10,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}
-          ,[["","Empty"],["","0–1.5"],["","2–2.5"],["Scrape","Scrape"],["Kacha","Kacha"]].map(function(pair,i){
-            return React.createElement('div',{key:i,style:{display:"flex",alignItems:"center",gap:4}}
-              ,React.createElement('div',{style:{width:12,height:12,borderRadius:3,background:DOR_LEVELS[i].bg,border:i===0?"1.5px dashed #b0c0b2":"none",flexShrink:0}})
-              ,React.createElement('span',{style:{fontSize:10,color:MUTED}},pair[1])
-            );
-          })
+        /* Round bar: dots + Add Round button */
+        ,React.createElement('div',{style:{padding:"8px 16px",background:CARD,borderBottom:"1px solid rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:10,flexShrink:0}}
+          ,React.createElement('span',{style:{fontSize:11,color:MUTED,fontWeight:700,marginRight:2}},"Round:")
+          ,React.createElement('div',{style:{display:"flex",gap:6,alignItems:"center",flex:1}}
+            ,Array.from({length:_numRounds},function(_,ri){
+              var _ri=ri;
+              var active=_ri===_curRound;
+              return React.createElement('button',{key:_ri,
+                onClick:function(){setDorRound(_ri);},
+                style:{width:active?28:20,height:active?28:20,borderRadius:"50%",
+                  background:active?GOLD:"transparent",
+                  border:active?"none":"2px solid "+GOLD,
+                  color:active?"#1b1200":GOLD,
+                  fontWeight:800,fontSize:active?12:10,
+                  cursor:"pointer",transition:"all 0.15s",flexShrink:0,
+                  display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}
+              },String(_ri+1));
+            })
+            ,React.createElement('button',{onClick:_addNewRound,
+              style:{height:26,padding:"0 10px",borderRadius:13,
+                background:"transparent",border:"1.5px dashed "+GOLD,
+                color:GOLD,fontSize:11,fontWeight:800,cursor:"pointer",
+                display:"flex",alignItems:"center",gap:4,flexShrink:0}}
+              ,"＋ Round")
+          )
+          /* Legend */
+          ,React.createElement('div',{style:{display:"flex",gap:6,alignItems:"center",flexShrink:0}}
+            ,DOR_LEVELS.slice(1).map(function(dl,i){
+              return React.createElement('div',{key:i,style:{width:12,height:12,borderRadius:3,background:dl.bg,flexShrink:0}});
+            })
+          )
         )
-        ,React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"4px 8px 32px"}}
-          ,React.createElement('table',{style:{borderCollapse:"collapse",width:"100%"}}
+        /* Grid — swipeable */
+        ,React.createElement('div',{
+          style:{flex:1,overflowY:"auto",padding:"4px 8px 32px",WebkitOverflowScrolling:"touch"},
+          onTouchStart:_onTouchStart,onTouchEnd:_onTouchEnd}
+          ,React.createElement('table',{style:{borderCollapse:"collapse",width:"100%",tableLayout:"fixed"}}
             ,React.createElement('thead',null
               ,React.createElement('tr',null
-                ,React.createElement('th',{style:{padding:"8px 6px",fontSize:11,color:MUTED,fontWeight:700,textAlign:"left",width:38,position:"sticky",top:0,background:"#f8faf8"}},"Juz")
-                ,["Q1","Q2","Q3","Q4"].map(function(q){return React.createElement('th',{key:q,style:{padding:"8px 2px",fontSize:11,color:MUTED,fontWeight:700,textAlign:"center",position:"sticky",top:0,background:"#f8faf8"}},q);})
+                ,React.createElement('th',{style:{padding:"8px 6px",fontSize:11,color:MUTED,fontWeight:700,textAlign:"left",width:34,position:"sticky",top:0,background:"#f8faf8"}},"Juz")
+                ,["Q1","Q2","Q3","Q4"].map(function(qh){return React.createElement('th',{key:qh,style:{padding:"8px 4px",fontSize:11,color:MUTED,fontWeight:700,textAlign:"center",position:"sticky",top:0,background:"#f8faf8"}},qh);})
               )
             )
             ,React.createElement('tbody',null
               ,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30].map(function(juz){
                 return React.createElement('tr',{key:juz,style:{borderBottom:"1px solid rgba(0,0,0,0.04)"}}
-                  ,React.createElement('td',{style:{padding:"4px 6px",fontSize:13,fontWeight:700,color:TEXT,verticalAlign:"middle"}},juz)
+                  ,React.createElement('td',{style:{padding:"3px 6px",fontSize:13,fontWeight:700,color:TEXT,verticalAlign:"middle"}},juz)
                   ,[1,2,3,4].map(function(q){
-                    return React.createElement('td',{key:q,style:{padding:"4px 2px",textAlign:"center",verticalAlign:"middle"}}
-                      ,_cellDots(juz,q)
+                    var lv=_getLevel(juz,q);
+                    var dl=DOR_LEVELS[lv];
+                    var _j=juz,_q=q;
+                    return React.createElement('td',{key:_q,style:{padding:"3px 4px",textAlign:"center",verticalAlign:"middle"}}
+                      ,React.createElement('div',{
+                        onClick:function(e){e.stopPropagation();_cycleCell(_j,_q);},
+                        style:{width:"100%",height:28,borderRadius:7,
+                          background:dl.bg,
+                          border:lv===0?"1.5px dashed #b8c8ba":"none",
+                          cursor:"pointer",transition:"background 0.1s",
+                          boxShadow:lv>0?"0 1px 4px rgba(0,0,0,0.13)":"none",
+                          display:"flex",alignItems:"center",justifyContent:"center"}}
+                        ,lv===3||lv===4?React.createElement('span',{style:{fontSize:8,fontWeight:800,color:lv===3?"#7c3200":"#7f1d1d",lineHeight:1}},dl.label):null
+                      )
                     );
                   })
                 );
@@ -4561,8 +4581,10 @@ function App(){
             )
           )
         )
-        ,React.createElement('div',{style:{padding:"12px 16px 20px",background:CARD,borderTop:"1px solid rgba(0,0,0,0.06)",flexShrink:0}}
-          ,React.createElement('button',{onClick:_saveDorGrid,style:{width:"100%",background:GOLD,color:"#1b1200",border:"none",borderRadius:12,padding:"14px",cursor:"pointer",fontWeight:800,fontSize:15}},"Save Dor · "+_qds.name)
+        /* Footer */
+        ,React.createElement('div',{style:{padding:"10px 16px 18px",background:CARD,borderTop:"1px solid rgba(0,0,0,0.06)",flexShrink:0}}
+          ,React.createElement('div',{style:{fontSize:11,color:MUTED,textAlign:"center",marginBottom:6}},"Round "+(_curRound+1)+" of "+_numRounds+" · swipe left/right to navigate")
+          ,React.createElement('button',{onClick:_saveDorGrid,style:{width:"100%",background:GOLD,color:"#1b1200",border:"none",borderRadius:12,padding:"13px",cursor:"pointer",fontWeight:800,fontSize:15}},"Save All Rounds · "+_qds.name)
         )
       );
     })()
