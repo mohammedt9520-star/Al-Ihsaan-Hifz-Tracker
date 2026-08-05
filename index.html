@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-430000 | Restructure champion rankings: header strip + runner-up box + 3rd+ box -->
+<!-- hifz-20260805-440000 | Dor: total mistakes only, least mistakes wins -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-430000';
+const APP_VERSION='hifz-20260805-440000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1657,7 +1657,7 @@ function calcDorChampions(dorRecords, records, dateFrom, dateTo){
     else if(studentStats.length>0)qualifyingQ=Math.max(...studentStats.map(s=>s.cleanQuarters));
     const pool=cleanStudents.length>0?cleanStudents:studentStats;
     const qualifiers=pool.filter(s=>s.cleanQuarters>=qualifyingQ).sort((a,b)=>a.totalMistakes-b.totalMistakes);
-    const allRanked=[...studentStats].sort((a,b)=>b.cleanQuarters-a.cleanQuarters||a.totalMistakes-b.totalMistakes);
+    const allRanked=[...studentStats].sort((a,b)=>a.totalMistakes-b.totalMistakes);
     return{first:qualifiers[0]||null,second:qualifiers[1]||null,qualifyingQ,maxQ:maxQuarters||qualifyingQ,allRanked};
   }
   return{classA:champForClass(classA),classB:champForClass(classB)};
@@ -4643,14 +4643,10 @@ function App(){
                   ,React.createElement('div',{style:{fontSize:20,color:"#c9a553",marginBottom:10,lineHeight:1}},"☽")
                   ,React.createElement('div',{style:{fontSize:24,fontWeight:700,color:"#1b241d",letterSpacing:"0.01em",marginBottom:4,lineHeight:1.3,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif"}},first.name)
                   ,React.createElement('div',{style:{fontSize:9,color:MUTED,letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:18}},"1st Place")
-                  ,React.createElement('div',{style:{display:"flex",justifyContent:"center",gap:8}}
-                    ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 14px",textAlign:"center",flex:1}}
-                      ,React.createElement('div',{style:{fontSize:18,fontWeight:700,color:"#c9a553",letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.cleanQuarters)
-                      ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4,lineHeight:1.4}},"Clean Quarters")
-                    )
-                    ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 14px",textAlign:"center",flex:1}}
-                      ,React.createElement('div',{style:{fontSize:18,fontWeight:700,color:first.hasRedOrRepeat?ORANGE:GREEN,letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.totalMistakes.toFixed(1))
-                      ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4,lineHeight:1.4}},"Total Errors")
+                  ,React.createElement('div',{style:{display:"flex",justifyContent:"center"}}
+                    ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 28px",textAlign:"center"}}
+                      ,React.createElement('div',{style:{fontSize:22,fontWeight:700,color:first.hasRedOrRepeat?ORANGE:GREEN,letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.totalMistakes.toFixed(1))
+                      ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4,lineHeight:1.4}},"Total Mistakes")
                     )
                   )
                   ,React.createElement('div',{style:{fontSize:12,color:"#8a9a8b",textAlign:"center",marginTop:14,letterSpacing:"0.02em",lineHeight:1.8,direction:"rtl"}},"مَا شَاءَ اللَّهُ، اللَّهُمَّ زِدْ وَبَارِكْ")
@@ -4660,10 +4656,7 @@ function App(){
               ,React.createElement('div',{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:10,padding:"8px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}
                 ,React.createElement('div',{style:{minWidth:36,flexShrink:0}})
                 ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:MUTED,textTransform:"uppercase",flex:1}},"Rankings")
-                ,React.createElement('div',{style:{display:"flex",gap:0,fontSize:8,letterSpacing:"0.07em",color:MUTED,textTransform:"uppercase"}}
-                  ,React.createElement('div',{style:{width:60,textAlign:"center",lineHeight:1.4}},"Clean",React.createElement('br',null),"Quarters")
-                  ,React.createElement('div',{style:{width:52,textAlign:"right",lineHeight:1.4}},"Total",React.createElement('br',null),"Errors")
-                )
+                ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.07em",color:MUTED,textTransform:"uppercase",width:72,textAlign:"right",lineHeight:1.4}},"Total",React.createElement('br',null),"Mistakes")
               )
               /* Runner up — own box, column-aligned */
               ,second&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.13)",borderRadius:12,padding:"12px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
@@ -4672,20 +4665,14 @@ function App(){
                   ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:1}},"Runner Up")
                   ,React.createElement('div',{style:{fontSize:14,fontWeight:600,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},second.name)
                 )
-                ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
-                  ,React.createElement('span',{style:{color:MUTED,width:60,textAlign:"center"}},second.cleanQuarters)
-                  ,React.createElement('span',{style:{color:second.hasRedOrRepeat?ORANGE:GREEN,width:52,textAlign:"right"}},second.totalMistakes.toFixed(1))
-                )
+                ,React.createElement('span',{style:{color:second.hasRedOrRepeat?ORANGE:GREEN,width:72,textAlign:"right",fontSize:12,fontVariantNumeric:"tabular-nums",flexShrink:0}},second.totalMistakes.toFixed(1))
               )
               /* 3rd+ list — hafidh excluded, no internal header */
               ,allRanked&&allRanked.filter(s=>!hafidhStudents.has(s.name)).length>2&&(()=>{const dorRankList=allRanked.filter(s=>!hafidhStudents.has(s.name));return React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
                 ,dorRankList.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.name,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
                   ,React.createElement('div',{style:{minWidth:36,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",textAlign:"center"}},"#"+(i+3))
                   ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.name)
-                  ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
-                    ,React.createElement('span',{style:{color:MUTED,width:60,textAlign:"center"}},s.cleanQuarters)
-                    ,React.createElement('span',{style:{color:s.hasRedOrRepeat?ORANGE:GREEN,width:52,textAlign:"right"}},s.totalMistakes.toFixed(1))
-                  )
+                  ,React.createElement('span',{style:{color:s.hasRedOrRepeat?ORANGE:GREEN,width:72,textAlign:"right",fontSize:12,fontVariantNumeric:"tabular-nums",flexShrink:0}},s.totalMistakes.toFixed(1))
                 ))
               );})()
             )
