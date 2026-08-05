@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-400000 | Champion pages — premium redesign -->
+<!-- hifz-20260805-410000 | Champion pages — rankings polish, Arabic text, hafidh filter -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-400000';
+const APP_VERSION='hifz-20260805-410000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4641,18 +4641,19 @@ function App(){
                   ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.28em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:4}},"Dor Champion")
                   ,React.createElement('div',{style:{fontSize:10,color:"#c9a553",letterSpacing:"0.05em",marginBottom:20}},((dorChampClass||"HIFZ CLASS A")==="HIFZ CLASS A"?"Class A":"Class B")+" · "+(selPeriod?selPeriod.label:""))
                   ,React.createElement('div',{style:{fontSize:20,color:"#c9a553",marginBottom:10,lineHeight:1}},"☽")
-                  ,React.createElement('div',{style:{fontSize:26,fontWeight:700,color:"#1b241d",letterSpacing:"-0.3px",marginBottom:6,lineHeight:1.2,wordBreak:"break-word"}},first.name)
-                  ,React.createElement('div',{style:{fontSize:9,color:"#9aaa9b",letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:20}},"1st Place")
+                  ,React.createElement('div',{style:{fontSize:24,fontWeight:700,color:"#1b241d",letterSpacing:"0.01em",marginBottom:4,lineHeight:1.3,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif"}},first.name)
+                  ,React.createElement('div',{style:{fontSize:9,color:MUTED,letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:18}},"1st Place")
                   ,React.createElement('div',{style:{display:"flex",justifyContent:"center",gap:8}}
-                    ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"12px 18px",textAlign:"center",minWidth:90}}
-                      ,React.createElement('div',{style:{fontSize:20,fontWeight:700,color:"#c9a553",letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.cleanQuarters)
-                      ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.18em",color:"#9aaa9b",textTransform:"uppercase",marginTop:3}},"Quarters")
+                    ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 14px",textAlign:"center",flex:1}}
+                      ,React.createElement('div',{style:{fontSize:18,fontWeight:700,color:"#c9a553",letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.cleanQuarters)
+                      ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4,lineHeight:1.4}},"Clean Quarters")
                     )
-                    ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"12px 18px",textAlign:"center",minWidth:90}}
-                      ,React.createElement('div',{style:{fontSize:20,fontWeight:700,color:first.hasRedOrRepeat?ORANGE:GREEN,letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.totalMistakes.toFixed(1))
-                      ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.18em",color:"#9aaa9b",textTransform:"uppercase",marginTop:3}},"Errors")
+                    ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 14px",textAlign:"center",flex:1}}
+                      ,React.createElement('div',{style:{fontSize:18,fontWeight:700,color:first.hasRedOrRepeat?ORANGE:GREEN,letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.totalMistakes.toFixed(1))
+                      ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4,lineHeight:1.4}},"Total Errors")
                     )
                   )
+                  ,React.createElement('div',{style:{fontSize:12,color:"#8a9a8b",textAlign:"center",marginTop:14,letterSpacing:"0.02em",lineHeight:1.8,direction:"rtl"}},"مَا شَاءَ اللَّهُ، اللَّهُمَّ زِدْ وَبَارِكْ")
                 )
               )
               /* Runner up */
@@ -4667,21 +4668,24 @@ function App(){
                   ,React.createElement('div',{style:{fontSize:10,color:second.hasRedOrRepeat?ORANGE:GREEN,fontVariantNumeric:"tabular-nums"}},second.totalMistakes.toFixed(1)+" err")
                 )
               )
-              /* Full rankings */
-              ,allRanked&&allRanked.length>0&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,0.04)"}}
-                ,React.createElement('div',{style:{padding:"9px 16px",borderBottom:"1px solid rgba(107,114,128,0.07)",display:"flex",justifyContent:"space-between",alignItems:"center"}}
-                  ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase"}},"Full Rankings")
-                  ,React.createElement('div',{style:{fontSize:10,color:"#b0b8b0"}},allRanked.length+" students")
+              /* Full rankings — from #3, hafidh excluded */
+              ,allRanked&&allRanked.filter(s=>!hafidhStudents.has(s.name)).length>2&&(()=>{const dorRankList=allRanked.filter(s=>!hafidhStudents.has(s.name));return React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,0.04)"}}
+                ,React.createElement('div',{style:{padding:"9px 16px",borderBottom:"1px solid rgba(107,114,128,0.07)",display:"flex",alignItems:"center"}}
+                  ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:MUTED,textTransform:"uppercase",flex:1}},"Full Rankings")
+                  ,React.createElement('div',{style:{display:"flex",gap:0,fontSize:8,letterSpacing:"0.07em",color:MUTED,textTransform:"uppercase"}}
+                    ,React.createElement('div',{style:{width:60,textAlign:"center",lineHeight:1.4}},"Clean",React.createElement('br',null),"Quarters")
+                    ,React.createElement('div',{style:{width:52,textAlign:"right",lineHeight:1.4}},"Total",React.createElement('br',null),"Errors")
+                  )
                 )
-                ,allRanked.map((s,i)=>React.createElement('div',{key:s.name,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<allRanked.length-1?"1px solid rgba(107,114,128,0.06)":"none",background:i===0?"rgba(201,165,83,0.04)":i===1?"rgba(107,114,128,0.02)":"transparent"}}
-                  ,React.createElement('div',{style:{minWidth:24,fontSize:i===0?12:11,color:i===0?GOLD:i===1?"#9ca3af":MUTED,fontWeight:i<2?"600":"400",flexShrink:0}},i===0?"①":i===1?"②":"#"+(i+1))
-                  ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,fontWeight:i<2?"600":"400",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingLeft:8}},s.name)
-                  ,React.createElement('div',{style:{display:"flex",gap:10,flexShrink:0,fontSize:12}}
-                    ,React.createElement('span',{style:{color:MUTED,fontVariantNumeric:"tabular-nums"}},s.cleanQuarters+"Q")
-                    ,React.createElement('span',{style:{color:s.hasRedOrRepeat?ORANGE:GREEN,fontWeight:"bold",fontVariantNumeric:"tabular-nums"}},s.totalMistakes.toFixed(1)+"e")
+                ,dorRankList.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.name,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
+                  ,React.createElement('div',{style:{minWidth:28,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums"}},"#"+(i+3))
+                  ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingLeft:8}},s.name)
+                  ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
+                    ,React.createElement('span',{style:{color:MUTED,width:60,textAlign:"center"}},s.cleanQuarters)
+                    ,React.createElement('span',{style:{color:s.hasRedOrRepeat?ORANGE:GREEN,width:52,textAlign:"right"}},s.totalMistakes.toFixed(1))
                   )
                 ))
-              )
+              );})())
             )
           )
         );
@@ -4696,8 +4700,8 @@ function App(){
         const selKey=champPeriodKey||(periods[0]?periods[0].dateFrom+"__"+periods[0].dateTo:"");
         const selPeriod=periods.find(p=>p.dateFrom+"__"+p.dateTo===selKey)||periods[0];
         const periodRecords=selPeriod?calced.filter(r=>recordMatchesPeriod(r,selPeriod)):[];
-        const clsARecords=periodRecords.filter(r=>r.class==="HIFZ CLASS A").sort((a,b)=>(b.championTotalSides||0)-(a.championTotalSides||0));
-        const clsBRecords=periodRecords.filter(r=>r.class==="HIFZ CLASS B").sort((a,b)=>(b.championTotalSides||0)-(a.championTotalSides||0));
+        const clsARecords=periodRecords.filter(r=>r.class==="HIFZ CLASS A"&&!hafidhStudents.has(r.name)).sort((a,b)=>(b.championTotalSides||0)-(a.championTotalSides||0));
+        const clsBRecords=periodRecords.filter(r=>r.class==="HIFZ CLASS B"&&!hafidhStudents.has(r.name)).sort((a,b)=>(b.championTotalSides||0)-(a.championTotalSides||0));
         const list=posterClass==="HIFZ CLASS A"?clsARecords:clsBRecords;
         const first=list[0]||null;
         const second=list[1]||null;
@@ -4721,19 +4725,20 @@ function App(){
                     ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.28em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:4}},"Sabaq Champion")
                     ,React.createElement('div',{style:{fontSize:10,color:"#c9a553",letterSpacing:"0.05em",marginBottom:20}},(posterClass==="HIFZ CLASS A"?"Class A":"Class B")+" · "+(selPeriod?selPeriod.label:""))
                     ,React.createElement('div',{style:{fontSize:20,color:"#c9a553",marginBottom:10,lineHeight:1}},"♛")
-                    ,React.createElement('div',{style:{fontSize:26,fontWeight:700,color:"#1b241d",letterSpacing:"-0.3px",marginBottom:6,lineHeight:1.2,wordBreak:"break-word"}},first.name)
-                    ,React.createElement('div',{style:{fontSize:9,color:"#9aaa9b",letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:20}},"1st Place")
+                    ,React.createElement('div',{style:{fontSize:24,fontWeight:700,color:"#1b241d",letterSpacing:"0.01em",marginBottom:4,lineHeight:1.3,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif"}},first.name)
+                    ,React.createElement('div',{style:{fontSize:9,color:MUTED,letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:18}},"1st Place")
                     ,React.createElement('div',{style:{display:"flex",justifyContent:"center",gap:8}}
-                      ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"12px 18px",textAlign:"center",minWidth:90}}
-                        ,React.createElement('div',{style:{fontSize:20,fontWeight:700,color:"#c9a553",letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},fmt(first.championTotalSides,2))
-                        ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.18em",color:"#9aaa9b",textTransform:"uppercase",marginTop:3}},"Total Sides")
+                      ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 14px",textAlign:"center",flex:1}}
+                        ,React.createElement('div',{style:{fontSize:18,fontWeight:700,color:"#c9a553",letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},fmt(first.championTotalSides,2))
+                        ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4,lineHeight:1.4}},"Total Sides",React.createElement('br',null),"Memorised")
                       )
-                      ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"12px 18px",textAlign:"center",minWidth:90}}
-                        ,React.createElement('div',{style:{fontSize:20,fontWeight:700,color:"#c9a553",letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},fmt(first.championDailyAverage,3))
-                        ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.18em",color:"#9aaa9b",textTransform:"uppercase",marginTop:3}},"Daily Avg")
-                        ,React.createElement('div',{style:{fontSize:9,color:"#b8bfb9",marginTop:1}},"sides / day")
+                      ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 14px",textAlign:"center",flex:1}}
+                        ,React.createElement('div',{style:{fontSize:18,fontWeight:700,color:"#c9a553",letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},fmt(first.championDailyAverage,3))
+                        ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4,lineHeight:1.4}},"Daily Average")
+                        ,React.createElement('div',{style:{fontSize:8,color:"#a0a8a1",marginTop:2}},"sides / day")
                       )
                     )
+                    ,React.createElement('div',{style:{fontSize:12,color:"#8a9a8b",textAlign:"center",marginTop:14,letterSpacing:"0.02em",lineHeight:1.8,direction:"rtl"}},"مَا شَاءَ اللَّهُ، اللَّهُمَّ زِدْ وَبَارِكْ")
                   )
                 )
                 /* Runner up */
@@ -4748,18 +4753,21 @@ function App(){
                     ,React.createElement('div',{style:{fontSize:10,color:"#b0b8b0",fontVariantNumeric:"tabular-nums"}},fmt(second.championDailyAverage,3)+"/day")
                   )
                 )
-                /* Full rankings */
-                ,list.length>0&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,0.04)"}}
-                  ,React.createElement('div',{style:{padding:"9px 16px",borderBottom:"1px solid rgba(107,114,128,0.07)",display:"flex",justifyContent:"space-between",alignItems:"center"}}
-                    ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase"}},"Full Rankings")
-                    ,React.createElement('div',{style:{fontSize:10,color:"#b0b8b0"}},list.length+" students")
+                /* Full rankings — starts from #3 */
+                ,list.length>2&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,0.04)"}}
+                  ,React.createElement('div',{style:{padding:"9px 16px",borderBottom:"1px solid rgba(107,114,128,0.07)",display:"flex",alignItems:"center"}}
+                    ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:MUTED,textTransform:"uppercase",flex:1}},"Full Rankings")
+                    ,React.createElement('div',{style:{display:"flex",gap:0,fontSize:8,letterSpacing:"0.07em",color:MUTED,textTransform:"uppercase"}}
+                      ,React.createElement('div',{style:{width:66,textAlign:"center",lineHeight:1.4}},"Total Sides",React.createElement('br',null),"Memorised")
+                      ,React.createElement('div',{style:{width:52,textAlign:"right",lineHeight:1.4}},"Daily",React.createElement('br',null),"Average")
+                    )
                   )
-                  ,list.map((s,i)=>React.createElement('div',{key:s.id,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<list.length-1?"1px solid rgba(107,114,128,0.06)":"none",background:i===0?"rgba(201,165,83,0.04)":i===1?"rgba(107,114,128,0.02)":"transparent"}}
-                    ,React.createElement('div',{style:{minWidth:24,fontSize:i===0?12:11,color:i===0?GOLD:i===1?"#9ca3af":MUTED,fontWeight:i<2?"600":"400",flexShrink:0}},i===0?"①":i===1?"②":"#"+(i+1))
-                    ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,fontWeight:i<2?"600":"400",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingLeft:8}},s.name)
-                    ,React.createElement('div',{style:{display:"flex",gap:10,flexShrink:0,fontSize:12}}
-                      ,React.createElement('span',{style:{color:MUTED,fontVariantNumeric:"tabular-nums"}},fmt(s.championTotalSides,2)+"s")
-                      ,React.createElement('span',{style:{color:i===0?GOLD:MUTED,fontWeight:i===0?"600":"400",fontVariantNumeric:"tabular-nums"}},fmt(s.championDailyAverage,3))
+                  ,list.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.id,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
+                    ,React.createElement('div',{style:{minWidth:28,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums"}},"#"+(i+3))
+                    ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",paddingLeft:8}},s.name)
+                    ,React.createElement('div',{style:{display:"flex",gap:0,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
+                      ,React.createElement('span',{style:{color:MUTED,width:66,textAlign:"center"}},fmt(s.championTotalSides,2))
+                      ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"right"}},fmt(s.championDailyAverage,3))
                     )
                   ))
                 )
