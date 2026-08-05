@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-190000 | realtime sync, AI comment generation, Telegram monthly reminder -->
+<!-- hifz-20260805-200000 | realtime sync, AI comment generation, Telegram monthly reminder -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -65,7 +65,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-190000';
+const APP_VERSION='hifz-20260805-200000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -883,10 +883,10 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
 
   // ── SVG donut for attendance % ──────────────────────────────
   function svgDonut(pct,color){
-    const r=30,cx=36,cy=36,stroke=6;
+    const r=38,cx=46,cy=46,stroke=7;
     const circ=2*Math.PI*r;
     const dash=Math.min(pct/100,1)*circ;
-    return '<svg width="72" height="72" viewBox="0 0 72 72"><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#e8e8e8" stroke-width="'+stroke+'"/><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+stroke+'" stroke-dasharray="'+dash+' '+circ+'" stroke-linecap="round" transform="rotate(-90 '+cx+' '+cy+')" style="transition:stroke-dasharray 0.3s;"/><text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="11" font-weight="bold" fill="'+color+'" font-family="Arial,sans-serif">'+fmt(pct,1)+'%</text></svg>';
+    return '<svg width="92" height="92" viewBox="0 0 92 92"><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#e8e8e8" stroke-width="'+stroke+'"/><circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+stroke+'" stroke-dasharray="'+dash+' '+circ+'" stroke-linecap="round" transform="rotate(-90 '+cx+' '+cy+')" style="transition:stroke-dasharray 0.3s;"/><text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="13" font-weight="bold" fill="'+color+'" font-family="Arial,sans-serif">'+fmt(pct,1)+'%</text></svg>';
   }
   function attPctColor(p){return p>=90?"#27ae60":p>=75?"#e67e22":"#e74c3c";}
 
@@ -967,7 +967,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
     var s='<div class="card">';
     s+='<div class="sec-hdr '+hdrClass+'"><span class="sec-num">1</span> '+title+'</div>';
     s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">';
-    s+='<div class="att-cell"><div class="att-lbl">'+(sessLabel||'Morning Sessions This Month')+'</div><div class="att-val" style="color:#2d4a8a;">'+possible+'</div></div>';
+    s+='<div class="att-cell"><div class="att-lbl">'+(sessLabel||'Morning Sessions This Month')+'</div><div class="att-val">'+possible+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Absences</div><div class="att-val '+(absences>0?"val-red":"")+'">'+absences+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Total Sessions Attended</div><div class="att-val val-green">'+attended+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Attendance %</div><div style="display:flex;justify-content:center;padding:6px 0;">'+svgDonut(pct,col)+'</div></div>';
@@ -1028,8 +1028,8 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<div class="card">';
   h+='<div class="sec-hdr sec-hdr-purple"><span class="sec-num">4</span> Target for Next Month</div>';
   h+='<table class="dtbl"><tr>';
-  h+='<td style="text-align:left;padding:14px 18px;"><div class="lbl">Sabaq Lines Per Day</div></td>';
-  h+='<td style="text-align:left;padding:14px 18px;"><div class="val" style="font-size:22px;">'+calc.Q+'</div></td>';
+  h+='<td style="width:50%;text-align:center;padding:18px 18px;border-right:1.5px solid #ede9e0;"><div class="lbl">Sabaq Lines Per Day</div></td>';
+  h+='<td style="width:50%;text-align:center;padding:18px 18px;"><div class="val" style="font-size:26px;">'+calc.Q+'</div></td>';
   h+='</tr></table></div>';
 
   } // end !isHafidh sabaq sections
