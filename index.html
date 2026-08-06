@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260806-750000 | Para Dor/Para Test grid + alphabetical tiebreaker -->
+<!-- hifz-20260806-760000 | Sabaq Entry flat table — SP/Dor circles, numpad, last sabaq PD -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260806-750000';
+const APP_VERSION='hifz-20260806-760000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -5102,7 +5102,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     sabaqLines:"",sabaqWeak:false,sabaqLessLines:false,
     dorDone:false,dorJuz:"",dorQuarter:"",dorMistakes:"",dorKaccha:false,dorScrape:false,dorNoTime:false,dorParaDor:false,
     dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",
-    lastSabaq:false,lastSabaqPdQ:"",lastSabaqPdLv:0,
+    lastSabaq:false,lastSabaqJuz:"",lastSabaqPdQs:[],lastSabaqPdLv:0,
   });
   function bufFromSaved(sv,dorRecs){
     const base=EMPTY_AM(sv.studentName);
@@ -5125,6 +5125,8 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       dor2Juz:(_dr2&&_dr2.dor2Juz)||"",
       dor2Quarter:normQuarter((_dr2&&_dr2.dor2Quarter)||""),
       dor2Mistakes:(_dr2&&_dr2.dor2Mistakes)?String(_dr2.dor2Mistakes):"",
+      // last sabaq fields (not persisted to DB yet — reset on reload is expected)
+      lastSabaq:false,lastSabaqJuz:"",lastSabaqPdQs:[],lastSabaqPdLv:0,
     };
   }
   function initAM(name){
@@ -5241,16 +5243,19 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
           dor2Mistakes:row.dor2Juz?String(parseFloat(row.dor2Mistakes)||0):"",dor2Repeated:false,
           paraDor:!!row.dorParaDor,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:""});
       }
-      // Last Sabaq PD — extra Para Dor record when last sabaq is short
-      if(!row.absent&&row.lastSabaq&&row.lastSabaqPdQ&&row.lastSabaqPdLv>0){
+      // Last Sabaq PD — one Para Dor record per selected quarter
+      if(!row.absent&&row.lastSabaq&&Array.isArray(row.lastSabaqPdQs)&&row.lastSabaqPdQs.length>0&&row.lastSabaqPdLv>0){
         var _lspLv=row.lastSabaqPdLv;
         var _lspMk=_lspLv===1?"0":_lspLv===2?"2":_lspLv===3?"3.5":"4";
-        dors.push({id:uid(),studentName:row.name,date,morningDor:true,
-          dor1Juz:"",dor1Quarter:normQuarter(row.lastSabaqPdQ),
-          dor1Mistakes:_lspMk,dor1Repeated:_lspLv===4,dor1Scrape:_lspLv===3,dor1NoTime:false,
-          dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,dor2Scrape:false,
-          dor2NoTime:false,dor2Exempt:false,dor2ParaDor:false,
-          paraDor:true,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:""});
+        var _lspJuz=row.lastSabaqJuz||"";
+        row.lastSabaqPdQs.forEach(function(_q){
+          dors.push({id:uid(),studentName:row.name,date,morningDor:true,
+            dor1Juz:_lspJuz,dor1Quarter:normQuarter(_q),
+            dor1Mistakes:_lspMk,dor1Repeated:_lspLv===4,dor1Scrape:_lspLv===3,dor1NoTime:false,
+            dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,dor2Scrape:false,
+            dor2NoTime:false,dor2Exempt:false,dor2ParaDor:false,
+            paraDor:true,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:""});
+        });
       }
     });
     if(typeof setDailySabaqEntries==="function"){
@@ -5275,610 +5280,275 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   const students=getClassStudents(cls);
 
   // ── Shared select style (large tap target) ──
-  const selS={background:"#F8F9FA",border:"1px solid #E5E7EB",borderRadius:8,
-              padding:"10px 8px",fontSize:16,outline:"none",width:"100%",
-              WebkitAppearance:"none",textAlign:"center",cursor:"pointer"};
-  const secLabel={fontSize:10,fontWeight:"700",textTransform:"uppercase",
-                  letterSpacing:"0.8px",marginBottom:6,display:"block"};
+  // ── Colour level helpers ──
+  const LV=[
+    {bg:"#D1D5DB",label:""},
+    {bg:"#16a34a",label:""},
+    {bg:"#CA8A04",label:"~"},
+    {bg:"#EA580C",label:"S"},
+    {bg:"#DC2626",label:"K"},
+  ];
+  function _spLv(row){if(row.spKaccha)return 4;if(row.spScrape)return 3;var mk=parseFloat(row.spMistakes);return(isNaN(mk)||row.spMistakes==="")?0:mk>=2?2:1;}
+  function _setSpLv(i,lv){
+    var P=[
+      {spMistakes:"",spScrape:false,spKaccha:false,sp2Done:false,sp2Mistakes:"",sp2Scrape:false,sp2Kaccha:false},
+      {spMistakes:"0",spScrape:false,spKaccha:false,sp2Done:false,sp2Mistakes:"",sp2Scrape:false,sp2Kaccha:false},
+      {spMistakes:"2",spScrape:false,spKaccha:false,sp2Done:false,sp2Mistakes:"",sp2Scrape:false,sp2Kaccha:false},
+      {spMistakes:"3.5",spScrape:true,spKaccha:false,sp2Done:false,sp2Mistakes:"",sp2Scrape:false,sp2Kaccha:false},
+      {spMistakes:"4",spScrape:false,spKaccha:true,sp2Done:true,sp2Mistakes:"0",sp2Scrape:false,sp2Kaccha:false},
+    ];
+    setAmRows(function(prev){var n=prev.slice();n[i]=Object.assign({},n[i],P[lv]||{});return n;});
+  }
+  function _sp2Lv(row){if(!row.sp2Done)return 0;if(row.sp2Kaccha)return 4;if(row.sp2Scrape)return 3;var mk=parseFloat(row.sp2Mistakes);return isNaN(mk)?1:mk>=2?2:1;}
+  function _setSp2Lv(i,lv){
+    var P=[null,
+      {sp2Mistakes:"0",sp2Scrape:false,sp2Kaccha:false},
+      {sp2Mistakes:"2",sp2Scrape:false,sp2Kaccha:false},
+      {sp2Mistakes:"3.5",sp2Scrape:true,sp2Kaccha:false},
+      {sp2Mistakes:"4",sp2Scrape:false,sp2Kaccha:true},
+    ];
+    if(lv<1)return;
+    setAmRows(function(prev){var n=prev.slice();n[i]=Object.assign({},n[i],P[lv]||{});return n;});
+  }
+  function _dorLv(row){if(row.dorKaccha)return 4;if(row.dorScrape)return 3;var mk=parseFloat(row.dorMistakes);return(isNaN(mk)||row.dorMistakes==="")?0:mk>=2?2:1;}
+  function _setDorLv(i,lv){
+    var P=[
+      {dorMistakes:"",dorScrape:false,dorKaccha:false},
+      {dorMistakes:"0",dorScrape:false,dorKaccha:false},
+      {dorMistakes:"2",dorScrape:false,dorKaccha:false},
+      {dorMistakes:"3.5",dorScrape:true,dorKaccha:false},
+      {dorMistakes:"4",dorScrape:false,dorKaccha:true},
+    ];
+    setAmRows(function(prev){var n=prev.slice();n[i]=Object.assign({},n[i],P[lv]||{});return n;});
+  }
+  // Compact inline select style
+  var _ss={fontSize:11,borderRadius:6,border:"1px solid #D1D5DB",background:"#F9FAFB",padding:"3px 2px",WebkitAppearance:"none",outline:"none",textAlign:"center",cursor:"pointer"};
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // QUEUE CARD — single student popup view
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  function QueueCard({rows,updRow,tab,onPrev,onNext,onDone,idx,total,hafidhSet,openHafidhDorGrid,selectedDate,dorRecords}){
-    const row=rows[idx];
-    if(!row)return null;
-    // Local state for the "Other" lines input — never triggers parent re-render
-    // on each keystroke, which caused snapping on mobile.
-    var _initCL=LINE_QUICK.includes(Number(row.sabaqLines))?"":row.sabaqLines||"";
-    var _clPair=React.useState(_initCL);
-    var linesCustom=_clPair[0],setLinesCustom=_clPair[1];
-    const hadKaccha=kachhaYesterday.has(row.name);
-    const isKachhaDay=!!row.spKaccha&&tab==="am";
-    const isAM=tab==="am";
-
-    // Colour for SP mistakes
-    const spMk=parseFloat(row.spMistakes)||0;
-    const sMk=parseFloat(row.sabaqMistakes)||0;
-    const dMk=parseFloat(row.dorMistakes)||0;
-    const spColor=spMk>3?"#DC2626":spMk>1.5?"#D97706":"#16a34a";
-    const sColor=sMk>3?"#DC2626":sMk>1.5?"#D97706":"#16a34a";
-    const dColor=dMk>3?"#DC2626":dMk>1.5?"#D97706":"#16a34a";
-
-    return React.createElement('div',{style:{
-      position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",
-      display:"flex",alignItems:"flex-end",justifyContent:"center",
-      zIndex:1000,padding:"0 0 env(safe-area-inset-bottom,0)"
-    }},
-      React.createElement('div',{style:{
-        background:"#fff",borderRadius:"20px 20px 0 0",
-        width:"100%",maxWidth:500,
-        padding:"20px 20px 28px",
-        boxShadow:"0 -8px 40px rgba(0,0,0,0.2)",
-        maxHeight:"92vh",overflowY:"auto"
-      }},
-        /* Drag handle */
-        React.createElement('div',{style:{width:40,height:4,borderRadius:2,
-          background:"#E5E7EB",margin:"0 auto 10px"}}),
-        React.createElement('div',{style:{display:"flex",justifyContent:"flex-end",marginBottom:6}},
-          React.createElement('button',{onClick:function(){if(linesCustom)updRow(idx,"sabaqLines",linesCustom);onDone();},
-            style:{background:"linear-gradient(135deg,#0d6b5e,#1a8a7a)",color:"#fff",border:"none",
-              borderRadius:10,padding:"9px 16px",fontSize:12,fontWeight:"800",cursor:"pointer",
-              letterSpacing:"0.3px",boxShadow:"0 2px 8px rgba(13,107,94,0.3)"}},"Save & Close")
-        ),
-
-        /* Student name + progress */
-        React.createElement('div',{style:{display:"flex",justifyContent:"space-between",
-          alignItems:"center",marginBottom:4}},
-          React.createElement('div',null,
-            React.createElement('div',{style:{fontSize:20,fontWeight:"700",color:TEXT}},row.name),
-            hadKaccha&&isAM&&React.createElement('div',{style:{
-              color:"#D97706",fontSize:11,fontWeight:"600",
-              background:"#FEF3C7",borderRadius:4,padding:"2px 8px",
-              display:"inline-block",marginTop:3
-            }},"⚠️ Kaccha Dor yesterday — do Dor first"),
-            isKachhaDay&&React.createElement('div',{style:{
-              color:"#DC2626",fontSize:11,fontWeight:"700",
-              background:"#FEE2E2",borderRadius:4,padding:"3px 10px",
-              display:"inline-block",marginTop:3
-            }},"🔴 SP Kaccha — no new Sabaq today (student repeats lesson)")
-          ),
-          React.createElement('div',{style:{textAlign:"right"}},
-            React.createElement('div',{style:{color:MUTED,fontSize:11}},
-              (idx+1)+" of "+total),
-            React.createElement('div',{style:{
-              display:"flex",gap:3,marginTop:4,justifyContent:"flex-end"
-            }},
-              Array.from({length:total},(_,i)=>React.createElement('div',{key:i,style:{
-                width:6,height:6,borderRadius:"50%",
-                background:i<idx?"#16a34a":i===idx?GOLD:"#E5E7EB"
-              }}))
-            )
-          )
-        ),
-
-        /* Absent toggle */
-        React.createElement('div',{style:{
-          display:"flex",justifyContent:"space-between",alignItems:"center",
-          padding:"12px 16px",background:"#F8F9FA",borderRadius:10,marginBottom:16
-        }},
-          React.createElement('span',{style:{color:TEXT,fontWeight:"600",fontSize:14}},"Absent today"),
-          React.createElement('div',{
-            onClick:()=>updRow(idx,"absent",!row.absent),
-            style:{width:48,height:26,borderRadius:13,
-              background:row.absent?"#EF4444":"#D1FAE5",
-              cursor:"pointer",position:"relative",transition:"background 0.15s"}
-          },
-            React.createElement('div',{style:{
-              position:"absolute",top:3,left:row.absent?24:3,
-              width:20,height:20,borderRadius:"50%",background:"#fff",
-              boxShadow:"0 1px 3px rgba(0,0,0,0.2)",transition:"left 0.15s"
-            }})
-          )
-        ),
-
-        /* ── AM ENTRY FIELDS ── */
-        !row.absent&&isAM&&React.createElement('div',null,
-
-          /* Hafidh badge */
-          (hafidhSet&&hafidhSet.has(row.name))&&React.createElement('div',{style:{
-            background:"rgba(201,165,83,0.08)",border:"1px solid rgba(201,165,83,0.3)",
-            borderRadius:10,padding:"8px 14px",marginBottom:14,
-            display:"flex",alignItems:"center",gap:8}},
-            React.createElement('span',{style:{color:GOLD,fontWeight:"700",fontSize:12}},"🎓 Hafidh — Dor entry only")
-          ),
-          /* Sabaq Para */
-          !(hafidhSet&&hafidhSet.has(row.name))&&React.createElement('div',{style:{
-            background:"rgba(184,147,74,0.06)",borderRadius:12,
-            padding:"14px 16px",marginBottom:12,
-            border:"1px solid rgba(184,147,74,0.2)"
-          }},
-            React.createElement('div',{style:{
-              color:GOLD,fontWeight:"700",fontSize:13,marginBottom:12,
-              display:"flex",alignItems:"center",gap:6
-            }},
-              React.createElement('div',{style:{width:8,height:8,borderRadius:"50%",background:GOLD}}),
-              "Sabaq Para"
-            ),
-                        /* 1st Attempt */
-            React.createElement('div',{style:{background:"#FAFAFA",borderRadius:10,
-              padding:"10px 12px",border:"1px solid #F0F0F0"}},
-              React.createElement('div',{style:{color:MUTED,fontSize:10,fontWeight:"700",
-                textTransform:"uppercase",letterSpacing:"0.6px",marginBottom:8}},"1st Attempt"),
-              React.createElement('div',{style:{marginBottom:8}},
-                React.createElement('label',{style:{...secLabel,color:spMk>0?spColor:GOLD}},"Mistakes"),
-                React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:5,marginTop:4}},
-                  SP_MK_OPTS.map(function(m){
-                    var isSel=String(row.spMistakes)===String(m);
-                    var mc=m>3?"#DC2626":m>1.5?"#D97706":"#16a34a";
-                    return React.createElement('button',{key:m,
-                      onClick:function(){updRow(idx,"spMistakes",isSel?"":String(m));},
-                      style:{padding:"7px 9px",borderRadius:8,cursor:"pointer",fontSize:12.5,fontWeight:"700",
-                        minWidth:38,border:"1.5px solid "+(isSel?mc:"#E5E7EB"),
-                        background:isSel?mc:"#fff",color:isSel?"#fff":mc}},
-                      m===0?"0":String(m));
-                  })
-                )
-              ),
-              React.createElement('div',{style:{display:"flex",gap:8}},
-                React.createElement('div',{
-                  onClick:()=>updRow(idx,"spScrape",!row.spScrape),
-                  style:{flex:1,display:"flex",alignItems:"center",gap:8,cursor:"pointer",
-                    padding:"9px 10px",borderRadius:8,
-                    background:row.spScrape?"#FEF3C7":"#fff",
-                    border:"1px solid "+(row.spScrape?"#D97706":"#E5E7EB")}},
-                  React.createElement('div',{style:{width:20,height:20,borderRadius:5,flexShrink:0,
-                    background:row.spScrape?"#D97706":"transparent",
-                    border:"2px solid "+(row.spScrape?"#D97706":"#D1D5DB"),
-                    display:"flex",alignItems:"center",justifyContent:"center"}},
-                    row.spScrape&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"✓")
-                  ),
-                  React.createElement('span',{style:{fontSize:12,fontWeight:"600",
-                    color:row.spScrape?"#D97706":"#6B7280"}},row.spScrape?"🟡 Scrape":"Scrape")
-                ),
-                React.createElement('div',{
-                  onClick:()=>updRow(idx,"spKaccha",!row.spKaccha),
-                  style:{flex:1,display:"flex",alignItems:"center",gap:8,cursor:"pointer",
-                    padding:"9px 10px",borderRadius:8,
-                    background:row.spKaccha?"#FEE2E2":"#fff",
-                    border:"1px solid "+(row.spKaccha?"#DC2626":"#E5E7EB")}},
-                  React.createElement('div',{style:{width:20,height:20,borderRadius:5,flexShrink:0,
-                    background:row.spKaccha?"#DC2626":"transparent",
-                    border:"2px solid "+(row.spKaccha?"#DC2626":"#D1D5DB"),
-                    display:"flex",alignItems:"center",justifyContent:"center"}},
-                    row.spKaccha&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"✓")
-                  ),
-                  React.createElement('span',{style:{fontSize:12,fontWeight:"600",
-                    color:row.spKaccha?"#DC2626":"#6B7280"}},row.spKaccha?"🔴 Kaccha":"Kaccha")
-                )
-              )
-            ),
-            /* ── 2nd Attempt button ── */
-            !row.sp2Done
-              ? React.createElement('button',{
-                  onClick:()=>updRow(idx,"sp2Done",true),
-                  style:{marginTop:10,width:"100%",padding:"10px",borderRadius:8,
-                    border:"1px dashed #D97706",background:"transparent",
-                    color:"#D97706",cursor:"pointer",fontSize:13,fontWeight:"600"}
-                },"+ 2nd Attempt")
-              : React.createElement('div',{style:{marginTop:10}},
-            /* 2nd Attempt */
-            React.createElement('div',{style:{background:"#FAFAFA",borderRadius:10,
-              padding:"10px 12px",border:"1px solid #F0F0F0"}},
-              React.createElement('div',{style:{color:MUTED,fontSize:10,fontWeight:"700",
-                textTransform:"uppercase",letterSpacing:"0.6px",marginBottom:8}},"2nd Attempt"),
-              React.createElement('div',{style:{marginBottom:8}},
-                React.createElement('label',{style:{...secLabel,color:parseFloat(row.sp2Mistakes)||0>0?spColor:GOLD}},"Mistakes"),
-                React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:5,marginTop:4}},
-                  SP_MK_OPTS.map(function(m){
-                    var isSel2=String(row.sp2Mistakes)===String(m);
-                    var mc2=m>3?"#DC2626":m>1.5?"#D97706":"#16a34a";
-                    return React.createElement('button',{key:m,
-                      onClick:function(){updRow(idx,"sp2Mistakes",isSel2?"":String(m));},
-                      style:{padding:"7px 9px",borderRadius:8,cursor:"pointer",fontSize:12.5,fontWeight:"700",
-                        minWidth:38,border:"1.5px solid "+(isSel2?mc2:"#E5E7EB"),
-                        background:isSel2?mc2:"#fff",color:isSel2?"#fff":mc2}},
-                      m===0?"0":String(m));
-                  })
-                )
-              ),
-              React.createElement('div',{style:{display:"flex",gap:8}},
-                React.createElement('div',{
-                  onClick:()=>updRow(idx,"sp2Scrape",!row.sp2Scrape),
-                  style:{flex:1,display:"flex",alignItems:"center",gap:8,cursor:"pointer",
-                    padding:"9px 10px",borderRadius:8,
-                    background:row.sp2Scrape?"#FEF3C7":"#fff",
-                    border:"1px solid "+(row.sp2Scrape?"#D97706":"#E5E7EB")}},
-                  React.createElement('div',{style:{width:20,height:20,borderRadius:5,flexShrink:0,
-                    background:row.sp2Scrape?"#D97706":"transparent",
-                    border:"2px solid "+(row.sp2Scrape?"#D97706":"#D1D5DB"),
-                    display:"flex",alignItems:"center",justifyContent:"center"}},
-                    row.sp2Scrape&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"✓")
-                  ),
-                  React.createElement('span',{style:{fontSize:12,fontWeight:"600",
-                    color:row.sp2Scrape?"#D97706":"#6B7280"}},row.sp2Scrape?"🟡 Scrape":"Scrape")
-                ),
-                React.createElement('div',{
-                  onClick:()=>updRow(idx,"sp2Kaccha",!row.sp2Kaccha),
-                  style:{flex:1,display:"flex",alignItems:"center",gap:8,cursor:"pointer",
-                    padding:"9px 10px",borderRadius:8,
-                    background:row.sp2Kaccha?"#FEE2E2":"#fff",
-                    border:"1px solid "+(row.sp2Kaccha?"#DC2626":"#E5E7EB")}},
-                  React.createElement('div',{style:{width:20,height:20,borderRadius:5,flexShrink:0,
-                    background:row.sp2Kaccha?"#DC2626":"transparent",
-                    border:"2px solid "+(row.sp2Kaccha?"#DC2626":"#D1D5DB"),
-                    display:"flex",alignItems:"center",justifyContent:"center"}},
-                    row.sp2Kaccha&&React.createElement('span',{style:{color:"#fff",fontSize:11,fontWeight:"700"}},"✓")
-                  ),
-                  React.createElement('span',{style:{fontSize:12,fontWeight:"600",
-                    color:row.sp2Kaccha?"#DC2626":"#6B7280"}},row.sp2Kaccha?"🔴 Kaccha":"Kaccha")
-                )
-              )
-            )
-              )
-          ),
-
-          /* Sabaq (New Lesson) — hidden on Kaccha day (student repeats lesson) */
-          !(hafidhSet&&hafidhSet.has(row.name))&&!isKachhaDay&&React.createElement('div',{style:{
-            background:"rgba(16,185,129,0.06)",borderRadius:12,
-            padding:"14px 16px",marginBottom:12,
-            border:"1px solid rgba(16,185,129,0.2)"
-          }},
-            React.createElement('div',{style:{
-              color:"#059669",fontWeight:"700",fontSize:13,marginBottom:12,
-              display:"flex",alignItems:"center",gap:6
-            }},
-              React.createElement('div',{style:{width:8,height:8,borderRadius:"50%",background:"#059669"}}),
-              "Sabaq (New Lesson)"
-            ),
-            /* Lines only for Sabaq */
-            React.createElement('div',null,
-              React.createElement('label',{style:{...secLabel,color:"#059669"}},"Lines"),
-              React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:6,marginTop:4,alignItems:"center"}},
-                LINE_QUICK.map(function(l){
-                  var isLSel=linesCustom===""&&String(row.sabaqLines||"13")===String(l);
-                  return React.createElement('button',{key:l,
-                    onClick:function(){updRow(idx,"sabaqLines",String(l));setLinesCustom("");},
-                    style:{padding:"8px 11px",borderRadius:9,cursor:"pointer",fontSize:14,fontWeight:"700",
-                      minWidth:42,border:"1.5px solid "+(isLSel?"#059669":"#E5E7EB"),
-                      background:isLSel?"#059669":"#fff",color:isLSel?"#fff":"#059669"}},String(l));
-                }),
-                React.createElement('input',{
-                  type:"text",inputMode:"decimal",
-                  value:linesCustom,
-                  placeholder:"Other",
-                  autoComplete:"off",autoCorrect:"off",autoCapitalize:"none",spellCheck:false,
-                  onChange:function(e){setLinesCustom(e.target.value);},
-                  style:{width:68,padding:"8px 6px",borderRadius:9,
-                    border:"1.5px solid "+(linesCustom?"#059669":"#E5E7EB"),
-                    fontSize:13,fontWeight:"600",
-                    color:linesCustom?"#059669":TEXT,
-                    textAlign:"center",outline:"none"}
-                })
-              )
-            ),
-            /* Weak + Less Lines */
-            React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:8,marginTop:10}},
-              React.createElement('div',{
-                onClick:()=>updRow(idx,"sabaqWeak",!row.sabaqWeak),
-                style:{display:"flex",alignItems:"center",gap:10,cursor:"pointer",
-                  padding:"10px 12px",borderRadius:8,
-                  background:row.sabaqWeak?"#FEF3C7":"#F8F9FA",
-                  border:"1px solid "+(row.sabaqWeak?"#D97706":"#E5E7EB")}},
-                React.createElement('div',{style:{width:22,height:22,borderRadius:6,flexShrink:0,
-                  background:row.sabaqWeak?"#D97706":"transparent",
-                  border:"2px solid "+(row.sabaqWeak?"#D97706":"#D1D5DB"),
-                  display:"flex",alignItems:"center",justifyContent:"center"}},
-                  row.sabaqWeak&&React.createElement('span',{style:{color:"#fff",fontSize:13,fontWeight:"700"}},"✓")
-                ),
-                React.createElement('span',{style:{fontSize:13,fontWeight:"600",
-                  color:row.sabaqWeak?"#D97706":"#6B7280"}},
-                  row.sabaqWeak?"⚠️ Weak Sabaq":"Weak")
-              ),
-              React.createElement('div',{
-                onClick:()=>updRow(idx,"sabaqLessLines",!row.sabaqLessLines),
-                style:{display:"flex",alignItems:"center",gap:10,cursor:"pointer",
-                  padding:"10px 12px",borderRadius:8,
-                  background:row.sabaqLessLines?"#EFF6FF":"#F8F9FA",
-                  border:"1px solid "+(row.sabaqLessLines?"#2563EB":"#E5E7EB")}},
-                React.createElement('div',{style:{width:22,height:22,borderRadius:6,flexShrink:0,
-                  background:row.sabaqLessLines?"#2563EB":"transparent",
-                  border:"2px solid "+(row.sabaqLessLines?"#2563EB":"#D1D5DB"),
-                  display:"flex",alignItems:"center",justifyContent:"center"}},
-                  row.sabaqLessLines&&React.createElement('span',{style:{color:"#fff",fontSize:13,fontWeight:"700"}},"✓")
-                ),
-                React.createElement('span',{style:{fontSize:13,fontWeight:"600",
-                  color:row.sabaqLessLines?"#2563EB":"#6B7280"}},
-                  row.sabaqLessLines?"📉 Less Lines than target":"Less Lines")
-              )
-            )
-          ),
-
-          /* Dor section */
-          (hafidhSet&&hafidhSet.has(row.name))
-          /* Hafidh: one "Open Dor Grid" button — AM/PM determined by current tab */
-          ? React.createElement('div',{style:{borderRadius:12,padding:"14px 16px",marginBottom:4,border:"1px solid rgba(201,165,83,0.25)",background:"rgba(201,165,83,0.05)"}},
-              React.createElement('div',{style:{fontSize:13,fontWeight:"700",color:GOLD,marginBottom:12,display:"flex",alignItems:"center",gap:6}},
-                React.createElement('div',{style:{width:8,height:8,borderRadius:"50%",background:GOLD}}),
-                "Dor"
-              ),
-              (function(){
-                var _dorSaved=(dorRecords||[]).some(function(d){return d.studentName===row.name&&d.date===selectedDate;});
-                return React.createElement('div',{style:{display:"flex",alignItems:"center",gap:10}},
-                  React.createElement('button',{
-                    onClick:function(){if(typeof openHafidhDorGrid==="function")openHafidhDorGrid(row.name,isAM,selectedDate);},
-                    style:{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid "+GOLD,
-                      background:_dorSaved?"rgba(201,165,83,0.15)":"transparent",
-                      color:GOLD,cursor:"pointer",fontSize:13,fontWeight:"700",textAlign:"left"}},
-                    "📋 Open Dor Grid"
-                  ),
-                  _dorSaved&&React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#16a34a",flexShrink:0}},"✓ Saved")
-                );
-              })()
-            )
-          /* Non-Hafidh AM: morning dor checkbox + Juz/Quarter/Mistakes */
-          : isAM
-          ? React.createElement('div',{style:{
-              background:row.dorDone?"rgba(239,68,68,0.05)":"#F8F9FA",
-              borderRadius:12,padding:"14px 16px",marginBottom:4,
-              border:"1px solid "+(row.dorDone?"rgba(220,38,38,0.3)":"#E5E7EB")
-            }},
-            React.createElement('div',{
-              onClick:()=>updRow(idx,"dorDone",!row.dorDone),
-              style:{display:"flex",alignItems:"center",gap:10,cursor:"pointer",marginBottom:row.dorDone?12:0}
-            },
-              React.createElement('div',{style:{
-                width:22,height:22,borderRadius:6,flexShrink:0,
-                background:row.dorDone?"#DC2626":"transparent",
-                border:"2px solid "+(row.dorDone?"#DC2626":"#D1D5DB"),
-                display:"flex",alignItems:"center",justifyContent:"center"
-              }},row.dorDone&&React.createElement('span',{style:{color:"#fff",fontSize:13,fontWeight:"700"}},"✓")),
-              React.createElement('div',null,
-                React.createElement('div',{style:{fontSize:13,fontWeight:"600",
-                  color:row.dorDone?"#DC2626":"#6B7280"}},"Dor (morning)"),
-                React.createElement('div',{style:{fontSize:11,color:MUTED}},"Kaccha from yesterday")
-              )
-            ),
-            row.dorDone&&React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}},
-              React.createElement('div',null,
-                React.createElement('label',{style:{...secLabel,color:"#DC2626"}},"Juz"),
-                React.createElement('select',{value:row.dorJuz,
-                  onChange:e=>updRow(idx,"dorJuz",e.target.value),style:selS},
-                  React.createElement('option',{value:""},"—"),
-                  JUZ_OPTIONS.map(j=>React.createElement('option',{key:j,value:j},j))
-                )
-              ),
-              React.createElement('div',null,
-                React.createElement('label',{style:{...secLabel,color:"#DC2626"}},"Quarter"),
-                React.createElement('select',{value:row.dorQuarter,
-                  onChange:e=>updRow(idx,"dorQuarter",e.target.value),style:selS},
-                  React.createElement('option',{value:""},"—"),
-                  QUARTERS.map(q=>React.createElement('option',{key:q,value:q},q))
-                )
-              ),
-              React.createElement('div',null,
-                React.createElement('label',{style:{...secLabel,color:dMk>0?dColor:"#DC2626"}},"Mistakes"),
-                React.createElement('select',{value:row.dorMistakes,
-                  onChange:e=>updRow(idx,"dorMistakes",e.target.value),
-                  style:{...selS,borderColor:dMk>0?dColor:undefined,
-                         color:dMk>0?dColor:undefined,fontWeight:dMk>0?"700":"400"}},
-                  React.createElement('option',{value:""},"—"),
-                  MK_OPTS.map(m=>React.createElement('option',{key:m,value:m},m===0?"0":m))
-                )
-              )
-            ),
-            row.dorDone&&React.createElement('div',{style:{display:"flex",gap:7,flexWrap:"wrap",marginTop:8}},
-              [["dorParaDor","Para Dor","#2563EB"],["dorScrape","Scrape","#D97706"],["dorKaccha","Kaccha","#DC2626"],["dorNoTime","No Time","#6B7280"]
-              ].map(function(cfg){
-                return React.createElement('button',{key:cfg[0],onClick:()=>updRow(idx,cfg[0],!row[cfg[0]]),
-                  style:{padding:"8px 13px",borderRadius:10,cursor:"pointer",fontSize:11.5,fontWeight:"700",
-                    background:row[cfg[0]]?cfg[2]:"#fff",color:row[cfg[0]]?"#fff":"#6b7280",
-                    border:"1.5px solid "+(row[cfg[0]]?cfg[2]:"#E5E7EB"),letterSpacing:"0.2px"}},cfg[1]);
-              })
-            )
-          )
-          /* Non-Hafidh PM: full dor grid button */
-          : React.createElement('div',{style:{borderRadius:12,padding:"14px 16px",marginBottom:4,border:"1px solid rgba(220,38,38,0.2)",background:"rgba(239,68,68,0.03)"}},
-            React.createElement('div',{style:{fontSize:13,fontWeight:"700",color:"#DC2626",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
-              React.createElement('div',{style:{width:8,height:8,borderRadius:"50%",background:"#DC2626"}}),
-              "Dor (evening)"
-            ),
-            (function(){
-              var _pmDorSaved=(dorRecords||[]).some(function(d){return d.studentName===row.name&&d.date===selectedDate&&d.morningDor===false;});
-              return React.createElement('div',{style:{display:"flex",alignItems:"center",gap:10}},
-                React.createElement('button',{
-                  onClick:function(){if(typeof openHafidhDorGrid==="function")openHafidhDorGrid(row.name,false,selectedDate);},
-                  style:{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #DC2626",
-                    background:_pmDorSaved?"rgba(220,38,38,0.08)":"transparent",
-                    color:"#DC2626",cursor:"pointer",fontSize:13,fontWeight:"700",textAlign:"left"}},
-                  "📋 Open Dor Grid"
-                ),
-                _pmDorSaved&&React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#16a34a",flexShrink:0}},"✓ Saved")
-              );
-            })()
-          )
-        ),
-
-        /* Nav buttons */
-        React.createElement('div',{style:{
-          display:"grid",gridTemplateColumns:"1fr 2fr 1fr",gap:8,marginTop:20
-        }},
-          React.createElement('button',{
-            onClick:function(){if(linesCustom)updRow(idx,"sabaqLines",linesCustom);onPrev();},disabled:idx===0,
-            style:{padding:"13px",borderRadius:10,border:"1px solid #E5E7EB",
-              background:idx===0?"#F9FAFB":"#fff",color:idx===0?MUTED:TEXT,
-              cursor:idx===0?"default":"pointer",fontSize:22,fontWeight:"600"}
-          },"←"),
-          idx<total-1
-            ? React.createElement('button',{
-                onClick:function(){if(linesCustom)updRow(idx,"sabaqLines",linesCustom);onNext();},
-                style:{padding:"13px",borderRadius:10,border:"none",
-                  background:GOLD,color:"#fff",cursor:"pointer",
-                  fontSize:14,fontWeight:"700",
-                  boxShadow:"0 2px 8px rgba(184,147,74,0.4)"}
-              },"Next →")
-            : React.createElement('button',{
-                onClick:function(){if(linesCustom)updRow(idx,"sabaqLines",linesCustom);onDone();},
-                style:{padding:"13px",borderRadius:10,border:"none",
-                  background:"#16a34a",color:"#fff",cursor:"pointer",
-                  fontSize:14,fontWeight:"700",
-                  boxShadow:"0 2px 8px rgba(22,163,74,0.3)"}
-              },"✓ Save All"),
-          React.createElement('button',{
-            onClick:()=>setQueueIdx(null),
-            style:{padding:"13px",borderRadius:10,border:"1px solid #E5E7EB",
-              background:"#fff",color:MUTED,cursor:"pointer",fontSize:13}
-          },"List")
+  // ── Numpad popup ──
+  function NumpadPopup({rowIdx,currentVal,onDone,onClose}){
+    var _vp=React.useState(currentVal?String(currentVal):"");
+    var val=_vp[0],setVal=_vp[1];
+    var _QUICK=[13,14,15,17,19,26];
+    function _tap(d){setVal(function(v){return v.length>=3?v:v+d;});}
+    function _del(){setVal(function(v){return v.slice(0,-1);});}
+    var num=parseInt(val)||0;
+    return React.createElement('div',{
+      style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000,padding:"0 0 env(safe-area-inset-bottom,0)"},
+      onClick:onClose}
+      ,React.createElement('div',{style:{background:"#fff",borderRadius:"20px 20px 0 0",padding:"16px 20px 28px",width:"100%",maxWidth:360},onClick:function(e){e.stopPropagation();}}
+        ,React.createElement('div',{style:{width:40,height:4,borderRadius:2,background:"#E5E7EB",margin:"0 auto 12px"}})
+        ,React.createElement('div',{style:{fontSize:11,color:MUTED,fontWeight:700,textAlign:"center",marginBottom:4}},"Sabaq Lines")
+        ,React.createElement('div',{style:{fontSize:40,fontWeight:800,textAlign:"center",color:TEXT,height:48,lineHeight:"48px",letterSpacing:"-1px",fontVariantNumeric:"tabular-nums"}},val||"—")
+        ,React.createElement('div',{style:{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap",justifyContent:"center"}}
+          ,_QUICK.map(function(q){var isSel=val===String(q);return React.createElement('button',{key:q,onClick:function(){setVal(String(q));},style:{padding:"6px 11px",borderRadius:8,border:"1.5px solid "+(isSel?"#059669":"#D1D5DB"),background:isSel?"#059669":"#F9FAFB",color:isSel?"#fff":"#374151",fontWeight:700,fontSize:13,cursor:"pointer"}},String(q));})
         )
+        ,React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:10}}
+          ,["1","2","3","4","5","6","7","8","9","⌫","0",""].map(function(k,ki){
+            if(k==="")return React.createElement('div',{key:ki});
+            return React.createElement('button',{key:k,onClick:function(){k==="⌫"?_del():_tap(k);},style:{padding:"12px",borderRadius:10,border:"1px solid #E5E7EB",background:"#F9FAFB",color:TEXT,fontSize:17,fontWeight:700,cursor:"pointer"}},k);
+          })
+        )
+        ,React.createElement('button',{onClick:function(){onDone(val);},style:{width:"100%",padding:"13px",borderRadius:12,border:"none",background:"#059669",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer"}},"Set "+(num||"—")+" lines")
       )
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // STUDENT LIST — overview + quick-mark absent
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  const isAM=tab==="am";
-    function statusDot(row){
-    if(row.absent)return{bg:"#EF4444",label:"Absent"};
-    if(isAM){
-      const hasSP=row.spMistakes;
-      const hasSabaq=row.sabaqLines||row.sabaqMistakes;
-      if(hasSP&&hasSabaq)return{bg:"#16a34a",label:"Done"};
-      if(hasSP||hasSabaq)return{bg:GOLD,label:"Partial"};
-      return{bg:"#E5E7EB",label:"Pending"};
-    } else {
-      if(row.d1Juz||row.d2Juz)return{bg:"#16a34a",label:"Done"};
-      return{bg:"#E5E7EB",label:"Pending"};
-    }
+  // ── Colour dot component ──
+  function LvDot({lv,size,onClick,dimZero}){
+    var d=LV[lv]||LV[0];
+    return React.createElement('div',{
+      onClick:onClick,
+      style:{width:size||22,height:size||22,borderRadius:"50%",flexShrink:0,
+        background:d.bg,cursor:onClick?"pointer":"default",
+        border:"2px solid rgba(0,0,0,0.1)",
+        opacity:(dimZero&&lv===0)?0.35:1,
+        display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.12s"}}
+      ,d.label?React.createElement('span',{style:{fontSize:7,fontWeight:800,color:"#fff",lineHeight:1}},d.label):null
+    );
   }
 
-  function amBadge(txt,color,bg){return React.createElement('span',{key:txt+Math.random(),style:{fontSize:9,fontWeight:"800",color:color,background:bg,border:"1px solid "+color+"33",borderRadius:6,padding:"1px 6px",marginLeft:5,letterSpacing:"0.3px",verticalAlign:"1px"}},txt);}
-  function amInfo(row){
-    const entered=!!(row.spMistakes!==""||row.sabaqLines!==""||row.spScrape||row.spKaccha||row.sp2Done);
-    return{absent:!!row.absent,has:entered,
-      a1:entered?{mk:row.spMistakes,scrape:!!row.spScrape,kaccha:!!row.spKaccha}:null,
-      a2:row.sp2Done?{mk:row.sp2Mistakes,scrape:!!row.sp2Scrape,kaccha:!!row.sp2Kaccha}:null,
-      lines:row.sabaqLines,weak:!!row.sabaqWeak,less:!!row.sabaqLessLines};
-  }
-  function amRowBg(info){
-    if(info.absent)return{bg:"#F3F4F6",dim:true};
-    if(!info.has)return{bg:"#fff",dim:false};
-    const kac=(info.a1&&info.a1.kaccha)||(info.a2&&info.a2.kaccha);
-    const scr=(info.a1&&info.a1.scrape)||(info.a2&&info.a2.scrape);
-    const ln=parseFloat(info.lines)||0;
-    if(kac||info.less||(info.lines!==""&&ln<11))return{bg:"#FEF2F2",dim:false};
-    if(scr||info.weak)return{bg:"#FFF7ED",dim:false};
-    if(info.lines!==""&&ln>=11)return{bg:"#ECFDF5",dim:false};
-    return{bg:"#fff",dim:false};
-  }
-  const rows=Array.isArray(amRows)?amRows:[];
-  const updRow=updAM;
-  const doneCnt=rows.filter(r=>r.absent||(isAM?(r.spMistakes||r.sabaqLines):(r.d1Juz||r.d2Juz))).length;
+  // ── Main render ──
+  var isAM=tab==="am";
+  var rows=Array.isArray(amRows)?amRows:[];
+  var _hafidhSet=hafidhStudents||new Set();
+  var _PDQS=["Q1","Q2","Q3","Q4"];
 
-  return React.createElement('div',{style:{padding:"18px 16px 24px",maxWidth:680,margin:"0 auto"}},
+  return React.createElement('div',{style:{paddingBottom:80}}
 
-    React.createElement(PageTitle,{title:"Morning Record Entry",sub:"Sabaq Para \u00b7 Sabaq"}),
-    React.createElement(DatePill,{value:date,onChange:setDate,planDates:getPlanDates(yearPlan||[],cls,"morning")}),
-    React.createElement(ClassPills,{value:cls,onChange:setCls}),
+    // Numpad popup
+    ,numpadFor!==null&&React.createElement(NumpadPopup,{
+      rowIdx:numpadFor,
+      currentVal:rows[numpadFor]?rows[numpadFor].sabaqLines:"",
+      onDone:function(v){var n=parseInt(v)||0;if(n>0)updAM(numpadFor,"sabaqLines",String(n));setNumpadFor(null);},
+      onClose:function(){setNumpadFor(null);},
+    })
 
-    /* Status */
+    // Header — sticky
+    ,React.createElement('div',{style:{padding:"12px 14px 8px",background:CARD,borderBottom:"1px solid "+BORDER,position:"sticky",top:0,zIndex:10}}
+      ,React.createElement(PageTitle,{title:isAM?"☀️ AM Session":"🌙 PM Session",sub:isAM?"Sabaq Para · Sabaq":"Dor"})
+      ,React.createElement(DatePill,{value:date,onChange:setDate,planDates:getPlanDates(yearPlan||[],cls,"morning")})
+      ,React.createElement(ClassPills,{value:cls,onChange:setCls})
+      ,React.createElement('div',{style:{display:"flex",gap:6,marginTop:8}}
+        ,["am","pm"].map(function(t){return React.createElement('button',{key:t,onClick:function(){setTab(t);},style:{flex:1,padding:"7px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:700,background:tab===t?GOLD:"#F3F4F6",color:tab===t?"#1b1200":MUTED}},t==="am"?"☀️ AM":"🌙 PM");})
+      )
+    )
 
+    ,students.length===0
+      ? React.createElement('div',{style:{textAlign:"center",padding:60,color:MUTED}},"No students in "+cls+". Add students via the Classes page.")
+      : React.createElement('div',null
 
-    /* Empty */
-    students.length===0
-      ? React.createElement('div',{style:{textAlign:"center",padding:60,color:MUTED}},
-          "No students in "+cls+". Add students via the Classes page.")
+          // Column header
+          ,React.createElement('div',{style:{display:"flex",alignItems:"center",padding:"5px 12px",background:"#F8FAFC",borderBottom:"1.5px solid #E2E7EF",fontSize:9,fontWeight:800,color:MUTED,letterSpacing:"0.6px",textTransform:"uppercase"}}
+            ,React.createElement('div',{style:{flex:1}},"Name")
+            ,isAM&&React.createElement(React.Fragment,null
+              ,React.createElement('div',{style:{width:26,textAlign:"center"}},"Dor")
+              ,React.createElement('div',{style:{width:82,textAlign:"center"}},"J / Q / ●")
+              ,React.createElement('div',{style:{width:26,textAlign:"center",marginLeft:8}},"SP")
+              ,React.createElement('div',{style:{width:26,textAlign:"center",marginLeft:4}},"SP2")
+              ,React.createElement('div',{style:{width:46,textAlign:"center",marginLeft:8}},"Lines")
+            )
+            ,!isAM&&React.createElement('div',{style:{minWidth:80,textAlign:"right"}},"Dor")
+          )
 
-      : React.createElement('div',null,
+          // Student rows
+          ,React.createElement('div',null
+            ,rows.map(function(row,i){
+              var _i=i;
+              var absent=row.absent;
+              var isHafidh=_hafidhSet.has(row.name);
+              var spLv=_spLv(row);
+              var sp2Lv=_sp2Lv(row);
+              var dorLv=_dorLv(row);
+              var linesNum=parseInt(row.sabaqLines)||0;
+              var hasLines=linesNum>0;
+              // Lines enabled: SP not kaccha, OR sp1 kaccha + sp2 not kaccha
+              var linesEnabled=!isHafidh&&(spLv<4||(spLv===4&&sp2Lv>0&&sp2Lv<4));
+              var rowBg=absent?"#F3F4F6":row.lastSabaq?"rgba(201,165,83,0.07)":"#fff";
 
-          React.createElement('button',{
-            onClick:()=>setQueueIdx(0),
-            style:{width:"100%",height:50,border:"none",cursor:"pointer",
-              background:"linear-gradient(135deg,#0d6b5e,#1a8a7a)",color:"#fff",
-              borderRadius:14,fontSize:14,fontWeight:"800",letterSpacing:"0.4px",
-              boxShadow:"0 4px 12px rgba(13,107,94,0.35)",marginBottom:8}
-          },"Enter Morning Record"),
-          React.createElement('div',{style:{textAlign:"center",color:MUTED,fontSize:11,fontWeight:"600",marginBottom:8}},
-            doneCnt+" / "+students.length+" entered"),
-          React.createElement('div',{style:{height:4,borderRadius:2,
-            background:"#E5E7EB",marginBottom:14,overflow:"hidden"}},
-            React.createElement('div',{style:{height:"100%",borderRadius:2,
-              background:doneCnt===students.length?"#16a34a":GOLD,
-              width:(doneCnt/students.length*100)+"%",transition:"width 0.3s"}})
-          ),
+              function _lpStart(e){e.preventDefault();_lpTimer.current=setTimeout(function(){
+                setAmRows(function(prev){
+                  var n=prev.slice();
+                  var wasLS=n[_i].lastSabaq;
+                  n[_i]=Object.assign({},n[_i],{lastSabaq:!wasLS,lastSabaqPdQs:!wasLS?["Q4"]:[]});
+                  return n;
+                });
+              },650);}
+              function _lpEnd(){clearTimeout(_lpTimer.current);}
 
-          React.createElement('div',{style:{background:CARD,borderRadius:16,
-            border:"1.5px solid #DCE2EC",overflow:"hidden",
-            boxShadow:"0 2px 10px rgba(0,0,0,0.07)"}},
-            React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 14px",borderBottom:"1.5px solid #E2E7EF",background:"#F8FAFC"}},
-              React.createElement('div',{style:{fontSize:10.5,fontWeight:"800",color:"#374151",letterSpacing:"0.5px"}},"STUDENT NAME \u00b7 SABAQ PARA \u00b7 SABAQ"),
-              React.createElement('div',{style:{fontSize:10,fontWeight:"800",color:MUTED,letterSpacing:"0.5px"}},"ABSENT")
-            ),
-            rows.map((row,i)=>{
-              const info=amInfo(row);
-              const rb=amRowBg(info);
-              const attempt=(a,n,showLabel)=>React.createElement('span',{key:n,style:{marginRight:10}},
-                showLabel&&React.createElement('span',{style:{fontSize:9.5,fontWeight:"800",color:"#9CA3AF"}},"#"+n+"  "),
-                (a.mk!==""&&a.mk!==undefined)?React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#374151"}},String(a.mk),React.createElement('span',{style:{fontSize:8.5,fontWeight:"700",color:"#9CA3AF",marginLeft:3,letterSpacing:"0.3px"}},"Mistakes")):null,
-                a.kaccha?amBadge("Kaccha","#DC2626","#FEE2E2"):null,
-                a.scrape?amBadge("Scrape","#D97706","#FEF3C7"):null
-              );
-              return React.createElement('div',{key:row.name,
-                style:{borderBottom:i<rows.length-1?"1px solid #E8EBF0":"none",
-                  background:rb.bg,opacity:rb.dim?0.55:1,transition:"background 0.15s"}},
-                React.createElement('div',{style:{display:"flex",alignItems:"center",padding:"9px 14px",gap:10}},
-                  React.createElement('div',{style:{flex:1,cursor:"pointer",minWidth:0},onClick:()=>setQueueIdx(i)},
-                    React.createElement('div',{style:{color:TEXT,fontWeight:"700",fontSize:15,display:"flex",alignItems:"center",flexWrap:"wrap"}},row.name,
-                      kachhaYesterday.has(row.name)&&!info.absent?amBadge("Dor first","#D97706","#FEF3C7"):null),
-                    info.absent
-                      ?React.createElement('div',{style:{fontSize:11,color:"#9CA3AF",fontWeight:"600",marginTop:3}},"Marked absent")
-                      :(info.has||info.lines!==""
-                        ?React.createElement('div',{style:{marginTop:5,lineHeight:1.7}},
-                            React.createElement('div',{style:{display:"flex",alignItems:"center",flexWrap:"wrap"}},
-                              React.createElement('span',{style:{fontSize:9.5,fontWeight:"800",color:"#0d6b5e",letterSpacing:"0.5px",marginRight:8,minWidth:74}},"SABAQ PARA"),
-                              info.a1?attempt(info.a1,1,!!info.a2):React.createElement('span',{style:{fontSize:11,color:"#C5CAD3"}},"\u2014"),
-                              info.a2?attempt(info.a2,2,true):null),
-                            React.createElement('div',{style:{display:"flex",alignItems:"center",flexWrap:"wrap",marginTop:2}},
-                              React.createElement('span',{style:{fontSize:9.5,fontWeight:"800",color:"#C4963F",letterSpacing:"0.5px",marginRight:8,minWidth:74}},"SABAQ"),
-                              info.lines!==""?React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#374151"}},info.lines+" lines"):React.createElement('span',{style:{fontSize:11,color:"#C5CAD3"}},"\u2014"),
-                              info.weak?amBadge("Weak","#D97706","#FEF3C7"):null,
-                              info.less?amBadge("< 11","#DC2626","#FEE2E2"):null)
+              // PM row
+              if(!isAM){
+                var _pmSaved=(dorRecords||[]).some(function(d){return d.studentName===row.name&&d.date===date&&d.morningDor===false;});
+                return React.createElement('div',{key:row.name,style:{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderBottom:"1px solid #F0F2F5",background:absent?"#F3F4F6":"#fff",opacity:absent?0.5:1}}
+                  ,React.createElement('div',{style:{flex:1,fontSize:13,fontWeight:700,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},row.name)
+                  ,!absent&&React.createElement('button',{onClick:function(){if(typeof openHafidhDorGrid==="function")openHafidhDorGrid(row.name,false,date);},style:{padding:"6px 14px",borderRadius:8,border:"1.5px solid #DC2626",background:_pmSaved?"rgba(220,38,38,0.08)":"transparent",color:"#DC2626",cursor:"pointer",fontSize:12,fontWeight:700}},"Dor 📋")
+                  ,_pmSaved&&React.createElement('span',{style:{fontSize:11,color:"#16a34a",fontWeight:700,flexShrink:0}},"✓ Done")
+                );
+              }
+
+              // AM row
+              return React.createElement('div',{key:row.name,style:{borderBottom:"1px solid #F0F2F5",background:rowBg,transition:"background 0.15s"}}
+
+                // Main row
+                ,React.createElement('div',{style:{display:"flex",alignItems:"center",gap:0,padding:"7px 12px",opacity:absent?0.4:1}}
+
+                  // Name
+                  ,React.createElement('div',{style:{flex:1,minWidth:70,overflow:"hidden"}}
+                    ,React.createElement('div',{style:{fontSize:13,fontWeight:700,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:4}}
+                      ,row.name
+                      ,absent&&React.createElement('span',{style:{fontSize:8,color:"#9CA3AF",fontWeight:600}},"absent")
+                      ,!absent&&kachhaYesterday.has(row.name)&&React.createElement('span',{style:{fontSize:8,fontWeight:800,color:"#D97706",background:"#FEF3C7",borderRadius:4,padding:"1px 4px"}},"DOR↑")
+                      ,!absent&&row.lastSabaq&&React.createElement('span',{style:{fontSize:8,fontWeight:800,color:GOLD,background:"rgba(201,165,83,0.15)",borderRadius:4,padding:"1px 4px"}},"★ LAST")
+                    )
+                  )
+
+                  ,!absent&&React.createElement(React.Fragment,null
+                    // Dor checkbox
+                    ,React.createElement('div',{onClick:function(){updAM(_i,"dorDone",!rows[_i].dorDone);},style:{width:26,height:26,borderRadius:5,border:"1.5px solid "+(row.dorDone?"#DC2626":"#D1D5DB"),background:row.dorDone?"#DC2626":"transparent",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",marginLeft:4}}
+                      ,row.dorDone&&React.createElement('span',{style:{color:"#fff",fontSize:10,fontWeight:800}},"✓")
+                    )
+                    // Juz + Quarter + Dor colour — only when checked
+                    ,row.dorDone
+                      ? React.createElement('div',{style:{display:"flex",alignItems:"center",gap:2,marginLeft:2}}
+                          ,React.createElement('select',{value:row.dorJuz,onChange:function(e){updAM(_i,"dorJuz",e.target.value);},style:Object.assign({},_ss,{width:38})}
+                            ,React.createElement('option',{value:""},"—")
+                            ,JUZ_OPTIONS.map(function(j){return React.createElement('option',{key:j,value:String(j)},j);})
                           )
-                        :React.createElement('div',{style:{fontSize:11,color:"#C5CAD3",marginTop:3,fontWeight:"500"}},"No record yet \u2014 tap to enter"))
-                  ),
-                  React.createElement('div',{
-                    onClick:e=>{e.stopPropagation();updRow(i,"absent",!row.absent);},
-                    style:{width:50,height:28,borderRadius:14,flexShrink:0,
-                      background:row.absent?"#EF4444":"#22c55e",
-                      cursor:"pointer",position:"relative",transition:"background 0.15s"}
-                  },
-                    React.createElement('div',{style:{
-                      position:"absolute",top:3,left:row.absent?25:3,
-                      width:22,height:22,borderRadius:"50%",background:"#fff",
-                      boxShadow:"0 1px 3px rgba(0,0,0,0.25)",transition:"left 0.15s"}})
+                          ,React.createElement('select',{value:row.dorQuarter,onChange:function(e){updAM(_i,"dorQuarter",e.target.value);},style:Object.assign({},_ss,{width:44})}
+                            ,React.createElement('option',{value:""},"—")
+                            ,["Q1","Q2","Q3","Q4","1st Half","2nd Half"].map(function(q){return React.createElement('option',{key:q,value:q},q==="1st Half"?"1H":q==="2nd Half"?"2H":q);})
+                          )
+                          ,React.createElement(LvDot,{lv:dorLv,size:22,onClick:function(){_setDorLv(_i,(dorLv+1)%5);}})
+                        )
+                      : React.createElement('div',{style:{width:82,marginLeft:2}})
+
+                    // SP colour circle (hidden for Hafidh)
+                    ,!isHafidh
+                      ? React.createElement(LvDot,{lv:spLv,size:24,dimZero:true,onClick:function(){_setSpLv(_i,(spLv+1)%5);},style:{marginLeft:8}})
+                      : React.createElement('div',{style:{width:24,marginLeft:8}})
+
+                    // SP2 circle — only when SP is Kaccha
+                    ,!isHafidh&&spLv===4
+                      ? React.createElement(LvDot,{lv:sp2Lv,size:24,onClick:function(){_setSp2Lv(_i,(sp2Lv%4)+1);},style:{marginLeft:4}})
+                      : React.createElement('div',{style:{width:24,marginLeft:4}})
+
+                    // Lines button
+                    ,!isHafidh
+                      ? React.createElement('div',{
+                          onClick:function(){if(linesEnabled)setNumpadFor(_i);},
+                          onMouseDown:_lpStart,onMouseUp:_lpEnd,onMouseLeave:_lpEnd,
+                          onTouchStart:_lpStart,onTouchEnd:_lpEnd,
+                          style:{width:46,height:28,borderRadius:8,flexShrink:0,marginLeft:8,
+                            background:row.lastSabaq?"rgba(201,165,83,0.12)":hasLines?"#F0FDF4":linesEnabled?"#F9FAFB":"#F3F4F6",
+                            border:"1.5px solid "+(row.lastSabaq?GOLD:hasLines?"#16a34a":linesEnabled?"#D1D5DB":"#E5E7EB"),
+                            display:"flex",alignItems:"center",justifyContent:"center",cursor:linesEnabled?"pointer":"default",
+                            userSelect:"none",WebkitUserSelect:"none"}}
+                          ,React.createElement('span',{style:{fontSize:12,fontWeight:800,color:row.lastSabaq?GOLD:hasLines?"#15803d":linesEnabled?"#9CA3AF":"#D1D5DB",lineHeight:1}},hasLines?String(linesNum)+" L":"—")
+                        )
+                      : React.createElement('div',{style:{width:46,marginLeft:8}})
+                  )
+
+                  ,absent&&React.createElement('div',{style:{flex:2}})
+                )
+
+                // Last Sabaq sub-row
+                ,!absent&&!isHafidh&&row.lastSabaq&&React.createElement('div',{style:{padding:"5px 12px 8px 12px",borderTop:"1px dashed rgba(201,165,83,0.35)",background:"rgba(201,165,83,0.04)"}}
+                  ,React.createElement('div',{style:{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}
+                    ,React.createElement('span',{style:{fontSize:9,fontWeight:800,color:GOLD,letterSpacing:"0.4px",flexShrink:0}},"LAST SABAQ PD")
+                    // Juz selector (same juz as sabaq)
+                    ,React.createElement('select',{value:row.lastSabaqJuz||"",onChange:function(e){updAM(_i,"lastSabaqJuz",e.target.value);},style:Object.assign({},_ss,{width:40,marginRight:2})}
+                      ,React.createElement('option',{value:""},"Juz")
+                      ,JUZ_OPTIONS.map(function(j){return React.createElement('option',{key:j,value:String(j)},j);})
+                    )
+                    // Quarter chips — multi-select (Q4 pre-selected on activation)
+                    ,_PDQS.map(function(q){
+                      var selQs=Array.isArray(row.lastSabaqPdQs)?row.lastSabaqPdQs:[];
+                      var isSel=selQs.indexOf(q)!==-1;
+                      return React.createElement('button',{key:q,
+                        onClick:function(){
+                          var cur=Array.isArray(rows[_i].lastSabaqPdQs)?rows[_i].lastSabaqPdQs.slice():[];
+                          var idx2=cur.indexOf(q);
+                          if(idx2===-1)cur.push(q);else cur.splice(idx2,1);
+                          updAM(_i,"lastSabaqPdQs",cur);
+                        },
+                        style:{padding:"3px 8px",borderRadius:6,border:"1.5px solid "+(isSel?GOLD:"#D1D5DB"),background:isSel?"rgba(201,165,83,0.15)":"transparent",color:isSel?GOLD:"#6B7280",fontWeight:isSel?800:600,fontSize:10,cursor:"pointer",flexShrink:0}},q);
+                    })
+                    // PD colour circle
+                    ,React.createElement(LvDot,{lv:row.lastSabaqPdLv||0,size:22,onClick:function(){updAM(_i,"lastSabaqPdLv",((row.lastSabaqPdLv||0)+1)%5);}})
+                    // Short lines indicator
+                    ,hasLines&&linesNum<13&&React.createElement('span',{style:{fontSize:9,color:"#DC2626",fontWeight:800,marginLeft:4}},"+ "+(13-linesNum)+" lines")
                   )
                 )
               );
             })
-          ),
+          )
 
-          React.createElement(SaveBar,{onClick:saveAM,label:"Save Morning Records",color:"linear-gradient(135deg,#0d6b5e,#1a8a7a)"})
-        ),
-
-        /* Queue popup */
-    queueIdx!==null&&students.length>0&&React.createElement(QueueCard,{
-      key:queueIdx,
-      rows,updRow,tab,
-      idx:queueIdx,total:students.length,
-      onPrev:()=>setQueueIdx(q=>Math.max(0,q-1)),
-      onNext:()=>setQueueIdx(q=>Math.min(students.length-1,q+1)),
-      onDone:saveAM,
-      hafidhSet:hafidhStudents||new Set(),
-      openHafidhDorGrid:openHafidhDorGrid,
-      selectedDate:selectedDate,
-      dorRecords:dorRecords,
-    })
+          ,React.createElement(SaveBar,{onClick:saveAM,label:isAM?"Save AM Records":"Save PM Records",color:"linear-gradient(135deg,#0d6b5e,#1a8a7a)"})
+        )
   );
 }
+
+
+
 
 
 // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
