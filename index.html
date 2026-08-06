@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260806-700000 | Hafidh redesign: heatmap report, dor grid daily entry, champion included -->
+<!-- hifz-20260806-710000 | Hafidh dor: single grid button per session tab, not split AM/PM -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260806-700000';
+const APP_VERSION='hifz-20260806-710000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -5414,40 +5414,25 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
 
           /* Dor section */
           (hafidhSet&&hafidhSet.has(row.name))
-          /* Hafidh: show "Open Dor Grid" button for AM and PM with saved indicator */
+          /* Hafidh: one "Open Dor Grid" button — AM/PM determined by current tab */
           ? React.createElement('div',{style:{borderRadius:12,padding:"14px 16px",marginBottom:4,border:"1px solid rgba(201,165,83,0.25)",background:"rgba(201,165,83,0.05)"}},
               React.createElement('div',{style:{fontSize:13,fontWeight:"700",color:GOLD,marginBottom:12,display:"flex",alignItems:"center",gap:6}},
                 React.createElement('div',{style:{width:8,height:8,borderRadius:"50%",background:GOLD}}),
-                "Dor (Hafidh)"
+                "Dor"
               ),
-              React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:8}},
-                (function(){
-                  var _amSaved=(dorRecords||[]).some(function(d){return d.studentName===row.name&&d.date===selectedDate&&d.morningDor===true;});
-                  var _pmSaved=(dorRecords||[]).some(function(d){return d.studentName===row.name&&d.date===selectedDate&&d.morningDor===false;});
-                  return [
-                    React.createElement('div',{key:"am",style:{display:"flex",alignItems:"center",gap:10}},
-                      React.createElement('button',{
-                        onClick:function(){if(typeof openHafidhDorGrid==="function")openHafidhDorGrid(row.name,true,selectedDate);},
-                        style:{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid "+GOLD,
-                          background:_amSaved?"rgba(201,165,83,0.15)":"transparent",
-                          color:GOLD,cursor:"pointer",fontSize:13,fontWeight:"700",textAlign:"left"}},
-                        "📋 AM Session Dor"
-                      ),
-                      _amSaved&&React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#16a34a",flexShrink:0}},"✓ Saved")
-                    ),
-                    React.createElement('div',{key:"pm",style:{display:"flex",alignItems:"center",gap:10}},
-                      React.createElement('button',{
-                        onClick:function(){if(typeof openHafidhDorGrid==="function")openHafidhDorGrid(row.name,false,selectedDate);},
-                        style:{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid "+GOLD,
-                          background:_pmSaved?"rgba(201,165,83,0.15)":"transparent",
-                          color:GOLD,cursor:"pointer",fontSize:13,fontWeight:"700",textAlign:"left"}},
-                        "📋 PM Session Dor"
-                      ),
-                      _pmSaved&&React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#16a34a",flexShrink:0}},"✓ Saved")
-                    )
-                  ];
-                })()
-              )
+              (function(){
+                var _dorSaved=(dorRecords||[]).some(function(d){return d.studentName===row.name&&d.date===selectedDate;});
+                return React.createElement('div',{style:{display:"flex",alignItems:"center",gap:10}},
+                  React.createElement('button',{
+                    onClick:function(){if(typeof openHafidhDorGrid==="function")openHafidhDorGrid(row.name,isAM,selectedDate);},
+                    style:{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid "+GOLD,
+                      background:_dorSaved?"rgba(201,165,83,0.15)":"transparent",
+                      color:GOLD,cursor:"pointer",fontSize:13,fontWeight:"700",textAlign:"left"}},
+                    "📋 Open Dor Grid"
+                  ),
+                  _dorSaved&&React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#16a34a",flexShrink:0}},"✓ Saved")
+                );
+              })()
             )
           /* Non-Hafidh: original dor checkbox + fields */
           : React.createElement('div',{style:{
