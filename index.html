@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260806-630000 | Reports: Dor quick-entry grid, card UI refresh -->
+<!-- hifz-20260806-640000 | Reports: Dor quick-entry grid, card UI refresh -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260806-630000';
+const APP_VERSION='hifz-20260806-640000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1254,7 +1254,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
     h+='<td><div class="lbl">Avg SP Mistakes/day</div><div class="val" style="color:'+mkColor+';">'+avgSpM+'</div></td>';
     h+='<td><div class="lbl">SP Scraped</div><div class="val" style="color:#e67e22;">'+spScrCt+' day'+(spScrCt!==1?"s":"")+'</div></td>';
     h+='<td><div class="lbl">SP Kaccha</div><div class="val" style="color:'+(spKacCt>0?"#e74c3c":"#27ae60")+';">'+spKacCt+' day'+(spKacCt!==1?"s":"")+'</div></td>';
-    if(sp2Ct>0)h+='<td><div class="lbl">2nd Attempts</div><div class="val">'+sp2Ct+'&times; ('+sp2SCt+' scraped, '+sp2KCt+' kaccha)</div></td>';
+    if(sp2Ct>0)h+='<td><div class="lbl">2nd Attempts</div><div class="val">'+sp2Ct+'&times; ('+sp2SCt+' scraped, '+sp2KCt+' Kaccha)</div></td>';
     h+='</tr></table>';
     if(wkSabCt>0||llCt>0){
       h+='<table class="dtbl" style="border-top:none;"><tr>';
@@ -4464,7 +4464,7 @@ function App(){
         {bg:"#22c55e",label:"0–1.5"},
         {bg:"#eab308",label:"2–2.5"},
         {bg:"#f97316",label:"Scrape"},
-        {bg:"#dc2626",label:"Kacha"},
+        {bg:"#dc2626",label:"Kaccha"},
       ];
       // dorGrid = [{juz:{q:level}}, ...] — one object per round
       var _numRounds=dorGrid.length||1;
