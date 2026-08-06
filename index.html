@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260806-640000 | Reports: Dor quick-entry grid, card UI refresh -->
+<!-- hifz-20260806-650000 | Reports: Dor quick-entry grid, card UI refresh -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260806-640000';
+const APP_VERSION='hifz-20260806-650000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1031,10 +1031,10 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='.dtbl .val{font-size:20px;font-weight:800;color:#1e2d5a;}';
   h+='.dtbl .val-red{color:#e74c3c;}';
   h+='.dtbl .val-green{color:#27ae60;}';
-  h+='.att-cell{padding:10px 8px;text-align:center;border-right:1.5px solid #d0d5e0;background:#f7f8fb;}';
+  h+='.att-cell{padding:10px 8px;text-align:center;border-right:1.5px solid #d0d5e0;background:#f7f8fb;display:flex;flex-direction:column;align-items:center;}';
   h+='.att-cell:last-child{border-right:none;}';
-  h+='.att-lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;min-height:28px;display:flex;align-items:flex-end;justify-content:center;text-align:center;}';
-  h+='.att-val{font-size:24px;font-weight:800;text-align:center;}';
+  h+='.att-lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;flex:1;display:flex;align-items:flex-end;justify-content:center;text-align:center;width:100%;}';
+  h+='.att-val{font-size:24px;font-weight:800;text-align:center;flex-shrink:0;}';
   h+='.legend{display:flex;gap:14px;justify-content:center;align-items:center;padding:10px 0;font-size:11px;color:#666;flex-wrap:wrap;}';
   h+='.legend-item{display:flex;align-items:center;gap:5px;font-weight:600;}';
   h+='.comments-body{padding:16px 18px;font-size:13px;line-height:1.85;min-height:80px;color:#3c3c3c;}';
