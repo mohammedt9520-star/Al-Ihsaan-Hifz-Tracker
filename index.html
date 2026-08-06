@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260805-620000 | Reports: Dor quick-entry grid, card UI refresh -->
+<!-- hifz-20260806-630000 | Reports: Dor quick-entry grid, card UI refresh -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260805-620000';
+const APP_VERSION='hifz-20260806-630000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -498,14 +498,16 @@ function buildHeatmap(dorRecords,studentName,dateFrom,dateTo){
 }
 
 function calcDorTotals(heatmap){
-  if(!heatmap||typeof heatmap!=="object")return{completeJuz:0,remainingQ:0,totalMistakes:0};
-  let completeJuz=0,remainingQ=0;
-  Object.keys(heatmap).filter(k=>!isNaN(Number(k))&&Number(k)>0).forEach(juz=>{
-    const done=[1,2,3,4].filter(q=>heatmap[juz]&&heatmap[juz][q]&&heatmap[juz][q].length>0).length;
-    if(done===4)completeJuz++;
-    else remainingQ+=done;
+  // Count total quarter-round entries across ALL rounds (each dot = one quarter of one round)
+  // so 2 rounds of 10 Juz = 20 Juz worth, not 10.
+  if(!heatmap||typeof heatmap!=="object")return{completeJuz:0,remainingQ:0};
+  let totalQ=0;
+  Object.keys(heatmap).filter(k=>!isNaN(Number(k))&&Number(k)>0).forEach(function(juz){
+    [1,2,3,4].forEach(function(q){
+      if(heatmap[juz]&&heatmap[juz][q])totalQ+=heatmap[juz][q].length;
+    });
   });
-  return{completeJuz,remainingQ};
+  return{completeJuz:Math.floor(totalQ/4),remainingQ:totalQ%4};
 }
 
 function DorCircle({color,size=18}){
@@ -897,6 +899,12 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   const totalDorParts=[];
   if(totals.completeJuz>0)totalDorParts.push(totals.completeJuz+" Juz");
   if(totals.remainingQ>0)totalDorParts.push(totals.remainingQ+" Quarter"+(totals.remainingQ!==1?"s":""));
+  // Count Scrape and Kutcha instances from the raw records for this student/period
+  const _filtDor=(dorRecords||[]).filter(function(d){
+    return d.studentName===entry.name&&(!entry.dateFrom||d.date>=entry.dateFrom)&&(!entry.dateTo||d.date<=entry.dateTo);
+  });
+  const _scrapeCount=_filtDor.filter(function(d){return d.dor1Scrape;}).length;
+  const _kutchaCount=_filtDor.filter(function(d){return d.dor1Repeated;}).length;
   const totalDorStr=totalDorParts.join(" & ");
 
   const eveningPossible=parseFloat(entry.eveningPossibleDays)||0;
@@ -1025,7 +1033,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='.dtbl .val-green{color:#27ae60;}';
   h+='.att-cell{padding:10px 8px;text-align:center;border-right:1.5px solid #d0d5e0;background:#f7f8fb;}';
   h+='.att-cell:last-child{border-right:none;}';
-  h+='.att-lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;}';
+  h+='.att-lbl{font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;min-height:28px;display:flex;align-items:flex-end;justify-content:center;text-align:center;}';
   h+='.att-val{font-size:24px;font-weight:800;text-align:center;}';
   h+='.legend{display:flex;gap:14px;justify-content:center;align-items:center;padding:10px 0;font-size:11px;color:#666;flex-wrap:wrap;}';
   h+='.legend-item{display:flex;align-items:center;gap:5px;font-weight:600;}';
@@ -1216,8 +1224,21 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
       h+='<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;"><div style="width:10px;height:10px;border-radius:50%;background:'+item[0]+';flex-shrink:0;"></div><span style="color:'+item[0]+';">'+item[1]+'</span></div>';
     });
     h+='</div>';
-    if(totalDorStr){
-      h+='<div style="border-top:1px solid #ede9e0;padding:10px 18px;"><div style="font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Total Dor Completed This Month</div><div style="font-size:14px;font-weight:800;color:#1e2d5a;">'+totalDorStr+'</div></div>';
+    if(totalDorStr||_scrapeCount>0||_kutchaCount>0){
+      h+='<div style="border-top:1px solid #ede9e0;padding:10px 18px;display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap;">';
+      if(totalDorStr){
+        h+='<div><div style="font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Total Dor Completed</div>';
+        h+='<div style="font-size:14px;font-weight:800;color:#1e2d5a;">'+totalDorStr+'</div></div>';
+      }
+      if(_scrapeCount>0){
+        h+='<div><div style="font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Scrape Instances</div>';
+        h+='<div style="font-size:14px;font-weight:800;color:#c2570a;">'+_scrapeCount+'&times; Scrape</div></div>';
+      }
+      if(_kutchaCount>0){
+        h+='<div><div style="font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Kaccha Instances</div>';
+        h+='<div style="font-size:14px;font-weight:800;color:#b91c1c;">'+_kutchaCount+'&times; Kaccha</div></div>';
+      }
+      h+='</div>';
     }
   } else {
     h+='<div style="padding:16px 18px;color:#aaa;font-size:12px;font-style:italic;">No Dor entries recorded for this period.</div>';
