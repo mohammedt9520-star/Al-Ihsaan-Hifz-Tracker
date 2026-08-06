@@ -5102,6 +5102,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     sabaqLines:"",sabaqWeak:false,sabaqLessLines:false,
     dorDone:false,dorJuz:"",dorQuarter:"",dorMistakes:"",dorKaccha:false,dorScrape:false,dorNoTime:false,dorParaDor:false,
     dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",
+    lastSabaq:false,lastSabaqPdQ:"",lastSabaqPdLv:0,
   });
   function bufFromSaved(sv,dorRecs){
     const base=EMPTY_AM(sv.studentName);
@@ -5157,16 +5158,14 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   const [amRows,setAmRows] = React.useState(()=>getClassStudents(cls).map(initAM));
   
   const [status,setStatus] = React.useState("");
-
-  // Queue mode — one student at a time
-  const [queueIdx,setQueueIdx] = React.useState(null); // null = list view, number = queue mode
+  const [numpadFor,setNumpadFor] = React.useState(null); // row index for numpad popup
+  const _lpTimer = React.useRef(null); // long-press timer ref
 
   // Sync local date state when parent navigates to a new date
   React.useEffect(function(){if(selectedDate)setDate(selectedDate);},[selectedDate]);
 
   React.useEffect(()=>{
     setAmRows(getClassStudents(cls).map(initAM));
-    setQueueIdx(null);
   },[cls,date]);
 
   const kachhaYesterday=React.useMemo(()=>{
@@ -5220,7 +5219,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
         sabaqLines:row.absent?0:((hafidhStudents&&hafidhStudents.has(row.name))?0:(parseFloat(row.sabaqLines)||13)),
         sabaqMistakes:0,
         sabaqWeak:!row.absent&&row.sabaqWeak,
-        sabaqLessLines:!row.absent&&row.sabaqLessLines,
+        sabaqLessLines:!row.absent&&(row.lastSabaq?(parseFloat(row.sabaqLines)||0)<13:row.sabaqLessLines),
         sabaqKaccha:!row.absent&&(row.sabaqWeak||row.sabaqLessLines),
         paraDor:!row.absent&&(row.dorDone||(hafidhStudents&&hafidhStudents.has(row.name)))&&row.dorParaDor,
         morningDor:!row.absent&&(row.dorDone||(hafidhStudents&&hafidhStudents.has(row.name)&&!!row.dorJuz)),
@@ -5242,6 +5241,17 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
           dor2Mistakes:row.dor2Juz?String(parseFloat(row.dor2Mistakes)||0):"",dor2Repeated:false,
           paraDor:!!row.dorParaDor,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:""});
       }
+      // Last Sabaq PD — extra Para Dor record when last sabaq is short
+      if(!row.absent&&row.lastSabaq&&row.lastSabaqPdQ&&row.lastSabaqPdLv>0){
+        var _lspLv=row.lastSabaqPdLv;
+        var _lspMk=_lspLv===1?"0":_lspLv===2?"2":_lspLv===3?"3.5":"4";
+        dors.push({id:uid(),studentName:row.name,date,morningDor:true,
+          dor1Juz:"",dor1Quarter:normQuarter(row.lastSabaqPdQ),
+          dor1Mistakes:_lspMk,dor1Repeated:_lspLv===4,dor1Scrape:_lspLv===3,dor1NoTime:false,
+          dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,dor2Scrape:false,
+          dor2NoTime:false,dor2Exempt:false,dor2ParaDor:false,
+          paraDor:true,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:""});
+      }
     });
     if(typeof setDailySabaqEntries==="function"){
       setDailySabaqEntries(prev=>{
@@ -5256,7 +5266,6 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
         const n=[...f,...dors];lsSaveDor(n);return n;
       });
     }
-    setQueueIdx(null);
     scheduleSync();
     showToast("Saved","success");
     if(typeof syncNow==="function"){syncNow().catch(()=>{});}
