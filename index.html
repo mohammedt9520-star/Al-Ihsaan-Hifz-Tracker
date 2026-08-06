@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260806-710000 | Hafidh dor: single grid button per session tab, not split AM/PM -->
+<!-- hifz-20260806-720000 | PM dor grid for all; quickDor Kaccha auto-split cell with retry -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260806-710000';
+const APP_VERSION='hifz-20260806-720000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1904,6 +1904,7 @@ function App(){
   const [dorGrid,setDorGrid]=React.useState([{}]);          // array of rounds; each round = {juz:{quarter:level 0-4}}
   const [dorRound,setDorRound]=React.useState(0);           // active round index
   const dorSwipeRef=React.useRef(null);                     // touch-start X for swipe (must be top-level)
+  const dorSplitTimers=React.useRef({});                    // pending Kaccha→split timers: key="round-juz-q"
   const [dorChampPeriodKey,setDorChampPeriodKey]=React.useState("");
   const [dorChampDateFrom,setDorChampDateFrom]=React.useState("");
   const [dorChampDateTo,setDorChampDateTo]=React.useState("");
@@ -4457,11 +4458,42 @@ function App(){
       var _curGrid=dorGrid[_curRound]||{};
       function _getLevel(juz,q){return(_curGrid[juz]&&_curGrid[juz][q])||0;}
       function _cycleCell(juz,q){
+        var tKey=_curRound+'-'+juz+'-'+q;
+        if(dorSplitTimers.current[tKey]){clearTimeout(dorSplitTimers.current[tKey]);delete dorSplitTimers.current[tKey];}
         setDorGrid(function(prev){
           var rounds=prev.slice();
           var grid=Object.assign({},rounds[_curRound]||{});
           var row=Object.assign({},grid[juz]||{});
-          row[q]=((row[q]||0)+1)%5;
+          var cur=row[q]||0;
+          if(typeof cur==='object')cur=4; // tapping whole split cell resets to Kaccha first
+          var next=(cur+1)%5;
+          row[q]=next;grid[juz]=row;rounds[_curRound]=grid;
+          if(next===4){
+            dorSplitTimers.current[tKey]=setTimeout(function(){
+              setDorGrid(function(p2){
+                var r2=p2.slice();var g2=Object.assign({},r2[_curRound]||{});var rw2=Object.assign({},g2[juz]||{});
+                if(rw2[q]===4){rw2[q]={first:4,second:0};g2[juz]=rw2;r2[_curRound]=g2;}
+                return r2;
+              });
+              delete dorSplitTimers.current[tKey];
+            },1500);
+          }
+          return rounds;
+        });
+      }
+      function _cycleSplitRight(juz,q){
+        setDorGrid(function(prev){
+          var rounds=prev.slice();var grid=Object.assign({},rounds[_curRound]||{});var row=Object.assign({},grid[juz]||{});
+          var cur=row[q];if(typeof cur!=='object')return prev;
+          var next=(cur.second+1)%5;
+          row[q]=next===4?4:{first:cur.first,second:next}; // both Kaccha → merge to full red
+          grid[juz]=row;rounds[_curRound]=grid;return rounds;
+        });
+      }
+      function _resetSplitLeft(juz,q){
+        setDorGrid(function(prev){
+          var rounds=prev.slice();var grid=Object.assign({},rounds[_curRound]||{});var row=Object.assign({},grid[juz]||{});
+          if(typeof row[q]==='object'){row[q]=4;}
           grid[juz]=row;rounds[_curRound]=grid;return rounds;
         });
       }
@@ -4473,12 +4505,22 @@ function App(){
       function _roundDate(r){
         var d=new Date(_baseDate+"T12:00:00");d.setDate(d.getDate()+r);return d.toISOString().slice(0,10);
       }
+      function _lvToM(lv){return lv===1?"1":lv===2?"2":lv===3?"3.5":"4";}
       function _makeRec(juz,q,lv,date){
-        var m=lv===1?"1":lv===2?"2":lv===3?"3.5":"4";
         return{id:uid(),studentName:_qds.name,date:date,
-          dor1Juz:String(juz),dor1Quarter:String(q),dor1Mistakes:m,
+          dor1Juz:String(juz),dor1Quarter:String(q),dor1Mistakes:_lvToM(lv),
           dor1Repeated:lv===4,dor1Scrape:lv===3,dor1NoTime:false,
           dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,dor2Scrape:false,
+          dor2NoTime:false,dor2Exempt:false,dor2ParaDor:false,
+          morningDor:_fromDE?_isAM:false,paraDor:false,
+          paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:""};
+      }
+      function _makeSplitRec(juz,q,firstLv,secondLv,date){
+        return{id:uid(),studentName:_qds.name,date:date,
+          dor1Juz:String(juz),dor1Quarter:String(q),dor1Mistakes:_lvToM(firstLv),
+          dor1Repeated:firstLv===4,dor1Scrape:firstLv===3,dor1NoTime:false,
+          dor2Juz:String(juz),dor2Quarter:String(q),dor2Mistakes:_lvToM(secondLv),
+          dor2Repeated:secondLv===4,dor2Scrape:secondLv===3,
           dor2NoTime:false,dor2Exempt:false,dor2ParaDor:false,
           morningDor:_fromDE?_isAM:false,paraDor:false,
           paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:""};
@@ -4489,8 +4531,9 @@ function App(){
           var grid=dorGrid[_ri]||{};
           var date=_roundDate(_ri);
           for(var _j=1;_j<=30;_j++){for(var _q=1;_q<=4;_q++){
-            var lv=(grid[_j]&&grid[_j][_q])||0;
-            if(lv)recs.push(_makeRec(_j,_q,lv,date));
+            var v=(grid[_j]&&grid[_j][_q])||0;
+            if(typeof v==='object'){if(v.first)recs.push(_makeSplitRec(_j,_q,v.first,v.second||0,date));}
+            else if(v)recs.push(_makeRec(_j,_q,v,date));
           }}
         }
         if(!recs.length){showToast("No cells filled in yet.","warning",2500);return;}
@@ -4567,9 +4610,34 @@ function App(){
                 return React.createElement('tr',{key:juz,style:{borderBottom:"1px solid rgba(0,0,0,0.04)"}}
                   ,React.createElement('td',{style:{padding:"3px 6px",fontSize:13,fontWeight:700,color:TEXT,verticalAlign:"middle"}},juz)
                   ,[1,2,3,4].map(function(q){
-                    var lv=_getLevel(juz,q);
-                    var dl=DOR_LEVELS[lv];
+                    var raw=_getLevel(juz,q);
+                    var isSplit=typeof raw==='object';
                     var _j=juz,_q=q;
+                    if(isSplit){
+                      // Split cell: left=red K (first=Kaccha), right=second attempt
+                      var retryLv=raw.second||0;
+                      var retryDl=DOR_LEVELS[retryLv];
+                      return React.createElement('td',{key:_q,style:{padding:"3px 4px",textAlign:"center",verticalAlign:"middle"}}
+                        ,React.createElement('div',{style:{display:"flex",width:"100%",height:28,borderRadius:7,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.18)"}}
+                          ,React.createElement('div',{
+                            onClick:function(e){e.stopPropagation();_resetSplitLeft(_j,_q);},
+                            title:"Tap to remove split",
+                            style:{flex:1,background:"#dc2626",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
+                            ,React.createElement('span',{style:{fontSize:8,fontWeight:800,color:"#fca5a5",lineHeight:1}},"K")
+                          )
+                          ,React.createElement('div',{
+                            onClick:function(e){e.stopPropagation();_cycleSplitRight(_j,_q);},
+                            title:"Tap to cycle second attempt",
+                            style:{flex:1,background:retryDl.bg,borderLeft:"1.5px solid rgba(0,0,0,0.15)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
+                            ,retryLv===0?React.createElement('span',{style:{fontSize:7,color:"rgba(0,0,0,0.25)",lineHeight:1}},"?"):
+                             retryLv===3?React.createElement('span',{style:{fontSize:8,fontWeight:800,color:"#7c3200",lineHeight:1}},"S"):
+                             retryLv===4?React.createElement('span',{style:{fontSize:8,fontWeight:800,color:"#7f1d1d",lineHeight:1}},"K"):null
+                          )
+                        )
+                      );
+                    }
+                    var lv=raw;
+                    var dl=DOR_LEVELS[lv];
                     return React.createElement('td',{key:_q,style:{padding:"3px 4px",textAlign:"center",verticalAlign:"middle"}}
                       ,React.createElement('div',{
                         onClick:function(e){e.stopPropagation();_cycleCell(_j,_q);},
@@ -5434,8 +5502,9 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 );
               })()
             )
-          /* Non-Hafidh: original dor checkbox + fields */
-          : React.createElement('div',{style:{
+          /* Non-Hafidh AM: morning dor checkbox + Juz/Quarter/Mistakes */
+          : isAM
+          ? React.createElement('div',{style:{
               background:row.dorDone?"rgba(239,68,68,0.05)":"#F8F9FA",
               borderRadius:12,padding:"14px 16px",marginBottom:4,
               border:"1px solid "+(row.dorDone?"rgba(220,38,38,0.3)":"#E5E7EB")
@@ -5493,6 +5562,26 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                     border:"1.5px solid "+(row[cfg[0]]?cfg[2]:"#E5E7EB"),letterSpacing:"0.2px"}},cfg[1]);
               })
             )
+          )
+          /* Non-Hafidh PM: full dor grid button */
+          : React.createElement('div',{style:{borderRadius:12,padding:"14px 16px",marginBottom:4,border:"1px solid rgba(220,38,38,0.2)",background:"rgba(239,68,68,0.03)"}},
+            React.createElement('div',{style:{fontSize:13,fontWeight:"700",color:"#DC2626",marginBottom:10,display:"flex",alignItems:"center",gap:6}},
+              React.createElement('div',{style:{width:8,height:8,borderRadius:"50%",background:"#DC2626"}}),
+              "Dor (evening)"
+            ),
+            (function(){
+              var _pmDorSaved=(dorRecords||[]).some(function(d){return d.studentName===row.name&&d.date===selectedDate&&d.morningDor===false;});
+              return React.createElement('div',{style:{display:"flex",alignItems:"center",gap:10}},
+                React.createElement('button',{
+                  onClick:function(){if(typeof openHafidhDorGrid==="function")openHafidhDorGrid(row.name,false,selectedDate);},
+                  style:{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid #DC2626",
+                    background:_pmDorSaved?"rgba(220,38,38,0.08)":"transparent",
+                    color:"#DC2626",cursor:"pointer",fontSize:13,fontWeight:"700",textAlign:"left"}},
+                  "📋 Open Dor Grid"
+                ),
+                _pmDorSaved&&React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#16a34a",flexShrink:0}},"✓ Saved")
+              );
+            })()
           )
         ),
 
