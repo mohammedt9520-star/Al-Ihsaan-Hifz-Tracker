@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260806-720000 | PM dor grid for all; quickDor Kaccha auto-split cell with retry -->
+<!-- hifz-20260806-730000 | Dor champion: hierarchical ranking by exact colour counts -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260806-720000';
+const APP_VERSION='hifz-20260806-730000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1631,6 +1631,13 @@ function calcDorChampions(dorRecords, records, dateFrom, dateTo){
   const refRecord=records.find(r=>r.dateFrom===dateFrom&&r.dateTo===dateTo);
   const eveningSessions=refRecord?(parseFloat(refRecord.eveningPossibleDays)||0):0;
   const maxQuarters=eveningSessions*2;
+  // Hierarchical sort: fewest Kaccha → fewest Scrape → fewest Yellow → most sessions done
+  function dorSort(a,b){
+    if(a.kacchaCount!==b.kacchaCount)return a.kacchaCount-b.kacchaCount;
+    if(a.scrapeCount!==b.scrapeCount)return a.scrapeCount-b.scrapeCount;
+    if(a.yellowCount!==b.yellowCount)return a.yellowCount-b.yellowCount;
+    return b.totalSessions-a.totalSessions;
+  }
   function champForClass(names){
     const studentStats=names.map(name=>{
       const entries=dorRecords.filter(d=>d.studentName===name&&(!dateFrom||d.date>=dateFrom)&&(!dateTo||d.date<=dateTo)&&!d.paraDor);
@@ -1642,25 +1649,27 @@ function calcDorChampions(dorRecords, records, dateFrom, dateTo){
           if(!juz||!q||m===""||m===undefined)return;
           const key=juz+"-"+q+"-"+entry.date;
           const ex=byKey[key];
-          if(!ex||parseFloat(m)<parseFloat(ex.mistakes))byKey[key]={juz,quarter:q,mistakes:parseFloat(m),repeated:rep,date:entry.date};
+          if(!ex||parseFloat(m)<parseFloat(ex.mistakes))byKey[key]={mistakes:parseFloat(m),repeated:rep};
         });
       });
-      let cleanQuarters=0,totalMistakes=0,hasRedOrRepeat=false;
+      let kacchaCount=0,scrapeCount=0,yellowCount=0,greenCount=0;
       Object.values(byKey).forEach(({mistakes,repeated})=>{
-        const color=getDorColor(mistakes,repeated);
-        if(color==="red")hasRedOrRepeat=true;
-        if(repeated)hasRedOrRepeat=true;
-        cleanQuarters++;totalMistakes+=mistakes;
+        if(repeated)kacchaCount++;
+        else if(mistakes>=3.5)scrapeCount++;
+        else if(mistakes>=2)yellowCount++;
+        else greenCount++;
       });
-      return{name,cleanQuarters,totalMistakes,hasRedOrRepeat};
-    }).filter(s=>s.cleanQuarters>0);
+      const totalSessions=kacchaCount+scrapeCount+yellowCount+greenCount;
+      const hasRedOrRepeat=kacchaCount>0||scrapeCount>0;
+      return{name,kacchaCount,scrapeCount,yellowCount,greenCount,totalSessions,hasRedOrRepeat};
+    }).filter(s=>s.totalSessions>0);
     const cleanStudents=studentStats.filter(s=>!s.hasRedOrRepeat);
     let qualifyingQ=0;
-    if(cleanStudents.length>0)qualifyingQ=Math.max(...cleanStudents.map(s=>s.cleanQuarters));
-    else if(studentStats.length>0)qualifyingQ=Math.max(...studentStats.map(s=>s.cleanQuarters));
+    if(cleanStudents.length>0)qualifyingQ=Math.max(...cleanStudents.map(s=>s.totalSessions));
+    else if(studentStats.length>0)qualifyingQ=Math.max(...studentStats.map(s=>s.totalSessions));
     const pool=cleanStudents.length>0?cleanStudents:studentStats;
-    const qualifiers=pool.filter(s=>s.cleanQuarters>=qualifyingQ).sort((a,b)=>a.totalMistakes-b.totalMistakes);
-    const allRanked=[...studentStats].sort((a,b)=>a.totalMistakes-b.totalMistakes);
+    const qualifiers=pool.filter(s=>s.totalSessions>=qualifyingQ).sort(dorSort);
+    const allRanked=[...studentStats].sort(dorSort);
     return{first:qualifiers[0]||null,second:qualifiers[1]||null,qualifyingQ,maxQ:maxQuarters||qualifyingQ,allRanked};
   }
   return{classA:champForClass(classA),classB:champForClass(classB)};
@@ -4828,7 +4837,7 @@ function App(){
               ,React.createElement('div',{style:{fontSize:11,color:"#9aaa9b",textAlign:"center",marginBottom:16,lineHeight:1.6}}
                 ,"Qualifying: at least "
                 ,React.createElement('span',{style:{color:GOLD,fontWeight:600}},qualifyingQ)
-                ," clean Dor quarters"
+                ," Dor sessions completed"
                 ,maxQ>0&&React.createElement('span',null," (out of ",maxQ," possible)")
               )
               /* Champion hero card */
@@ -4840,12 +4849,21 @@ function App(){
                   ,React.createElement('div',{style:{fontSize:20,color:"#c9a553",marginBottom:10,lineHeight:1}},"☽")
                   ,React.createElement('div',{style:{fontSize:28,fontWeight:700,color:"#1b241d",letterSpacing:"0.02em",marginBottom:4,lineHeight:1.25,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}},first.name)
                   ,React.createElement('div',{style:{fontSize:9,color:MUTED,letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:18}},"1st Place")
-                  ,React.createElement('div',{style:{display:"flex",justifyContent:"center"}}
-                    ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 28px",textAlign:"center"}}
-                      ,React.createElement('div',{style:{fontSize:22,fontWeight:700,color:first.hasRedOrRepeat?ORANGE:GREEN,letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.totalMistakes.toFixed(1))
-                      ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4,lineHeight:1.4}},"Total Mistakes")
+                  ,React.createElement('div',{style:{display:"flex",justifyContent:"center",gap:8}}
+                    ,React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 20px",textAlign:"center",minWidth:64}}
+                      ,React.createElement('div',{style:{fontSize:22,fontWeight:700,color:first.kacchaCount===0?GREEN:RED,letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.kacchaCount)
+                      ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4}},"Kaccha")
+                    )
+                    ,first.scrapeCount>0&&React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 20px",textAlign:"center",minWidth:64}}
+                      ,React.createElement('div',{style:{fontSize:22,fontWeight:700,color:ORANGE,letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.scrapeCount)
+                      ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4}},"Scrape")
+                    )
+                    ,first.yellowCount>0&&React.createElement('div',{style:{background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 20px",textAlign:"center",minWidth:64}}
+                      ,React.createElement('div',{style:{fontSize:22,fontWeight:700,color:"#d97706",letterSpacing:"-0.5px",fontVariantNumeric:"tabular-nums"}},first.yellowCount)
+                      ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4}},"Yellow")
                     )
                   )
+                  ,React.createElement('div',{style:{fontSize:10,color:MUTED,textAlign:"center",marginTop:8}}),first.totalSessions," session"+(first.totalSessions!==1?"s":"")+" · "+(first.kacchaCount===0&&first.scrapeCount===0&&first.yellowCount===0?"All clean":"ranked by quality")
                   ,React.createElement('div',{style:{fontSize:12,color:"#8a9a8b",textAlign:"center",marginTop:14,letterSpacing:"0.02em",lineHeight:1.8,direction:"rtl"}},"مَا شَاءَ اللَّهُ، اللَّهُمَّ زِدْ وَبَارِكْ")
                 )
               )
@@ -4853,7 +4871,7 @@ function App(){
               ,React.createElement('div',{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:10,padding:"8px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}
                 ,React.createElement('div',{style:{minWidth:36,flexShrink:0}})
                 ,React.createElement('div',{style:{fontSize:11,letterSpacing:"0.08em",color:"#5a6b5c",fontWeight:600,flex:1}},"Rankings")
-                ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.07em",color:MUTED,textTransform:"uppercase",width:72,textAlign:"right",lineHeight:1.4}},"Total",React.createElement('br',null),"Mistakes")
+                ,React.createElement('div',{style:{fontSize:8,letterSpacing:"0.07em",color:MUTED,textTransform:"uppercase",width:80,textAlign:"right",lineHeight:1.4}},"Quality")
               )
               /* Runner up — own box, column-aligned */
               ,second&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.13)",borderRadius:12,padding:"12px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
@@ -4862,14 +4880,14 @@ function App(){
                   ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:1}},"Runner Up")
                   ,React.createElement('div',{style:{fontSize:14,fontWeight:600,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},second.name)
                 )
-                ,React.createElement('span',{style:{color:second.hasRedOrRepeat?ORANGE:GREEN,width:72,textAlign:"right",fontSize:12,fontVariantNumeric:"tabular-nums",flexShrink:0}},second.totalMistakes.toFixed(1))
+                ,React.createElement('span',{style:{color:second.kacchaCount===0?GREEN:RED,width:80,textAlign:"right",fontSize:11,flexShrink:0}},second.kacchaCount>0?second.kacchaCount+"K":second.scrapeCount>0?second.scrapeCount+"S":second.yellowCount>0?second.yellowCount+"Y":"✓")
               )
               /* 3rd+ list */
               ,allRanked&&allRanked.length>2&&(()=>{const dorRankList=allRanked;return React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
                 ,dorRankList.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.name,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
                   ,React.createElement('div',{style:{minWidth:36,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",textAlign:"center"}},"#"+(i+3))
                   ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.name)
-                  ,React.createElement('span',{style:{color:s.hasRedOrRepeat?ORANGE:GREEN,width:72,textAlign:"right",fontSize:12,fontVariantNumeric:"tabular-nums",flexShrink:0}},s.totalMistakes.toFixed(1))
+                  ,React.createElement('span',{style:{color:s.kacchaCount===0?GREEN:RED,width:80,textAlign:"right",fontSize:11,flexShrink:0}},s.kacchaCount>0?s.kacchaCount+"K":s.scrapeCount>0?s.scrapeCount+"S":s.yellowCount>0?s.yellowCount+"Y":"✓")
                 ))
               );})()
             )
