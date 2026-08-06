@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260806-650000 | Reports: Dor quick-entry grid, card UI refresh -->
+<!-- hifz-20260806-700000 | Hafidh redesign: heatmap report, dor grid daily entry, champion included -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260806-650000';
+const APP_VERSION='hifz-20260806-700000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1146,55 +1146,35 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
 
   } // end !isHafidh sabaq sections
   if(isHafidh){
-    var _hdr=(dorRecords||[]).filter(function(d){return d.studentName===entry.name&&(!entry.dateFrom||d.date>=entry.dateFrom)&&(!entry.dateTo||d.date<=entry.dateTo);});
-    var _jm={};
-    _hdr.forEach(function(d){
-      [[d.dor1Juz,d.dor1Quarter,d.dor1Mistakes],[d.dor2Juz,d.dor2Quarter,d.dor2Mistakes]].forEach(function(e){
-        if(!e[0])return;
-        var j=String(e[0]);
-        if(!_jm[j])_jm[j]={q1:0,q2:0,q3:0,q4:0,mistakes:0};
-        var qn=parseInt(e[1])||0;
-        if(qn>=1&&qn<=4)_jm[j]['q'+qn]++;
-        _jm[j].mistakes+=Number(e[2])||0;
-      });
-    });
-    var _jns=Object.keys(_jm).map(Number).sort(function(a,b){return a-b;});
-    var _tq1=0,_tq2=0,_tq3=0,_tq4=0,_tmk=0;
-    _jns.forEach(function(n){var rw=_jm[n];_tq1+=rw.q1;_tq2+=rw.q2;_tq3+=rw.q3;_tq4+=rw.q4;_tmk+=rw.mistakes;});
     h+='<div class="card">';
-    h+='<div class="sec-hdr sec-hdr-teal"><span class="sec-num">2</span> Hafidh Dor Record This Month</div>';
-    h+='<table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;">';
-    h+='<thead><tr style="background:#f5f8ff;">';
-    ['Juz','Q1','Q2','Q3','Q4','Mistakes'].forEach(function(lbl){
-      h+='<th style="padding:11px 12px;font-size:10px;font-weight:700;color:#a0a8b8;border:1.5px solid #ede9e0;text-transform:uppercase;letter-spacing:0.5px;">'+lbl+'</th>';
-    });
-    h+='</tr></thead><tbody>';
-    if(_jns.length===0){
-      h+='<tr><td colspan="6" style="padding:20px;color:#aaa;font-style:italic;">No Dor sessions recorded for this period.</td></tr>';
-    } else {
-      _jns.forEach(function(n,i){
-        var rw=_jm[n];
-        var bg=i%2===0?'#fff':'#fafaf8';
-        var mkC=rw.mistakes>10?'#e74c3c':rw.mistakes>5?'#e67e22':'#27ae60';
-        h+='<tr style="background:'+bg+';">';
-        h+='<td style="padding:10px 12px;font-weight:700;color:#1e2d5a;border:1.5px solid #ede9e0;">'+n+'</td>';
-        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q1+'</td>';
-        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q2+'</td>';
-        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q3+'</td>';
-        h+='<td style="padding:10px 12px;border:1.5px solid #ede9e0;">'+rw.q4+'</td>';
-        h+='<td style="padding:10px 12px;font-weight:700;color:'+mkC+';border:1.5px solid #ede9e0;">'+rw.mistakes+'</td>';
-        h+='</tr>';
+    h+='<div class="sec-hdr sec-hdr-crimson"><span class="sec-num">2</span> Dor Record This Month</div>';
+    if(juzList.length>0){
+      h+='<div>'+hmHTML+'</div>';
+      h+='<div style="display:flex;justify-content:space-evenly;align-items:center;padding:10px 12px;border-top:1.5px solid #ede9e0;">';
+      [["#22c55e","Good (0–1.5)"],["#f59e0b","Needs Work (2–3)"],["#ef4444","Weak (3.5+)"],["#c0c0c0","Record Missing"]].forEach(function(item){
+        h+='<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;"><div style="width:10px;height:10px;border-radius:50%;background:'+item[0]+';flex-shrink:0;"></div><span style="color:'+item[0]+';">'+item[1]+'</span></div>';
       });
-      h+='<tr style="background:#f5f8ff;font-weight:700;">';
-      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;font-size:11px;letter-spacing:0.5px;">TOTAL</td>';
-      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq1+'</td>';
-      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq2+'</td>';
-      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq3+'</td>';
-      h+='<td style="padding:11px 12px;color:#1e2d5a;border:1.5px solid #ede9e0;">'+_tq4+'</td>';
-      h+='<td style="padding:11px 12px;color:#e74c3c;border:1.5px solid #ede9e0;">'+_tmk+'</td>';
-      h+='</tr>';
+      h+='</div>';
+      if(totalDorStr||_scrapeCount>0||_kutchaCount>0){
+        h+='<div style="border-top:1px solid #ede9e0;padding:10px 18px;display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap;">';
+        if(totalDorStr){
+          h+='<div><div style="font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Total Dor Completed</div>';
+          h+='<div style="font-size:14px;font-weight:800;color:#1e2d5a;">'+totalDorStr+'</div></div>';
+        }
+        if(_scrapeCount>0){
+          h+='<div><div style="font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Scrape Instances</div>';
+          h+='<div style="font-size:14px;font-weight:800;color:#c2570a;">'+_scrapeCount+'&times; Scrape</div></div>';
+        }
+        if(_kutchaCount>0){
+          h+='<div><div style="font-size:10px;font-weight:700;color:#a0a8b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Kaccha Instances</div>';
+          h+='<div style="font-size:14px;font-weight:800;color:#b91c1c;">'+_kutchaCount+'&times; Kaccha</div></div>';
+        }
+        h+='</div>';
+      }
+    } else {
+      h+='<div style="padding:16px 18px;color:#aaa;font-size:12px;font-style:italic;">No Dor entries recorded for this period.</div>';
     }
-    h+='</tbody></table></div>';
+    h+='</div>';
   }
   // Page 1 footer — invisible spacer pushes pg-num to bottom
   h+='<div style="flex:1;min-height:20px;"></div>';
@@ -1214,7 +1194,8 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='</div>';
   }
 
-  // 5. Dor (Revision) Record
+  // 5. Dor (Revision) Record — non-Hafidh only (Hafidh see it on page 1)
+  if(!isHafidh){
   h+='<div class="card">';
   h+='<div class="sec-hdr sec-hdr-crimson"><span class="sec-num">5</span> Dor (Revision) Record This Month</div>';
   if(juzList.length>0){
@@ -1244,6 +1225,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
     h+='<div style="padding:16px 18px;color:#aaa;font-size:12px;font-style:italic;">No Dor entries recorded for this period.</div>';
   }
   h+='</div>';
+  } // end !isHafidh dor section
 
   // Daily Sabaq Analysis
   if(hasQuality&&!isHafidh){
@@ -1266,7 +1248,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   }
 
   // Behaviour section number shifts if quality section shown
-  const bhvNum=hasQuality&&!isHafidh?7:6;
+  const bhvNum=isHafidh?3:(hasQuality?7:6);
   const cmtNum=bhvNum+1;
 
   // Behaviour
@@ -3362,7 +3344,7 @@ function App(){
     , view==="dor"&&React.createElement(DorEntryPage, { studentNames: studentNames, dorRecords: dorRecords, setDorRecords: setDorRecords, records: records, yearPlan:yearPlan, registerData:registerData, setRegisterData:setRegisterData, syncNow:syncNow,})
 
     /* SABAQ ENTRY */
-    , view==="sabaqEntry"&&React.createElement(SabaqEntryPage, {yearPlan:yearPlan,registerData:registerData,studentNames:studentNames,records:records,dorRecords:dorRecords,setRecords:setRecords,setDorRecords:setDorRecords,dailySabaqEntries:dailySabaqEntries,setDailySabaqEntries:setDailySabaqEntries,selectedClass:sabaqEntryClass,selectedDate:sabaqEntryDate,syncNow:syncNow,hafidhStudents:hafidhStudents,})
+    , view==="sabaqEntry"&&React.createElement(SabaqEntryPage, {yearPlan:yearPlan,registerData:registerData,studentNames:studentNames,records:records,dorRecords:dorRecords,setRecords:setRecords,setDorRecords:setDorRecords,dailySabaqEntries:dailySabaqEntries,setDailySabaqEntries:setDailySabaqEntries,selectedClass:sabaqEntryClass,selectedDate:sabaqEntryDate,syncNow:syncNow,hafidhStudents:hafidhStudents,openHafidhDorGrid:function(name,isAM,date){var st={name:name};setQuickDorCtx({student:st,period:null,fromDailyEntry:true,isAM:isAM,returnView:"sabaqEntry"});setDorGrid([{}]);setDorRound(0);setView("quickDor");},})
 
     /* YEAR PLANNER */
     , view==="yearPlanner"&&React.createElement(YearPlannerPage, {yearPlan:yearPlan,setYearPlan:setYearPlan,records:records,})
@@ -4459,6 +4441,9 @@ function App(){
     , view==="quickDor"&&quickDorCtx&&(()=>{
       const _qds=quickDorCtx.student;
       const _qdp=quickDorCtx.period;
+      const _fromDE=quickDorCtx.fromDailyEntry||false;
+      const _isAM=quickDorCtx.isAM||false;
+      const _retView=quickDorCtx.returnView||"reports";
       const DOR_LEVELS=[
         {bg:"#dde8de",label:""},
         {bg:"#22c55e",label:"0–1.5"},
@@ -4494,7 +4479,8 @@ function App(){
           dor1Juz:String(juz),dor1Quarter:String(q),dor1Mistakes:m,
           dor1Repeated:lv===4,dor1Scrape:lv===3,dor1NoTime:false,
           dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,dor2Scrape:false,
-          dor2NoTime:false,dor2Exempt:false,dor2ParaDor:false,morningDor:false,paraDor:false,
+          dor2NoTime:false,dor2Exempt:false,dor2ParaDor:false,
+          morningDor:_fromDE?_isAM:false,paraDor:false,
           paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:""};
       }
       function _saveDorGrid(){
@@ -4510,8 +4496,8 @@ function App(){
         if(!recs.length){showToast("No cells filled in yet.","warning",2500);return;}
         setDorRecords(function(prev){var n=[...prev,...recs];if(typeof lsSaveDor==="function")lsSaveDor(n);return n;});
         scheduleSync();if(typeof syncNow==="function")syncNow().catch(function(){});
-        showToast("Dor saved for "+_qds.name+" · "+dorGrid.length+" round"+(dorGrid.length>1?"s":""),"success",3000);
-        setQuickDorCtx(null);setDorGrid([{}]);setDorRound(0);setView("reports");
+        showToast("Dor saved for "+_qds.name+(_fromDE?"":" · "+dorGrid.length+" round"+(dorGrid.length>1?"s":"")),"success",3000);
+        setQuickDorCtx(null);setDorGrid([{}]);setDorRound(0);setView(_retView);
       }
       // Swipe handling — uses dorSwipeRef declared at top-level (hooks must not be called conditionally)
       function _onTouchStart(e){dorSwipeRef.current=e.touches[0].clientX;}
@@ -4526,15 +4512,15 @@ function App(){
       return React.createElement('div',{style:{display:"flex",flexDirection:"column",height:"100vh",background:"#f8faf8"}}
         /* Header */
         ,React.createElement('div',{style:{padding:"14px 16px 10px",background:CARD,borderBottom:"1px solid rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:10,flexShrink:0}}
-          ,React.createElement('button',{onClick:function(){setQuickDorCtx(null);setDorGrid([{}]);setDorRound(0);setView("reports");},style:{background:"none",border:"none",fontSize:22,cursor:"pointer",color:MUTED,padding:"0 4px",lineHeight:1}},"←")
+          ,React.createElement('button',{onClick:function(){setQuickDorCtx(null);setDorGrid([{}]);setDorRound(0);setView(_retView);},style:{background:"none",border:"none",fontSize:22,cursor:"pointer",color:MUTED,padding:"0 4px",lineHeight:1}},"←")
           ,React.createElement('div',{style:{flex:1,minWidth:0}}
             ,React.createElement('div',{style:{fontWeight:800,fontSize:15,color:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},_qds.name)
-            ,React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:1}},(_qdp?_qdp.label:"")+" · tap cell to cycle colour")
+            ,React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:1}},(_fromDE?(_isAM?"AM":"PM")+" Session · tap cell to cycle colour":(_qdp?_qdp.label:"")+" · tap cell to cycle colour"))
           )
           ,React.createElement('button',{onClick:_saveDorGrid,style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:10,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:13,flexShrink:0}},"Save")
         )
-        /* Round bar: dots + Add Round button */
-        ,React.createElement('div',{style:{padding:"8px 16px",background:CARD,borderBottom:"1px solid rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:10,flexShrink:0}}
+        /* Round bar: dots + Add Round button (hidden in daily entry mode) */
+        ,!_fromDE&&React.createElement('div',{style:{padding:"8px 16px",background:CARD,borderBottom:"1px solid rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:10,flexShrink:0}}
           ,React.createElement('span',{style:{fontSize:11,color:MUTED,fontWeight:700,marginRight:2}},"Round:")
           ,React.createElement('div',{style:{display:"flex",gap:6,alignItems:"center",flex:1}}
             ,Array.from({length:_numRounds},function(_,ri){
@@ -4604,8 +4590,8 @@ function App(){
         )
         /* Footer */
         ,React.createElement('div',{style:{padding:"10px 16px 18px",background:CARD,borderTop:"1px solid rgba(0,0,0,0.06)",flexShrink:0}}
-          ,React.createElement('div',{style:{fontSize:11,color:MUTED,textAlign:"center",marginBottom:6}},"Round "+(_curRound+1)+" of "+_numRounds+" · swipe left/right to navigate")
-          ,React.createElement('button',{onClick:_saveDorGrid,style:{width:"100%",background:GOLD,color:"#1b1200",border:"none",borderRadius:12,padding:"13px",cursor:"pointer",fontWeight:800,fontSize:15}},"Save All Rounds · "+_qds.name)
+          ,!_fromDE&&React.createElement('div',{style:{fontSize:11,color:MUTED,textAlign:"center",marginBottom:6}},"Round "+(_curRound+1)+" of "+_numRounds+" · swipe left/right to navigate")
+          ,React.createElement('button',{onClick:_saveDorGrid,style:{width:"100%",background:GOLD,color:"#1b1200",border:"none",borderRadius:12,padding:"13px",cursor:"pointer",fontWeight:800,fontSize:15}},_fromDE?"Save Dor · "+_qds.name+" · "+(_isAM?"AM":"PM"):"Save All Rounds · "+_qds.name)
         )
       );
     })()
@@ -4810,8 +4796,8 @@ function App(){
                 )
                 ,React.createElement('span',{style:{color:second.hasRedOrRepeat?ORANGE:GREEN,width:72,textAlign:"right",fontSize:12,fontVariantNumeric:"tabular-nums",flexShrink:0}},second.totalMistakes.toFixed(1))
               )
-              /* 3rd+ list — hafidh excluded, no internal header */
-              ,allRanked&&allRanked.filter(s=>!hafidhStudents.has(s.name)).length>2&&(()=>{const dorRankList=allRanked.filter(s=>!hafidhStudents.has(s.name));return React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
+              /* 3rd+ list */
+              ,allRanked&&allRanked.length>2&&(()=>{const dorRankList=allRanked;return React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
                 ,dorRankList.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.name,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
                   ,React.createElement('div',{style:{minWidth:36,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",textAlign:"center"}},"#"+(i+3))
                   ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.name)
@@ -4925,7 +4911,7 @@ function App(){
 // ─────────────────────────────────────────────────────────
 // SABAQ ENTRY PAGE - Daily class-wide sabaq entry
 // ─────────────────────────────────────────────────────────
-function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecords,dailySabaqEntries,setDailySabaqEntries,selectedClass,selectedDate,syncNow,yearPlan,registerData,hafidhStudents}){
+function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecords,dailySabaqEntries,setDailySabaqEntries,selectedClass,selectedDate,syncNow,yearPlan,registerData,hafidhStudents,openHafidhDorGrid}){
   const today=getTodayStr();
 
   const _studentsByClass=React.useMemo(()=>{
@@ -5117,7 +5103,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // QUEUE CARD — single student popup view
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  function QueueCard({rows,updRow,tab,onPrev,onNext,onDone,idx,total,hafidhSet}){
+  function QueueCard({rows,updRow,tab,onPrev,onNext,onDone,idx,total,hafidhSet,openHafidhDorGrid,selectedDate,dorRecords}){
     const row=rows[idx];
     if(!row)return null;
     // Local state for the "Other" lines input — never triggers parent re-render
@@ -5426,13 +5412,50 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
             )
           ),
 
-          /* Dor (morning) */
-          React.createElement('div',{style:{
-            background:(hafidhSet&&hafidhSet.has(row.name))?"rgba(201,165,83,0.05)":row.dorDone?"rgba(239,68,68,0.05)":"#F8F9FA",
-            borderRadius:12,padding:"14px 16px",marginBottom:4,
-            border:"1px solid "+((hafidhSet&&hafidhSet.has(row.name))?"rgba(201,165,83,0.25)":row.dorDone?"rgba(220,38,38,0.3)":"#E5E7EB")
-          }},
-            !(hafidhSet&&hafidhSet.has(row.name))&&React.createElement('div',{
+          /* Dor section */
+          (hafidhSet&&hafidhSet.has(row.name))
+          /* Hafidh: show "Open Dor Grid" button for AM and PM with saved indicator */
+          ? React.createElement('div',{style:{borderRadius:12,padding:"14px 16px",marginBottom:4,border:"1px solid rgba(201,165,83,0.25)",background:"rgba(201,165,83,0.05)"}},
+              React.createElement('div',{style:{fontSize:13,fontWeight:"700",color:GOLD,marginBottom:12,display:"flex",alignItems:"center",gap:6}},
+                React.createElement('div',{style:{width:8,height:8,borderRadius:"50%",background:GOLD}}),
+                "Dor (Hafidh)"
+              ),
+              React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:8}},
+                (function(){
+                  var _amSaved=(dorRecords||[]).some(function(d){return d.studentName===row.name&&d.date===selectedDate&&d.morningDor===true;});
+                  var _pmSaved=(dorRecords||[]).some(function(d){return d.studentName===row.name&&d.date===selectedDate&&d.morningDor===false;});
+                  return [
+                    React.createElement('div',{key:"am",style:{display:"flex",alignItems:"center",gap:10}},
+                      React.createElement('button',{
+                        onClick:function(){if(typeof openHafidhDorGrid==="function")openHafidhDorGrid(row.name,true,selectedDate);},
+                        style:{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid "+GOLD,
+                          background:_amSaved?"rgba(201,165,83,0.15)":"transparent",
+                          color:GOLD,cursor:"pointer",fontSize:13,fontWeight:"700",textAlign:"left"}},
+                        "📋 AM Session Dor"
+                      ),
+                      _amSaved&&React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#16a34a",flexShrink:0}},"✓ Saved")
+                    ),
+                    React.createElement('div',{key:"pm",style:{display:"flex",alignItems:"center",gap:10}},
+                      React.createElement('button',{
+                        onClick:function(){if(typeof openHafidhDorGrid==="function")openHafidhDorGrid(row.name,false,selectedDate);},
+                        style:{flex:1,padding:"10px 14px",borderRadius:10,border:"1.5px solid "+GOLD,
+                          background:_pmSaved?"rgba(201,165,83,0.15)":"transparent",
+                          color:GOLD,cursor:"pointer",fontSize:13,fontWeight:"700",textAlign:"left"}},
+                        "📋 PM Session Dor"
+                      ),
+                      _pmSaved&&React.createElement('span',{style:{fontSize:12,fontWeight:"700",color:"#16a34a",flexShrink:0}},"✓ Saved")
+                    )
+                  ];
+                })()
+              )
+            )
+          /* Non-Hafidh: original dor checkbox + fields */
+          : React.createElement('div',{style:{
+              background:row.dorDone?"rgba(239,68,68,0.05)":"#F8F9FA",
+              borderRadius:12,padding:"14px 16px",marginBottom:4,
+              border:"1px solid "+(row.dorDone?"rgba(220,38,38,0.3)":"#E5E7EB")
+            }},
+            React.createElement('div',{
               onClick:()=>updRow(idx,"dorDone",!row.dorDone),
               style:{display:"flex",alignItems:"center",gap:10,cursor:"pointer",marginBottom:row.dorDone?12:0}
             },
@@ -5448,11 +5471,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 React.createElement('div',{style:{fontSize:11,color:MUTED}},"Kaccha from yesterday")
               )
             ),
-            (hafidhSet&&hafidhSet.has(row.name))&&React.createElement('div',{style:{fontSize:13,fontWeight:"700",color:GOLD,marginBottom:12,display:"flex",alignItems:"center",gap:6}},
-              React.createElement('div',{style:{width:8,height:8,borderRadius:"50%",background:GOLD}}),
-              "Dor"
-            ),
-            (row.dorDone||(hafidhSet&&hafidhSet.has(row.name)))&&React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}},
+            row.dorDone&&React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}},
               React.createElement('div',null,
                 React.createElement('label',{style:{...secLabel,color:"#DC2626"}},"Juz"),
                 React.createElement('select',{value:row.dorJuz,
@@ -5480,50 +5499,9 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 )
               )
             ),
-            /* Hafidh 2nd Quarter */
-            (hafidhSet&&hafidhSet.has(row.name))&&React.createElement('div',{style:{marginTop:10}},
-              row.dor2Juz
-                ? React.createElement('div',null,
-                    React.createElement('div',{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}},
-                      React.createElement('span',{style:{fontSize:11,fontWeight:"700",color:GOLD,textTransform:"uppercase",letterSpacing:"0.6px"}},"2nd Quarter"),
-                      React.createElement('button',{onClick:function(){updRow(idx,"dor2Juz","");updRow(idx,"dor2Quarter","");updRow(idx,"dor2Mistakes","");},
-                        style:{background:"none",border:"none",color:MUTED,cursor:"pointer",fontSize:11,padding:"2px 6px"}},"× Remove")
-                    ),
-                    React.createElement('div',{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}},
-                      React.createElement('div',null,
-                        React.createElement('label',{style:{...secLabel,color:GOLD}},"Juz"),
-                        React.createElement('select',{value:row.dor2Juz,onChange:function(e){updRow(idx,"dor2Juz",e.target.value);},style:selS},
-                          React.createElement('option',{value:""},"—"),
-                          JUZ_OPTIONS.map(function(j){return React.createElement('option',{key:j,value:j},j);})
-                        )
-                      ),
-                      React.createElement('div',null,
-                        React.createElement('label',{style:{...secLabel,color:GOLD}},"Quarter"),
-                        React.createElement('select',{value:row.dor2Quarter,onChange:function(e){updRow(idx,"dor2Quarter",e.target.value);},style:selS},
-                          React.createElement('option',{value:""},"—"),
-                          QUARTERS.map(function(q){return React.createElement('option',{key:q,value:q},q);})
-                        )
-                      ),
-                      React.createElement('div',null,
-                        React.createElement('label',{style:{...secLabel,color:GOLD}},"Mistakes"),
-                        React.createElement('select',{value:row.dor2Mistakes,onChange:function(e){updRow(idx,"dor2Mistakes",e.target.value);},style:selS},
-                          React.createElement('option',{value:""},"—"),
-                          MK_OPTS.map(function(m){return React.createElement('option',{key:m,value:m},m===0?"0":m);})
-                        )
-                      )
-                    )
-                  )
-                : React.createElement('button',{
-                    onClick:function(){updRow(idx,"dor2Juz",row.dorJuz||"1");updRow(idx,"dor2Quarter","");},
-                    style:{width:"100%",padding:"9px",borderRadius:9,border:"1px dashed "+GOLD,
-                      background:"transparent",color:GOLD,cursor:"pointer",fontSize:12.5,fontWeight:"600"}},
-                  "+ Add 2nd Quarter")
-            ),
-            (row.dorDone||(hafidhSet&&hafidhSet.has(row.name)))&&React.createElement('div',{style:{display:"flex",gap:7,flexWrap:"wrap",marginTop:8}},
-              (hafidhSet&&hafidhSet.has(row.name)?
-                [["dorScrape","Scrape","#D97706"],["dorKaccha","Kaccha","#DC2626"],["dorNoTime","No Time","#6B7280"]]:
-                [["dorParaDor","Para Dor","#2563EB"],["dorScrape","Scrape","#D97706"],["dorKaccha","Kaccha","#DC2626"],["dorNoTime","No Time","#6B7280"]]
-              ).map(function(cfg){
+            row.dorDone&&React.createElement('div',{style:{display:"flex",gap:7,flexWrap:"wrap",marginTop:8}},
+              [["dorParaDor","Para Dor","#2563EB"],["dorScrape","Scrape","#D97706"],["dorKaccha","Kaccha","#DC2626"],["dorNoTime","No Time","#6B7280"]
+              ].map(function(cfg){
                 return React.createElement('button',{key:cfg[0],onClick:()=>updRow(idx,cfg[0],!row[cfg[0]]),
                   style:{padding:"8px 13px",borderRadius:10,cursor:"pointer",fontSize:11.5,fontWeight:"700",
                     background:row[cfg[0]]?cfg[2]:"#fff",color:row[cfg[0]]?"#fff":"#6b7280",
@@ -5708,6 +5686,9 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       onNext:()=>setQueueIdx(q=>Math.min(students.length-1,q+1)),
       onDone:saveAM,
       hafidhSet:hafidhStudents||new Set(),
+      openHafidhDorGrid:openHafidhDorGrid,
+      selectedDate:selectedDate,
+      dorRecords:dorRecords,
     })
   );
 }
