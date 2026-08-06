@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260806-760000 | Sabaq Entry flat table — SP/Dor circles, numpad, last sabaq PD -->
+<!-- hifz-20260806-770000 | Premium UI polish — shortName, Dor grid redesign, AM table alignment -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260806-760000';
+const APP_VERSION='hifz-20260806-770000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -234,6 +234,8 @@ for(let m=0.5;m<=5;m+=0.5) MISTAKE_OPTIONS.push(m);
 const JUZ_OPTIONS=[...Array(30)].map((_,i)=>i+1);
 
 function getTodayStr(){return new Date().toISOString().split("T")[0];}
+// Returns first two words of a name — keeps tables neat for long 3-part names
+function shortName(n){if(!n)return n;var p=n.trim().split(/\s+/);return p.slice(0,2).join(" ");}
 
 function getDorColor(mistakes,repeated){
   const m=parseFloat(mistakes);
@@ -1528,7 +1530,7 @@ function DorEntryPage({studentNames,dorRecords,setDorRecords,records,yearPlan,re
                 React.createElement('div',{style:{display:"flex",alignItems:"center",padding:"9px 14px",gap:10}},
                   React.createElement('div',{style:{width:10,height:10,borderRadius:"50%",background:evDot(row),flexShrink:0,alignSelf:"flex-start",marginTop:5}}),
                   React.createElement('div',{style:{flex:1,cursor:"pointer",minWidth:0},onClick:()=>setQueueIdx(i)},
-                    React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:15}},row.name),
+                    React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:15,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},shortName(row.name)),
                     row.absent
                       ?React.createElement('div',{style:{fontSize:11,color:"#9CA3AF",fontWeight:"600",marginTop:3}},"Marked absent")
                       :(evEntered(row)
@@ -4617,7 +4619,7 @@ function App(){
         ,React.createElement('div',{style:{padding:"14px 16px 10px",background:CARD,borderBottom:"1px solid rgba(0,0,0,0.06)",display:"flex",alignItems:"center",gap:10,flexShrink:0}}
           ,React.createElement('button',{onClick:function(){setQuickDorCtx(null);setDorGrid([{}]);setDorRound(0);setView(_retView);},style:{background:"none",border:"none",fontSize:22,cursor:"pointer",color:MUTED,padding:"0 4px",lineHeight:1}},"←")
           ,React.createElement('div',{style:{flex:1,minWidth:0}}
-            ,React.createElement('div',{style:{fontWeight:800,fontSize:15,color:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},_qds.name)
+            ,React.createElement('div',{style:{fontWeight:800,fontSize:15,color:TEXT,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}},shortName(_qds.name))
             ,React.createElement('div',{style:{fontSize:11,color:MUTED,marginTop:1}},(_fromDE?(_isAM?"AM":"PM")+" Session · tap cell to cycle colour":(_qdp?_qdp.label:"")+" · tap cell to cycle colour"))
           )
           ,React.createElement('button',{onClick:_saveDorGrid,style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:10,padding:"8px 16px",cursor:"pointer",fontWeight:800,fontSize:13,flexShrink:0}},"Save")
@@ -4656,79 +4658,85 @@ function App(){
         )
         /* Grid — swipeable */
         ,React.createElement('div',{
-          style:{flex:1,overflowY:"auto",padding:"4px 8px 32px",WebkitOverflowScrolling:"touch"},
+          style:{flex:1,overflowY:"auto",padding:"10px 10px 32px",WebkitOverflowScrolling:"touch"},
           onTouchStart:_onTouchStart,onTouchEnd:_onTouchEnd}
-          ,React.createElement('table',{style:{borderCollapse:"collapse",width:"100%",tableLayout:"fixed"}}
-            ,React.createElement('thead',null
-              ,React.createElement('tr',null
-                ,React.createElement('th',{style:{padding:"8px 6px",fontSize:11,color:MUTED,fontWeight:700,textAlign:"left",width:34,position:"sticky",top:0,background:"#f8faf8"}},"Juz")
-                ,["Q1","Q2","Q3","Q4"].map(function(qh){return React.createElement('th',{key:qh,style:{padding:"8px 4px",fontSize:11,color:MUTED,fontWeight:700,textAlign:"center",position:"sticky",top:0,background:"#f8faf8"}},qh);})
+          ,React.createElement('div',{style:{background:"#fff",borderRadius:16,border:"1px solid rgba(0,0,0,0.07)",boxShadow:"0 2px 18px rgba(0,0,0,0.08)",overflow:"hidden"}}
+            ,React.createElement('table',{style:{borderCollapse:"collapse",width:"100%",tableLayout:"fixed"}}
+              ,React.createElement('thead',null
+                ,React.createElement('tr',{style:{background:"#f5f6f8"}}
+                  ,React.createElement('th',{style:{padding:"10px 6px",fontSize:9,color:MUTED,fontWeight:800,textAlign:"center",width:46,letterSpacing:"0.7px",borderBottom:"1.5px solid rgba(0,0,0,0.06)",position:"sticky",top:0,background:"#f5f6f8"}},"JUZ")
+                  ,["Q1","Q2","Q3","Q4"].map(function(qh){return React.createElement('th',{key:qh,style:{padding:"10px 5px",fontSize:9,color:MUTED,fontWeight:800,textAlign:"center",letterSpacing:"0.7px",borderBottom:"1.5px solid rgba(0,0,0,0.06)",position:"sticky",top:0,background:"#f5f6f8"}},qh);})
+                )
               )
-            )
-            ,React.createElement('tbody',null
-              ,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30].map(function(juz){
-                var _curGrid=dorGrid[_curRound]||{};
-                var _jRow=_curGrid[juz]||{};
-                var _isPd=!!_jRow._pd;
-                var _isPt=_isPd&&[1,2,3,4].every(function(qx){var qv=_jRow[qx]||0;return typeof qv==='object'?qv.first>0:qv>0;});
-                var _juzBg=_isPt?"#7c3aed":_isPd?"#16a34a":"transparent";
-                var _juzColor=(_isPd||_isPt)?"#fff":TEXT;
-                var _juz=juz;
-                return React.createElement('tr',{key:juz,style:{borderBottom:"1px solid rgba(0,0,0,0.04)"}}
-                  ,React.createElement('td',{
-                    onClick:function(){_tapJuz(_juz);},
-                    style:{padding:"3px 4px",textAlign:"center",verticalAlign:"middle",cursor:"pointer"}}
-                    ,React.createElement('div',{style:{background:_juzBg,color:_juzColor,borderRadius:5,padding:"2px 3px",
-                      fontSize:11,fontWeight:800,display:"flex",flexDirection:"column",alignItems:"center",
-                      lineHeight:1.1,minHeight:22,justifyContent:"center",transition:"background 0.15s"}}
-                      ,_juz
-                      ,_isPd&&React.createElement('span',{style:{fontSize:6,letterSpacing:0.5,marginTop:1,opacity:0.9}},_isPt?"PT":"PD")
+              ,React.createElement('tbody',null
+                ,[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30].map(function(juz){
+                  var _cg=dorGrid[_curRound]||{};
+                  var _jRow=_cg[juz]||{};
+                  var _isPd=!!_jRow._pd;
+                  var _isPt=_isPd&&[1,2,3,4].every(function(qx){var qv=_jRow[qx]||0;return typeof qv==='object'?qv.first>0:qv>0;});
+                  var _juzBg=_isPt?"#6d28d9":_isPd?"#15803d":"transparent";
+                  var _juzBorder=(!_isPd&&!_isPt)?"1.5px solid rgba(0,0,0,0.1)":"none";
+                  var _juzColor=(_isPd||_isPt)?"#fff":"#374151";
+                  var rowBg=juz%2===0?"rgba(0,0,0,0.016)":"transparent";
+                  var _juz=juz;
+                  return React.createElement('tr',{key:juz,style:{borderBottom:"1px solid rgba(0,0,0,0.042)",background:rowBg}}
+                    ,React.createElement('td',{
+                      onClick:function(){_tapJuz(_juz);},
+                      style:{padding:"5px 5px",textAlign:"center",verticalAlign:"middle",cursor:"pointer"}}
+                      ,React.createElement('div',{style:{
+                        background:_juzBg,color:_juzColor,
+                        borderRadius:9,border:_juzBorder,
+                        fontSize:12,fontWeight:800,
+                        display:"flex",flexDirection:"column",alignItems:"center",
+                        minHeight:36,justifyContent:"center",
+                        transition:"background 0.15s,border 0.15s"}}
+                        ,_juz
+                        ,(_isPd||_isPt)&&React.createElement('span',{style:{fontSize:6,letterSpacing:0.8,marginTop:2,fontWeight:700,opacity:0.9}},_isPt?"PT":"PD")
+                      )
                     )
-                  )
-                  ,[1,2,3,4].map(function(q){
-                    var raw=_getLevel(juz,q);
-                    var isSplit=typeof raw==='object';
-                    var _j=juz,_q=q;
-                    if(isSplit){
-                      // Split cell: left=red K (first=Kaccha), right=second attempt
-                      var retryLv=raw.second||0;
-                      var retryDl=DOR_LEVELS[retryLv];
-                      return React.createElement('td',{key:_q,style:{padding:"3px 4px",textAlign:"center",verticalAlign:"middle"}}
-                        ,React.createElement('div',{style:{display:"flex",width:"100%",height:28,borderRadius:7,overflow:"hidden",boxShadow:"0 1px 4px rgba(0,0,0,0.18)"}}
-                          ,React.createElement('div',{
-                            onClick:function(e){e.stopPropagation();_resetSplitLeft(_j,_q);},
-                            title:"Tap to remove split",
-                            style:{flex:1,background:"#dc2626",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
-                            ,React.createElement('span',{style:{fontSize:8,fontWeight:800,color:"#fca5a5",lineHeight:1}},"K")
+                    ,[1,2,3,4].map(function(q){
+                      var raw=_getLevel(juz,q);
+                      var isSplit=typeof raw==='object';
+                      var _j=juz,_q=q;
+                      if(isSplit){
+                        var retryLv=raw.second||0;
+                        var retryDl=DOR_LEVELS[retryLv];
+                        return React.createElement('td',{key:_q,style:{padding:"5px 4px",verticalAlign:"middle"}}
+                          ,React.createElement('div',{style:{display:"flex",width:"100%",height:36,borderRadius:9,overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.16)"}}
+                            ,React.createElement('div',{
+                              onClick:function(e){e.stopPropagation();_resetSplitLeft(_j,_q);},
+                              style:{flex:1,background:"#dc2626",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
+                              ,React.createElement('span',{style:{fontSize:9,fontWeight:800,color:"#fca5a5",lineHeight:1}},"K")
+                            )
+                            ,React.createElement('div',{
+                              onClick:function(e){e.stopPropagation();_cycleSplitRight(_j,_q);},
+                              style:{flex:1,background:retryDl.bg,borderLeft:"1.5px solid rgba(0,0,0,0.12)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
+                              ,retryLv===0?React.createElement('span',{style:{fontSize:8,color:"rgba(0,0,0,0.28)",lineHeight:1}},"?"):
+                               retryLv===3?React.createElement('span',{style:{fontSize:9,fontWeight:800,color:"#7c3200",lineHeight:1}},"Sc"):
+                               retryLv===4?React.createElement('span',{style:{fontSize:9,fontWeight:800,color:"#7f1d1d",lineHeight:1}},"K"):null
+                            )
                           )
-                          ,React.createElement('div',{
-                            onClick:function(e){e.stopPropagation();_cycleSplitRight(_j,_q);},
-                            title:"Tap to cycle second attempt",
-                            style:{flex:1,background:retryDl.bg,borderLeft:"1.5px solid rgba(0,0,0,0.15)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}
-                            ,retryLv===0?React.createElement('span',{style:{fontSize:7,color:"rgba(0,0,0,0.25)",lineHeight:1}},"?"):
-                             retryLv===3?React.createElement('span',{style:{fontSize:8,fontWeight:800,color:"#7c3200",lineHeight:1}},"S"):
-                             retryLv===4?React.createElement('span',{style:{fontSize:8,fontWeight:800,color:"#7f1d1d",lineHeight:1}},"K"):null
-                          )
+                        );
+                      }
+                      var lv=raw;
+                      var dl=DOR_LEVELS[lv];
+                      return React.createElement('td',{key:_q,style:{padding:"5px 4px",verticalAlign:"middle"}}
+                        ,React.createElement('div',{
+                          onClick:function(e){e.stopPropagation();_cycleCell(_j,_q);},
+                          style:{width:"100%",height:36,borderRadius:9,
+                            background:lv===0?"rgba(0,0,0,0.04)":dl.bg,
+                            border:lv===0?"1.5px dashed rgba(0,0,0,0.13)":"none",
+                            cursor:"pointer",transition:"background 0.1s",
+                            boxShadow:lv>0?"0 1px 6px rgba(0,0,0,0.14)":"none",
+                            display:"flex",alignItems:"center",justifyContent:"center"}}
+                          ,lv===3?React.createElement('span',{style:{fontSize:9,fontWeight:800,color:"rgba(255,255,255,0.9)",lineHeight:1}},"Sc"):
+                           lv===4?React.createElement('span',{style:{fontSize:9,fontWeight:800,color:"rgba(255,255,255,0.9)",lineHeight:1}},"K"):null
                         )
                       );
-                    }
-                    var lv=raw;
-                    var dl=DOR_LEVELS[lv];
-                    return React.createElement('td',{key:_q,style:{padding:"3px 4px",textAlign:"center",verticalAlign:"middle"}}
-                      ,React.createElement('div',{
-                        onClick:function(e){e.stopPropagation();_cycleCell(_j,_q);},
-                        style:{width:"100%",height:28,borderRadius:7,
-                          background:dl.bg,
-                          border:lv===0?"1.5px dashed #b8c8ba":"none",
-                          cursor:"pointer",transition:"background 0.1s",
-                          boxShadow:lv>0?"0 1px 4px rgba(0,0,0,0.13)":"none",
-                          display:"flex",alignItems:"center",justifyContent:"center"}}
-                        ,lv===3||lv===4?React.createElement('span',{style:{fontSize:8,fontWeight:800,color:lv===3?"#7c3200":"#7f1d1d",lineHeight:1}},dl.label):null
-                      )
-                    );
-                  })
-                );
-              })
+                    })
+                  );
+                })
+              )
             )
           )
         )
@@ -5398,16 +5406,16 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       : React.createElement('div',null
 
           // Column header
-          ,React.createElement('div',{style:{display:"flex",alignItems:"center",padding:"5px 12px",background:"#F8FAFC",borderBottom:"1.5px solid #E2E7EF",fontSize:9,fontWeight:800,color:MUTED,letterSpacing:"0.6px",textTransform:"uppercase"}}
-            ,React.createElement('div',{style:{flex:1}},"Name")
+          ,React.createElement('div',{style:{display:"flex",alignItems:"center",padding:"6px 12px",background:"#F8FAFC",borderBottom:"1.5px solid #E2E7EF",fontSize:8.5,fontWeight:800,color:MUTED,letterSpacing:"0.7px",textTransform:"uppercase"}}
+            ,React.createElement('div',{style:{flex:1,minWidth:0}},"Name")
             ,isAM&&React.createElement(React.Fragment,null
-              ,React.createElement('div',{style:{width:26,textAlign:"center"}},"Dor")
-              ,React.createElement('div',{style:{width:82,textAlign:"center"}},"J / Q / ●")
-              ,React.createElement('div',{style:{width:26,textAlign:"center",marginLeft:8}},"SP")
-              ,React.createElement('div',{style:{width:26,textAlign:"center",marginLeft:4}},"SP2")
-              ,React.createElement('div',{style:{width:46,textAlign:"center",marginLeft:8}},"Lines")
+              ,React.createElement('div',{style:{width:26,textAlign:"center",flexShrink:0}},"Dor")
+              ,React.createElement('div',{style:{width:96,textAlign:"center",flexShrink:0,marginLeft:2}},"J / Q / ●")
+              ,React.createElement('div',{style:{width:24,textAlign:"center",flexShrink:0,marginLeft:6}},"SP")
+              ,React.createElement('div',{style:{width:24,textAlign:"center",flexShrink:0,marginLeft:4}},"SP2")
+              ,React.createElement('div',{style:{width:46,textAlign:"center",flexShrink:0,marginLeft:6}},"Lines")
             )
-            ,!isAM&&React.createElement('div',{style:{minWidth:80,textAlign:"right"}},"Dor")
+            ,!isAM&&React.createElement('div',{style:{width:80,textAlign:"right",flexShrink:0}},"Dor")
           )
 
           // Student rows
@@ -5439,7 +5447,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
               if(!isAM){
                 var _pmSaved=(dorRecords||[]).some(function(d){return d.studentName===row.name&&d.date===date&&d.morningDor===false;});
                 return React.createElement('div',{key:row.name,style:{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderBottom:"1px solid #F0F2F5",background:absent?"#F3F4F6":"#fff",opacity:absent?0.5:1}}
-                  ,React.createElement('div',{style:{flex:1,fontSize:13,fontWeight:700,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},row.name)
+                  ,React.createElement('div',{style:{flex:1,fontSize:13,fontWeight:700,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},shortName(row.name))
                   ,!absent&&React.createElement('button',{onClick:function(){if(typeof openHafidhDorGrid==="function")openHafidhDorGrid(row.name,false,date);},style:{padding:"6px 14px",borderRadius:8,border:"1.5px solid #DC2626",background:_pmSaved?"rgba(220,38,38,0.08)":"transparent",color:"#DC2626",cursor:"pointer",fontSize:12,fontWeight:700}},"Dor 📋")
                   ,_pmSaved&&React.createElement('span',{style:{fontSize:11,color:"#16a34a",fontWeight:700,flexShrink:0}},"✓ Done")
                 );
@@ -5451,63 +5459,66 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
                 // Main row
                 ,React.createElement('div',{style:{display:"flex",alignItems:"center",gap:0,padding:"7px 12px",opacity:absent?0.4:1}}
 
-                  // Name
-                  ,React.createElement('div',{style:{flex:1,minWidth:70,overflow:"hidden"}}
+                  // Name — first 2 words only for alignment
+                  ,React.createElement('div',{style:{flex:1,minWidth:0,overflow:"hidden"}}
                     ,React.createElement('div',{style:{fontSize:13,fontWeight:700,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:4}}
-                      ,row.name
+                      ,shortName(row.name)
                       ,absent&&React.createElement('span',{style:{fontSize:8,color:"#9CA3AF",fontWeight:600}},"absent")
-                      ,!absent&&kachhaYesterday.has(row.name)&&React.createElement('span',{style:{fontSize:8,fontWeight:800,color:"#D97706",background:"#FEF3C7",borderRadius:4,padding:"1px 4px"}},"DOR↑")
-                      ,!absent&&row.lastSabaq&&React.createElement('span',{style:{fontSize:8,fontWeight:800,color:GOLD,background:"rgba(201,165,83,0.15)",borderRadius:4,padding:"1px 4px"}},"★ LAST")
+                      ,!absent&&kachhaYesterday.has(row.name)&&React.createElement('span',{style:{fontSize:8,fontWeight:800,color:"#D97706",background:"#FEF3C7",borderRadius:4,padding:"1px 4px",flexShrink:0}},"DOR↑")
+                      ,!absent&&row.lastSabaq&&React.createElement('span',{style:{fontSize:8,fontWeight:800,color:GOLD,background:"rgba(201,165,83,0.15)",borderRadius:4,padding:"1px 4px",flexShrink:0}},"★ LAST")
                     )
                   )
 
                   ,!absent&&React.createElement(React.Fragment,null
-                    // Dor checkbox
-                    ,React.createElement('div',{onClick:function(){updAM(_i,"dorDone",!rows[_i].dorDone);},style:{width:26,height:26,borderRadius:5,border:"1.5px solid "+(row.dorDone?"#DC2626":"#D1D5DB"),background:row.dorDone?"#DC2626":"transparent",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",marginLeft:4}}
+                    // Dor checkbox — fixed 26px, matches header
+                    ,React.createElement('div',{onClick:function(){updAM(_i,"dorDone",!rows[_i].dorDone);},style:{width:26,height:26,borderRadius:5,border:"1.5px solid "+(row.dorDone?"#DC2626":"#D1D5DB"),background:row.dorDone?"#DC2626":"transparent",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}
                       ,row.dorDone&&React.createElement('span',{style:{color:"#fff",fontSize:10,fontWeight:800}},"✓")
                     )
-                    // Juz + Quarter + Dor colour — only when checked
-                    ,row.dorDone
-                      ? React.createElement('div',{style:{display:"flex",alignItems:"center",gap:2,marginLeft:2}}
-                          ,React.createElement('select',{value:row.dorJuz,onChange:function(e){updAM(_i,"dorJuz",e.target.value);},style:Object.assign({},_ss,{width:38})}
-                            ,React.createElement('option',{value:""},"—")
-                            ,JUZ_OPTIONS.map(function(j){return React.createElement('option',{key:j,value:String(j)},j);})
+                    // Juz + Quarter + Dor colour — fixed 96px to match header
+                    ,React.createElement('div',{style:{width:96,flexShrink:0,marginLeft:2,display:"flex",alignItems:"center",gap:2,overflow:"hidden"}}
+                      ,row.dorDone
+                        ? React.createElement(React.Fragment,null
+                            ,React.createElement('select',{value:row.dorJuz,onChange:function(e){updAM(_i,"dorJuz",e.target.value);},style:Object.assign({},_ss,{width:34,flexShrink:0})}
+                              ,React.createElement('option',{value:""},"—")
+                              ,JUZ_OPTIONS.map(function(j){return React.createElement('option',{key:j,value:String(j)},j);})
+                            )
+                            ,React.createElement('select',{value:row.dorQuarter,onChange:function(e){updAM(_i,"dorQuarter",e.target.value);},style:Object.assign({},_ss,{width:38,flexShrink:0})}
+                              ,React.createElement('option',{value:""},"—")
+                              ,["Q1","Q2","Q3","Q4","1st Half","2nd Half"].map(function(q){return React.createElement('option',{key:q,value:q},q==="1st Half"?"1H":q==="2nd Half"?"2H":q);})
+                            )
+                            ,React.createElement(LvDot,{lv:dorLv,size:22,onClick:function(){_setDorLv(_i,(dorLv+1)%5);}})
                           )
-                          ,React.createElement('select',{value:row.dorQuarter,onChange:function(e){updAM(_i,"dorQuarter",e.target.value);},style:Object.assign({},_ss,{width:44})}
-                            ,React.createElement('option',{value:""},"—")
-                            ,["Q1","Q2","Q3","Q4","1st Half","2nd Half"].map(function(q){return React.createElement('option',{key:q,value:q},q==="1st Half"?"1H":q==="2nd Half"?"2H":q);})
-                          )
-                          ,React.createElement(LvDot,{lv:dorLv,size:22,onClick:function(){_setDorLv(_i,(dorLv+1)%5);}})
-                        )
-                      : React.createElement('div',{style:{width:82,marginLeft:2}})
+                        : null
+                    )
 
-                    // SP colour circle (hidden for Hafidh)
+                    // SP colour circle — fixed 24px, matches header
                     ,!isHafidh
-                      ? React.createElement(LvDot,{lv:spLv,size:24,dimZero:true,onClick:function(){_setSpLv(_i,(spLv+1)%5);},style:{marginLeft:8}})
-                      : React.createElement('div',{style:{width:24,marginLeft:8}})
-
-                    // SP2 circle — only when SP is Kaccha
-                    ,!isHafidh&&spLv===4
-                      ? React.createElement(LvDot,{lv:sp2Lv,size:24,onClick:function(){_setSp2Lv(_i,(sp2Lv%4)+1);},style:{marginLeft:4}})
-                      : React.createElement('div',{style:{width:24,marginLeft:4}})
-
-                    // Lines button
-                    ,!isHafidh
-                      ? React.createElement('div',{
-                          onClick:function(){if(linesEnabled)setNumpadFor(_i);},
-                          onMouseDown:_lpStart,onMouseUp:_lpEnd,onMouseLeave:_lpEnd,
-                          onTouchStart:_lpStart,onTouchEnd:_lpEnd,
-                          style:{width:46,height:28,borderRadius:8,flexShrink:0,marginLeft:8,
-                            background:row.lastSabaq?"rgba(201,165,83,0.12)":hasLines?"#F0FDF4":linesEnabled?"#F9FAFB":"#F3F4F6",
-                            border:"1.5px solid "+(row.lastSabaq?GOLD:hasLines?"#16a34a":linesEnabled?"#D1D5DB":"#E5E7EB"),
-                            display:"flex",alignItems:"center",justifyContent:"center",cursor:linesEnabled?"pointer":"default",
-                            userSelect:"none",WebkitUserSelect:"none"}}
-                          ,React.createElement('span',{style:{fontSize:12,fontWeight:800,color:row.lastSabaq?GOLD:hasLines?"#15803d":linesEnabled?"#9CA3AF":"#D1D5DB",lineHeight:1}},hasLines?String(linesNum)+" L":"—")
+                      ? React.createElement('div',{style:{width:24,flexShrink:0,marginLeft:6,display:"flex",alignItems:"center",justifyContent:"center"}}
+                          ,React.createElement(LvDot,{lv:spLv,size:24,dimZero:true,onClick:function(){_setSpLv(_i,(spLv+1)%5);}})
                         )
-                      : React.createElement('div',{style:{width:46,marginLeft:8}})
+                      : React.createElement('div',{style:{width:24,flexShrink:0,marginLeft:6}})
+
+                    // SP2 circle — fixed 24px, only visible when SP is Kaccha
+                    ,React.createElement('div',{style:{width:24,flexShrink:0,marginLeft:4,display:"flex",alignItems:"center",justifyContent:"center"}}
+                      ,!isHafidh&&spLv===4
+                        ? React.createElement(LvDot,{lv:sp2Lv,size:24,onClick:function(){_setSp2Lv(_i,(sp2Lv%4)+1);}})
+                        : null
+                    )
+
+                    // Lines button — fixed 46px, matches header
+                    ,React.createElement('div',{
+                        onClick:function(){if(linesEnabled&&!isHafidh)setNumpadFor(_i);},
+                        onMouseDown:isHafidh?undefined:_lpStart,onMouseUp:isHafidh?undefined:_lpEnd,onMouseLeave:isHafidh?undefined:_lpEnd,
+                        onTouchStart:isHafidh?undefined:_lpStart,onTouchEnd:isHafidh?undefined:_lpEnd,
+                        style:{width:46,height:30,borderRadius:8,flexShrink:0,marginLeft:6,
+                          background:isHafidh?"transparent":row.lastSabaq?"rgba(201,165,83,0.12)":hasLines?"#F0FDF4":linesEnabled?"#F9FAFB":"#F3F4F6",
+                          border:isHafidh?"none":"1.5px solid "+(row.lastSabaq?GOLD:hasLines?"#16a34a":linesEnabled?"#D1D5DB":"#E5E7EB"),
+                          display:"flex",alignItems:"center",justifyContent:"center",cursor:(linesEnabled&&!isHafidh)?"pointer":"default",
+                          userSelect:"none",WebkitUserSelect:"none"}}
+                        ,!isHafidh&&React.createElement('span',{style:{fontSize:12,fontWeight:800,color:row.lastSabaq?GOLD:hasLines?"#15803d":linesEnabled?"#9CA3AF":"#D1D5DB",lineHeight:1}},hasLines?String(linesNum)+" L":"—")
+                      )
                   )
 
-                  ,absent&&React.createElement('div',{style:{flex:2}})
                 )
 
                 // Last Sabaq sub-row
