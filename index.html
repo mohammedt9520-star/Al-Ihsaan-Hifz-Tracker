@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-030000 | Quick Dor grid restyled — centred/narrower layout, legend shows mistake ranges -->
+<!-- hifz-20260901-040000 | Sync is more tolerant of slow/flaky wifi — longer timeouts, quiet auto-retry before "Offline" -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-030000';
+const APP_VERSION='hifz-20260901-040000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -162,20 +162,33 @@ async function sbFetch(path,method,body){
   const h={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+(await sbGetToken()),"Content-Type":"application/json"};
   if(method==="POST"||method==="PATCH")h["Prefer"]="resolution=merge-duplicates,return=minimal";
   if(method==="DELETE")h["Prefer"]="return=minimal";
-  const opts={method:method||"GET",headers:h};
-  if(body)opts.body=JSON.stringify(body);
-  var _ctrl=new AbortController();
-  // Give writes (POST/PATCH) 30 s — large upserts returning minimal data still need time on slow connections
-  var _sbT=setTimeout(function(){_ctrl.abort();},(method==="POST"||method==="PATCH")?30000:10000);
-  opts.signal=_ctrl.signal;
-  var r;
-  try{r=await fetch(SUPABASE_URL+"/rest/v1/"+path,opts);}finally{clearTimeout(_sbT);}
-  if(!r.ok){
-    const e=typeof r.text==="function"?await r.text().catch(()=>""):String(r.status||"error");
-    throw new Error(r.status+": "+e.substring(0,100));
+  // Give writes (POST/PATCH) 45 s and reads 20 s — large upserts/paginated loads still need
+  // time on slow or congested wifi, without waiting forever on a genuinely dead connection.
+  const timeoutMs=(method==="POST"||method==="PATCH")?45000:20000;
+  // All these calls are idempotent (upsert on conflict / delete-by-filter / read), so it's safe
+  // to quietly retry a couple of times on a network blip or 5xx before surfacing "offline" —
+  // most brief wifi drops resolve within a second or two and shouldn't flip the whole app offline.
+  const maxAttempts=3;
+  for(let attempt=1;attempt<=maxAttempts;attempt++){
+    const opts={method:method||"GET",headers:h};
+    if(body)opts.body=JSON.stringify(body);
+    const ctrl=new AbortController();
+    const t=setTimeout(function(){ctrl.abort();},timeoutMs);
+    opts.signal=ctrl.signal;
+    let r,networkErr;
+    try{r=await fetch(SUPABASE_URL+"/rest/v1/"+path,opts);}
+    catch(e){networkErr=e;}
+    finally{clearTimeout(t);}
+    const retriable=!!networkErr||(r&&r.status>=500);
+    if(retriable&&attempt<maxAttempts){await new Promise(function(res){setTimeout(res,attempt*1200);});continue;}
+    if(networkErr)throw networkErr;
+    if(!r.ok){
+      const e=typeof r.text==="function"?await r.text().catch(()=>""):String(r.status||"error");
+      throw new Error(r.status+": "+e.substring(0,100));
+    }
+    if(r.status===204)return [];
+    try{return await r.json();}catch(e){throw new Error("Invalid JSON response from server");}
   }
-  if(r.status===204)return [];
-  try{return await r.json();}catch(e){throw new Error("Invalid JSON response from server");}
 }
 async function sbUpsert(table,rows,conflictCol="id"){
   if(!rows||rows.length===0)return;
