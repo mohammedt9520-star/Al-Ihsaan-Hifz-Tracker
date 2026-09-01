@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-080000 | Progress chart: dashed target line + traffic-light dots (green on/above target, yellow below target, red below 11) -->
+<!-- hifz-20260901-090000 | Fix: Quick Dor grid could save a fabricated "2nd attempt" (mistakes=4) when the retry half was never actually tapped -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-080000';
+const APP_VERSION='hifz-20260901-090000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4733,7 +4733,7 @@ function App(){
       function _roundDate(r){
         var d=new Date(_baseDate+"T12:00:00");d.setDate(d.getDate()+r);return d.toISOString().slice(0,10);
       }
-      function _lvToM(lv){return lv===1?"1":lv===2?"2":lv===3?"3.5":"4";}
+      function _lvToM(lv){return lv===1?"1":lv===2?"2":lv===3?"3.5":lv===4?"4":"0";}
       function _makeRec(juz,q,lv,date){
         return{id:uid(),studentName:_qds.name,date:date,
           dor1Juz:String(juz),dor1Quarter:String(q),dor1Mistakes:_lvToM(lv),
@@ -4792,7 +4792,12 @@ function App(){
             } else {
               for(var _q=1;_q<=4;_q++){
                 var v=(row[_q])||0;
-                if(typeof v==='object'){if(v.first)recs.push(_makeSplitRec(_j,_q,v.first,v.second||0,date));}
+                if(typeof v==='object'){
+                  // v.second===0 means the retry half was never actually tapped ("?" in the
+                  // grid) — save only the real first attempt, never a fabricated 2nd attempt.
+                  if(v.first&&v.second)recs.push(_makeSplitRec(_j,_q,v.first,v.second,date));
+                  else if(v.first)recs.push(_makeRec(_j,_q,v.first,date));
+                }
                 else if(v)recs.push(_makeRec(_j,_q,v,date));
               }
             }
