@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-150000 | Fix: browser 'offline' event was asserting Offline status directly instead of verifying — Android fires it spuriously even when connected -->
+<!-- hifz-20260901-185500 | Fix: self-sustaining Realtime sync loop — loadCloud() was re-pushing data it had just read, causing a read→write→notify cycle across tabs/devices that could present as a stuck "offline" status -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-150000';
+const APP_VERSION='hifz-20260901-185500';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2330,6 +2330,15 @@ function App(){
   const realtimeIgnoreUntil=React.useRef(0);
   const realtimeDebounce=React.useRef(null);
   const [realtimeConnected,setRealtimeConnected]=React.useState(false);
+  // Set (not cleared) by loadCloud right before it applies server data to state, so the
+  // records/dorRecords/... effect below can tell "this state change is a cloud read" apart
+  // from "this state change is a real local edit" and only auto-sync the latter. Without this,
+  // every loadCloud() (including one triggered by our own Realtime echo) re-triggers that
+  // effect, which schedules a push of the exact data we just read straight back to Supabase —
+  // generating a fresh change event that re-triggers Realtime on any other open tab/device,
+  // which loads, which schedules its own push, forever. That read→write→notify ping-pong is
+  // what a self-sustaining sync loop looks like from the outside.
+  const skipNextSyncEffect=React.useRef(false);
   function scheduleSync(){
     if(isFirstLoad.current)return; // skip until loadCloud completes
     if(syncTimer.current)clearTimeout(syncTimer.current);
@@ -2351,6 +2360,7 @@ function App(){
   React.useEffect(()=>{
     lsSave(records);lsSaveDor(dorRecords);lsSaveYearPlan(yearPlan);
     lsSaveRegister(registerData);lsSaveDailySabaq(dailySabaqEntries);
+    if(skipNextSyncEffect.current){skipNextSyncEffect.current=false;return;} // just loaded from cloud — nothing new to push
     scheduleSync();
   },[records,dorRecords,yearPlan,registerData,dailySabaqEntries]);
   React.useEffect(()=>{lsSaveHT(htEmail);},[htEmail]);
@@ -3283,6 +3293,12 @@ function App(){
     if(isSyncing.current){pendingSync.current=true;return;} // queue if already syncing
     isSyncing.current=true;
     setSyncStatus("saving");
+    // Start ignoring Realtime echoes now, not just after the writes finish: the 6 upserts
+    // below race independently, so an early one (e.g. app_settings) can commit and its
+    // change event can reach us via websocket while a later one (e.g. dor_records) is still
+    // in flight — before the post-completion assignment further down had a chance to run.
+    // Without this earlier guard that echo slips through and re-triggers loadCloud().
+    realtimeIgnoreUntil.current=Date.now()+20000;
     try{
       const planRows=yearPlan.map(p=>({id:p.id||(p.class+"_"+p.session),class:p.class,session:p.session,dates:p.dates,updated_at:new Date().toISOString()}));
       const results=await Promise.allSettled([
@@ -3299,7 +3315,7 @@ function App(){
       const failures=results.filter(r=>r.status==="rejected");
       if(failures.length>0){console.warn("syncNow partial failures:",failures.map(f=>f.reason?.message||f.reason));}
       const anyOk=results.some(r=>r.status==="fulfilled");
-      if(anyOk){setSyncStatus("live");realtimeIgnoreUntil.current=Date.now()+5000;}
+      if(anyOk){setSyncStatus("live");realtimeIgnoreUntil.current=Math.max(realtimeIgnoreUntil.current,Date.now()+5000);}
       else{setSyncStatus("offline");}
     }catch(e){
       console.error("syncNow",e);
@@ -3320,6 +3336,10 @@ function App(){
       tryLoad(()=>sbFetchAll("year_plan?select=*")),
       tryLoad(()=>sbFetchAll("app_settings?select=*")),
     ]);
+    // What follows only ever writes back data we just read FROM the cloud — never a local
+    // edit — so tell the records/dorRecords/... effect to skip its usual auto-sync for the
+    // state changes below (see skipNextSyncEffect above for why that matters).
+    skipNextSyncEffect.current=true;
     if(sR.ok){try{const d=sR.data.map(sbMapSabaqIn).map(sanitiseRecord).filter(Boolean);setRecords(d);lsSave(d);}catch(e){console.warn("loadCloud set records:",e.message);}}
     if(dR.ok){try{const d=dR.data.map(sbMapDorIn).map(sanitiseDor).filter(Boolean);setDorRecords(d);lsSaveDor(d);}catch(e){console.warn("loadCloud set dor:",e.message);}}
     if(dlR.ok){try{const d=dlR.data.map(sbMapDailyIn).map(sanitiseDaily).filter(Boolean);setDailySabaqEntries(d);lsSaveDailySabaq(d);}catch(e){console.warn("loadCloud set daily:",e.message);}}
@@ -3333,7 +3353,10 @@ function App(){
     }
     isFirstLoad.current=false;
     var anyLoaded=sR.ok||dR.ok||dlR.ok||rR.ok||pR.ok||stR.ok;
-    if(anyLoaded){setSyncStatus("live");scheduleSync();}
+    // Note: deliberately no scheduleSync() here — loadCloud only ever applies server state,
+    // it never has a local edit to push. Pushing back here is what fed the read→write→notify
+    // realtime loop (see skipNextSyncEffect above).
+    if(anyLoaded){setSyncStatus("live");}
     else{setSyncStatus("offline");}
   }
 
