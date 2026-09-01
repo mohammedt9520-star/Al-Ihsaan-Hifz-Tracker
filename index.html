@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-060000 | Fix: sw.js cache version was never being bumped, so the update banner never fired and clients stayed stuck on old cached builds -->
+<!-- hifz-20260901-070000 | Fix: single-page report views were passing pageNum=1, hiding all page-2 content (Dor record, Behaviour, Comments, Progress chart) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-060000';
+const APP_VERSION='hifz-20260901-070000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2799,7 +2799,7 @@ function App(){
       setTimeout(function(){
         try{
           var calc=Object.assign({},record,calcEntry(record));
-          var html=generateReportHTML(record,calc,dorRecords||[],records||[],1,yearPlan);
+          var html=generateReportHTML(record,calc,dorRecords||[],records||[],undefined,yearPlan);
           // Store report HTML in database; serve via view-report Edge Function
           fetch(SUPABASE_URL+"/rest/v1/report_store",{
             method:"POST",
@@ -2910,7 +2910,7 @@ function App(){
       return;
     }
     const calc={...record,...calcEntry(record)};
-    const reportHTML=generateReportHTML(record,calc,dorRecords,records,1,yearPlan);
+    const reportHTML=generateReportHTML(record,calc,dorRecords,records,undefined,yearPlan);
 
     // 1. Open report in new tab so parent can see/print it
     const blob=new Blob([reportHTML],{type:'text/html'});
@@ -2986,7 +2986,7 @@ function App(){
     if(!hasReportData(record)){showToast("No data for "+record.name+" yet — add their pages/days first.","warning",4000);return;}
     try{
       var calc=Object.assign({},record,calcEntry(record));
-      var html=generateReportHTML(record,calc,dorRecords||[],records||[],1,yearPlan);
+      var html=generateReportHTML(record,calc,dorRecords||[],records||[],undefined,yearPlan);
       var blob=new Blob([html],{type:"text/html;charset=utf-8"});
       var url=URL.createObjectURL(blob);
       window.open(url,"_blank");
@@ -7574,7 +7574,7 @@ function exportAllReports(records,dorRecords,calced,yearPlan){
   students.forEach(function(n){
     var recs=records.filter(function(x){return x.name===n&&!x.isStudentProfile;}).sort(function(a,b){return (b.dateFrom||"").localeCompare(a.dateFrom||"");});
     // Skip students whose most recent record has no actual data filled in
-    if(recs.length>0&&hasReportData(recs[0]))h+='<div class="sr">'+generateReportHTML(recs[0],calcEntry(recs[0]),dorRecords,records,1,yearPlan)+'</div>';
+    if(recs.length>0&&hasReportData(recs[0]))h+='<div class="sr">'+generateReportHTML(recs[0],calcEntry(recs[0]),dorRecords,records,undefined,yearPlan)+'</div>';
   });
   h+="</body></html>";
   var blob=new Blob([h],{type:"text/html;charset=utf-8;"});
