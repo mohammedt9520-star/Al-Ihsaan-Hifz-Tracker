@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-130000 | Fix root cause of duplicate records: saveEvening/saveDorGrid/saveAM now delete superseded rows server-side, not just locally -->
+<!-- hifz-20260901-140000 | Full audit fixes: attendance %/auto-collate calc bugs, remaining sync-delete gaps, CSV injection, XSS gap, PostgREST filter escaping, TZ-drift dates -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-130000';
+const APP_VERSION='hifz-20260901-140000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -189,6 +189,13 @@ async function sbFetch(path,method,body){
     if(r.status===204)return [];
     try{return await r.json();}catch(e){throw new Error("Invalid JSON response from server");}
   }
+}
+// encodeURIComponent leaves ( and ) unescaped (they're RFC3986 "unreserved" characters),
+// but PostgREST's in.(...) filter list treats them as structural delimiters — a value
+// containing a literal ')' would otherwise prematurely close the list early. Use this
+// instead of plain encodeURIComponent for any value going inside an in.() list.
+function sbInVal(v){
+  return encodeURIComponent(v).replace(/[()]/g,function(c){return c==="("?"%28":"%29";});
 }
 async function sbUpsert(table,rows,conflictCol="id"){
   if(!rows||rows.length===0)return;
@@ -947,13 +954,18 @@ function calcEntry(s){
   const S_val=H>0?(I+K*H)/N:(N>0?I/N:0);
   const T=parseFloat((S_val*N/13).toFixed(3));
   const U=parseFloat((S_val/13).toFixed(4));
-  // Total possible days = sabaq days attended + absences
-  const totalPossibleDays=N+G;
-  const totalAttended=N;
+  // N already includes absent days (it's the total scheduled sabaq days this period —
+  // see the PDF report's own "calc.N = totalDaysOfSabaq ... including absent days" note).
+  // Attendance = days attended / total scheduled days = (N-G)/N, matching the PDF report's
+  // own amPct calculation exactly. This used to compute N/(N+G) instead — treating N as if
+  // it excluded absences and then adding G back on top — which inflated the percentage
+  // shown everywhere except the PDF report itself.
+  const totalPossibleDays=N;
+  const totalAttended=Math.max(0,N-G);
   const attendancePct=totalPossibleDays>0?(totalAttended/totalPossibleDays)*100:0;
   const totalAvgPages=I>0?I/13:0;
   let monthName="";
-  if(s.dateFrom){try{const d=new Date(s.dateFrom);if(!isNaN(d.getTime()))monthName=d.toLocaleString("default",{month:"long",year:"numeric"});}catch(e){}}
+  if(s.dateFrom){try{const d=new Date(s.dateFrom+"T12:00:00");if(!isNaN(d.getTime()))monthName=d.toLocaleString("default",{month:"long",year:"numeric"});}catch(e){}}
   // ── Sabaq Champion fields (spec v2.4) ──────────────────
   // Step 1: totalLines = I (already computed above)
   // Step 2: sabaqDays
@@ -1087,7 +1099,7 @@ function sbMapRegisterOut(r){return{id:(r.key+"||"+r.studentName)||uid(),key_fie
 function sbMapRegisterIn(r){return{key:r.key_field,class:r.class,session:r.session,date:r.date,studentName:r.student_name,status:r.status||"P",minutesLate:r.minutes_late||0,absenceReason:r.absence_reason||"",madeUp:r.made_up||false,msgSent:r.msg_sent||false,letOff:r.let_off||false};}
 function getMonthRange(dateFrom, dateTo){
   if(!dateFrom||!dateTo)return"";
-  const d1=new Date(dateFrom), d2=new Date(dateTo);
+  const d1=new Date(dateFrom+"T12:00:00"), d2=new Date(dateTo+"T12:00:00");
   if(isNaN(d1.getTime())||isNaN(d2.getTime()))return"";
   const m1=d1.toLocaleString("default",{month:"long"});
   const m2=d2.toLocaleString("default",{month:"long"});
@@ -1675,7 +1687,7 @@ function DorEntryPage({studentNames,dorRecords,setDorRecords,records,yearPlan,re
     // Supabase (they reappear next time everything reloads from the cloud) and every re-save
     // silently doubles up the Dor heatmap and Kaccha/Scrape counts.
     if(namesToClear.length>0){
-      sbFetch("dor_records?date=eq."+encodeURIComponent(date)+"&student_name=in.("+namesToClear.map(encodeURIComponent).join(",")+")","DELETE")
+      sbFetch("dor_records?date=eq."+encodeURIComponent(date)+"&student_name=in.("+namesToClear.map(sbInVal).join(",")+")","DELETE")
         .catch(function(e){console.warn("saveEvening cleanup delete:",e.message);});
     }
     scheduleSync();
@@ -2997,7 +3009,7 @@ function App(){
     // 2. Open mailto: with parent emails pre-filled
     const emails=[record.parentEmail1,record.parentEmail2].filter(Boolean);
     if(emails.length>0){
-      const monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString('default',{month:'long',year:'numeric'}):'';
+      const monthStr=record.dateFrom?new Date(record.dateFrom+"T12:00:00").toLocaleString('default',{month:'long',year:'numeric'}):'';
       const subject=encodeURIComponent('Al-Ihsaan Academy — Hifz Report: '+esc(record.name)+(monthStr?' ('+monthStr+')':''));
       const body=encodeURIComponent(
         'السلام عليكم ورحمة الله وبركاته\n\n'+
@@ -3021,7 +3033,7 @@ function App(){
     var email2=record.parentEmail2||(profile&&profile.parentEmail2)||"";
     var emails=[email1,email2].filter(Boolean);
     if(!emails.length){showToast("No parent email on file for "+record.name+" — add one in their profile first.","warning",5000);return;}
-    var monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
+    var monthStr=record.dateFrom?new Date(record.dateFrom+"T12:00:00").toLocaleString("default",{month:"long",year:"numeric"}):"";
     var safeName=(record.name||"student").replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"_");
     var filename="Report_"+safeName+(monthStr?"_"+monthStr.replace(/\s/g,"_"):"")+".pdf";
     showToast("⏳ Preparing report for "+record.name+"…","info",3500);
@@ -3080,7 +3092,7 @@ function App(){
     if(!phone){showToast("No phone number saved for "+record.name+". Add it on the Classes page.","warning",4000);return;}
     var waNum=toWhatsAppNumber(phone);
     if(!waNum){showToast("Could not parse phone number for WhatsApp.","warning");return;}
-    var monthStr=record.dateFrom?new Date(record.dateFrom).toLocaleString("default",{month:"long",year:"numeric"}):"";
+    var monthStr=record.dateFrom?new Date(record.dateFrom+"T12:00:00").toLocaleString("default",{month:"long",year:"numeric"}):"";
     var safeName=(record.name||"student").replace(/[^a-zA-Z0-9 _-]/g,"").replace(/\s+/g,"_");
     generateReportPDF(record,dorRecords,records,function(err,pdfBlob){
       if(err){showToast("PDF error: "+err.message,"error");return;}
@@ -3174,21 +3186,29 @@ function App(){
         var wait=setInterval(()=>{if(!isSyncing.current||t++>20){clearInterval(wait);resolve();}},100);
       });
     }
-    // Delete from Supabase
+    // Delete from Supabase — allSettled so one failing table doesn't hide the others,
+    // and so we know exactly which ones actually failed instead of silently claiming success.
+    const _clearTables=["Sabaq","Dor","Daily Sabaq","Register","Year Plan"];
+    let _clearFailures=[];
     try{
-      await Promise.all([
+      const _clearResults=await Promise.allSettled([
         sbFetch("sabaq_records?id=neq.null","DELETE"),
         sbFetch("dor_records?id=neq.null","DELETE"),
         sbFetch("daily_sabaq?id=neq.null","DELETE"),
         sbFetch("register_data?id=neq.null","DELETE"),
         sbFetch("year_plan?id=neq.null","DELETE"),
       ]);
-    }catch(e){console.error("clearAllData",e);}
+      _clearFailures=_clearResults.map((r,i)=>r.status==="rejected"?_clearTables[i]:null).filter(Boolean);
+    }catch(e){console.error("clearAllData",e);_clearFailures=_clearTables;}
     // Clear local state
     setRecords([]);setDorRecords([]);setDailySabaqEntries([]);setRegisterData([]);setYearPlan([]);
     lsSave([]);lsSaveDor([]);lsSaveDailySabaq([]);lsSaveRegister([]);lsSaveYearPlan([]);
     setClearPwd("");setShowClearModal(false);
-    showToast("All data cleared.","success");
+    if(_clearFailures.length>0){
+      showToast("⚠️ Cleared on this device, but "+_clearFailures.join(", ")+" failed to clear on the server — those records may come back on next sync. Try again once you're back online.","warning",9000);
+    }else{
+      showToast("All data cleared.","success");
+    }
   }
   async function deleteRecord(id){
     const _drok=await showConfirm("Delete this monthly record?","Delete Record");if(!_drok)return;
@@ -3204,6 +3224,11 @@ function App(){
           setDorRecords(prev=>{const next=prev.filter(d=>d.studentName!==rec.name);lsSaveDor(next);return next;});
           setDailySabaqEntries(prev=>{const next=prev.filter(d=>d.studentName!==rec.name);lsSaveDailySabaq(next);return next;});
           setRegisterData(prev=>{const next=prev.filter(r=>r.studentName!==rec.name);lsSaveRegister(next);return next;});
+          // Unlike deleteStudent, this cleanup path never issued the matching server-side
+          // deletes — the rows stayed in Supabase and resurfaced on the next full reload.
+          sbFetch("dor_records?student_name=eq."+encodeURIComponent(rec.name),"DELETE").catch(e=>console.warn("deleteRecord cleanup dor",e));
+          sbFetch("daily_sabaq?student_name=eq."+encodeURIComponent(rec.name),"DELETE").catch(e=>console.warn("deleteRecord cleanup daily",e));
+          sbFetch("register_data?student_name=eq."+encodeURIComponent(rec.name),"DELETE").catch(e=>console.warn("deleteRecord cleanup register",e));
         }
       }
     }
@@ -4278,6 +4303,10 @@ function App(){
                       setDailySabaqEntries(prev=>{const next=prev.map(d=>d.studentName===profileName?{...d,studentName:newName}:d);lsSaveDailySabaq(next);return next;});
                       setRegisterData(prev=>{const next=prev.map(d=>d.studentName===profileName?{...d,studentName:newName}:d);lsSaveRegister(next);return next;});
                       setDorRecords(prev=>{const next=prev.map(d=>d.studentName===profileName?{...d,studentName:newName}:d);lsSaveDor(next);return next;});
+                      // register_data's synced id is a composite of key+studentName, so
+                      // renaming changes the id computed at upsert time — the OLD-name rows
+                      // would otherwise stay in Supabase forever and resurface on next reload.
+                      sbFetch("register_data?student_name=eq."+encodeURIComponent(profileName),"DELETE").catch(e=>console.warn("profile rename cleanup register",e));
                       setProfileName(newName);
                     }
                     setEditingProfile(false);
@@ -4879,7 +4908,7 @@ function App(){
         // save's rows in Supabase instead of replacing them (they resurface next full reload
         // and double up the Dor heatmap / Kaccha & Scrape counts).
         if(_editDates&&_editDates.size>0){
-          sbFetch("dor_records?student_name=eq."+encodeURIComponent(_qds.name)+"&date=in.("+[..._editDates].map(encodeURIComponent).join(",")+")","DELETE")
+          sbFetch("dor_records?student_name=eq."+encodeURIComponent(_qds.name)+"&date=in.("+[..._editDates].map(sbInVal).join(",")+")","DELETE")
             .catch(function(e){console.warn("_saveDorGrid cleanup delete:",e.message);});
         }
         scheduleSync();if(typeof syncNow==="function")syncNow().catch(function(){});
@@ -5433,7 +5462,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
     // Auto-prefill next Dor quarter for Hafidh students from yesterday's last record
     var prefillJuz="",prefillQ="";
     if(hafidhStudents&&hafidhStudents.has(name)&&Array.isArray(dorRecords)){
-      var _prev=new Date(date);_prev.setDate(_prev.getDate()-1);
+      var _prev=new Date(date+"T12:00:00");_prev.setDate(_prev.getDate()-1);
       var _prevStr=_prev.toISOString().slice(0,10);
       var _prevDors=(dorRecords||[]).filter(function(d){return d.studentName===name&&d.date===_prevStr&&d.morningDor;});
       if(_prevDors.length>0){
@@ -5468,7 +5497,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
 
   const kachhaYesterday=React.useMemo(()=>{
     if(!date||!Array.isArray(dorRecords))return new Set();
-    const prev=new Date(date);prev.setDate(prev.getDate()-1);
+    const prev=new Date(date+"T12:00:00");prev.setDate(prev.getDate()-1);
     const prevStr=prev.toISOString().slice(0,10);
     const s=new Set();
     dorRecords.forEach(d=>{if(d.date===prevStr&&d.dor1Repeated)s.add(d.studentName);});
@@ -5575,7 +5604,7 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
       .catch(function(e){console.warn("saveAM cleanup delete (daily_sabaq):",e.message);});
     if(dors.length>0){
       const dorNames=[...new Set(dors.map(d=>d.studentName))];
-      sbFetch("dor_records?date=eq."+encodeURIComponent(date)+"&morning_dor=eq.true&student_name=in.("+dorNames.map(encodeURIComponent).join(",")+")","DELETE")
+      sbFetch("dor_records?date=eq."+encodeURIComponent(date)+"&morning_dor=eq.true&student_name=in.("+dorNames.map(sbInVal).join(",")+")","DELETE")
         .catch(function(e){console.warn("saveAM cleanup delete (dor_records):",e.message);});
     }
     scheduleSync();
@@ -5902,8 +5931,8 @@ function getPlanDates(yearPlan,cls,session){
   if(entry&&Array.isArray(entry.dates)&&entry.dates.length>0)return entry.dates;
   // Fall back to new year planner model (schedule + overrides + term bounds)
   const bounds=getTermBoundsFromPlan(yearPlan);
-  const startD=bounds.termStart?new Date(bounds.termStart):new Date(new Date().getFullYear(),new Date().getMonth()-1,1);
-  const endD=bounds.termEnd?new Date(bounds.termEnd):new Date(new Date().getFullYear(),new Date().getMonth()+14,0);
+  const startD=bounds.termStart?new Date(bounds.termStart+"T12:00:00"):new Date(new Date().getFullYear(),new Date().getMonth()-1,1);
+  const endD=bounds.termEnd?new Date(bounds.termEnd+"T12:00:00"):new Date(new Date().getFullYear(),new Date().getMonth()+14,0);
   const result=[];
   const cur=new Date(startD.getFullYear(),startD.getMonth(),1);
   while(cur<=endD){
@@ -6038,8 +6067,12 @@ function getTermBoundsFromPlan(yearPlan){
 function isTermExcluded(yearPlan,year,month,day){
   const{termStart,termEnd}=getTermBoundsFromPlan(yearPlan);
   const dt=new Date(year,month-1,day);
-  if(termStart){const s=new Date(termStart);if(dt<s)return true;}
-  if(termEnd){const e=new Date(termEnd);if(dt>e)return true;}
+  // termStart/termEnd are bare "YYYY-MM-DD" strings, which JS parses as UTC midnight —
+  // comparing that against dt's local-midnight timestamp could exclude the exact boundary
+  // day itself in any timezone ahead of UTC (e.g. BST). Parse at local noon like the rest
+  // of the codebase does for bare date strings, so both sides compare in the same zone.
+  if(termStart){const s=new Date(termStart+"T12:00:00");if(dt<s)return true;}
+  if(termEnd){const e=new Date(termEnd+"T12:00:00");if(dt>e)return true;}
   return false;
 }
 function getClassDatesForMonth(yearPlan,session,year,month){
@@ -6508,7 +6541,7 @@ body{font-family:Arial,sans-serif;font-size:11px;margin:0;color:#1a1f2e;}
 .leg-dot{width:12px;height:12px;border-radius:2px;}
 h2{text-align:center;color:#1e2d3d;margin:0 0 10px;}
 </style></head><body>
-<h2>Madrasah Al-Ihsaan — Hifz Year Planner (${cls})</h2>
+<h2>Madrasah Al-Ihsaan — Hifz Year Planner (${esc(cls)})</h2>
 <div class="grid">${months.map(m=>monthHTML(m)).join("")}</div>
 <div class="legend">${legend}</div>
 </body></html>`;
@@ -6799,8 +6832,8 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
   const monthOptions=React.useMemo(()=>{
     const bounds=getTermBoundsFromPlan(yearPlan);
     const opts=[];
-    const start=bounds.termStart?new Date(bounds.termStart):new Date(new Date().getFullYear(),new Date().getMonth()-2,1);
-    const end=bounds.termEnd?new Date(bounds.termEnd):new Date(new Date().getFullYear(),new Date().getMonth()+12,1);
+    const start=bounds.termStart?new Date(bounds.termStart+"T12:00:00"):new Date(new Date().getFullYear(),new Date().getMonth()-2,1);
+    const end=bounds.termEnd?new Date(bounds.termEnd+"T12:00:00"):new Date(new Date().getFullYear(),new Date().getMonth()+12,1);
     start.setDate(1);
     const cur=new Date(start);
     while(cur<=end){
@@ -6826,6 +6859,10 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
     const key=getRegisterKey(cls,session,date);
     if(next===null){
       setRegisterData(prev=>prev.filter(r=>!(r.key===key&&r.studentName===name)));
+      // register_data's id is a deterministic key+studentName composite, so this exact
+      // row (if it was ever synced) can be targeted precisely — without this, clearing a
+      // cell locally doesn't remove it from Supabase, and it silently comes back on reload.
+      sbFetch("register_data?key_field=eq."+encodeURIComponent(key)+"&student_name=eq."+encodeURIComponent(name),"DELETE").catch(e=>console.warn("cycleStatus cleanup delete",e));
     }else{
       setRegisterData(prev=>{
         const ei=prev.findIndex(r=>r.key===key&&r.studentName===name);
@@ -7488,8 +7525,14 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
   // Sabaq Para days (present and recited sabaq)
   const sabaqParaDays = presentDays.filter(e=>e.sabaqPara&&!e.paraDor);
 
-  // Total days that count as "sabaq days" = present & sabaqPara & not paraDor
-  const totalDaysOfSabaq = sabaqParaDays.length;
+  // Total days the student actually did Sabaq = present & sabaqPara & not paraDor.
+  // NOTE: this is NOT the same as the "totalDaysOfSabaq" field saved on the record —
+  // that field (computed below, once absences are known) has to be the GROSS scheduled-day
+  // count, because calcEntry does J = totalDaysOfSabaq - paraDorMornings - absences to
+  // arrive back at this same number. Saving this net value directly under that field name
+  // used to make calcEntry subtract absences/Para Dor a second time, wildly inflating the
+  // average for any auto-collated record.
+  const actualSabaqDays = sabaqParaDays.length;
 
   // Sabaq (new lesson) lines — from sabaqLines field
   const totalLines = presentDays
@@ -7529,6 +7572,8 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
   // Deduplicate by distinct DATE (avoid double-counting morning+evening absences)
   const regAbsentDates = [...new Set(regAbsences.map(e=>e.date))];
   const absences = regAbsentDates.length > 0 ? regAbsentDates.length : absentDays.length;
+  // The GROSS "Total Sabaq Days" saved on the record — see note above actualSabaqDays.
+  const totalDaysOfSabaq = actualSabaqDays + paraDorMornings + absences;
 
   // Evening absences from register
   const eveningRegAbsences = (registerData||[]).filter(e=>{
@@ -7558,7 +7603,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
 
   // ── 5. Determine sensible upcomingTarget ──
   // If average >= 11, keep target at 13. Below 10 drop to 10.
-  const avg = totalDaysOfSabaq > 0 ? totalLines / totalDaysOfSabaq : 0;
+  const avg = actualSabaqDays > 0 ? totalLines / actualSabaqDays : 0;
   const upcomingTarget = avg >= 11 ? 13 : avg >= 8 ? 11 : 10;
 
   // Auto-calculate toPage from fromPage + lines covered
@@ -7573,8 +7618,8 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
   const coveredDates = new Set(dailies.map(e=>e.date));
   let missingDates = [];
   if(useRange){
-    const cur = new Date(dateFrom);
-    const end = new Date(dateTo);
+    const cur = new Date(dateFrom+"T12:00:00");
+    const end = new Date(dateTo+"T12:00:00");
     while(cur<=end){
       const ds = cur.toISOString().slice(0,10);
       const dow = cur.getDay();
@@ -7623,7 +7668,7 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
     _dailyCount: dailies.length,
     _presentCount: presentDays.length,
     _totalLines: totalLines,
-    _avgLines: totalDaysOfSabaq > 0 ? Math.round(totalLines/totalDaysOfSabaq*10)/10 : 0,
+    _avgLines: actualSabaqDays > 0 ? Math.round(totalLines/actualSabaqDays*10)/10 : 0,
     _missingDates: missingDates,
     _fromPage: fromPageNum,
     _autoToPage: autoToPage,
@@ -7646,7 +7691,13 @@ function exportCSV(data,fields,filename){
   if(!data||data.length===0){showToast("No data to export.","warning");return;}
   function escVal(v){
     if(v===null||v===undefined)return"";
-    var s=String(v).replace(/"/g,"\"\"");
+    var s=String(v);
+    // CSV formula injection: a cell starting with =, +, -, @, tab or CR is executed as a
+    // live formula by Excel/Sheets/LibreOffice when opened. Free-typed fields (comments,
+    // phone numbers) can start with any of these, so neutralize by prefixing a leading
+    // apostrophe — spreadsheet apps treat that as "force text" and don't display it.
+    if(/^[=+\-@\t\r]/.test(s))s="'"+s;
+    s=s.replace(/"/g,"\"\"");
     if(s.indexOf(",")>=0||s.indexOf("\n")>=0||s.indexOf("\"")>=0)s="\""+s+"\"";
     return s;
   }
