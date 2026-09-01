@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-070000 | Fix: single-page report views were passing pageNum=1, hiding all page-2 content (Dor record, Behaviour, Comments, Progress chart) -->
+<!-- hifz-20260901-080000 | Progress chart: dashed target line + traffic-light dots (green on/above target, yellow below target, red below 11) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-070000';
+const APP_VERSION='hifz-20260901-080000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -563,8 +563,15 @@ function buildProgressTrend(studentName,allRecords,yearPlan,uptoDateStr){
     const r=byMonth[mk];
     const c=calcEntry(r);
     const d=new Date(mk+"-01T12:00:00");
-    return{label:d.toLocaleString("default",{month:"short"}),value:c.R||0};
+    return{label:d.toLocaleString("default",{month:"short"}),value:c.R||0,target:parseFloat(r.targetGiven)||13};
   });
+}
+// Traffic-light colour for one month's average against its own target that month:
+// on/above target = green, below target but still >=11 = orange, below 11 = red.
+function progressDotColor(value,target){
+  if(value>=target)return"#22c55e";
+  if(value>=11)return"#eab308";
+  return"#ef4444";
 }
 // Renders the trend as an inline SVG line chart (string HTML, for the printed/emailed report)
 function buildProgressChartHTML(trendData){
@@ -573,21 +580,33 @@ function buildProgressChartHTML(trendData){
   }
   const W=520,H=170,PADL=34,PADR=20,PADT=22,PADB=28;
   const vals=trendData.map(function(d){return d.value;});
-  const maxV=Math.max(13,Math.ceil(Math.max.apply(null,vals)));
+  const targets=trendData.map(function(d){return d.target;});
+  const maxV=Math.max(13,Math.ceil(Math.max.apply(null,vals.concat(targets))));
   const n=trendData.length;
+  // Reference target line — the most recent (current) target; targets rarely change month to month
+  const curTarget=trendData[trendData.length-1].target;
   function xFor(i){return PADL+(n>1?(i/(n-1))*(W-PADL-PADR):(W-PADL-PADR)/2);}
   function yFor(v){return H-PADB-(Math.max(0,v)/maxV)*(H-PADT-PADB);}
   const pts=trendData.map(function(d,i){return xFor(i)+","+yFor(d.value);}).join(" ");
+  const ty=yFor(curTarget);
   let svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:540px;display:block;margin:0 auto;">';
   svg+='<line x1="'+PADL+'" y1="'+(H-PADB)+'" x2="'+(W-PADR)+'" y2="'+(H-PADB)+'" stroke="#e5e7eb" stroke-width="1"/>';
-  svg+='<polyline points="'+pts+'" fill="none" stroke="#c9a553" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+  svg+='<line x1="'+PADL+'" y1="'+ty+'" x2="'+(W-PADR)+'" y2="'+ty+'" stroke="#9CA3AF" stroke-width="1.5" stroke-dasharray="5,4"/>';
+  svg+='<text x="'+(W-PADR)+'" y="'+(ty-5)+'" text-anchor="end" font-size="9" font-weight="700" fill="#6b7280">Target '+curTarget.toFixed(0)+'</text>';
+  svg+='<polyline points="'+pts+'" fill="none" stroke="#c9a553" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.55"/>';
   trendData.forEach(function(d,i){
     const x=xFor(i),y=yFor(d.value);
-    svg+='<circle cx="'+x+'" cy="'+y+'" r="4.5" fill="#c9a553"/>';
+    const dc=progressDotColor(d.value,d.target);
+    svg+='<circle cx="'+x+'" cy="'+y+'" r="5" fill="'+dc+'"/>';
     svg+='<text x="'+x+'" y="'+(y-9)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#1a3a6b">'+d.value.toFixed(1)+'</text>';
     svg+='<text x="'+x+'" y="'+(H-PADB+16)+'" text-anchor="middle" font-size="9" fill="#888">'+esc(d.label)+'</text>';
   });
   svg+='</svg>';
+  svg+='<div style="display:flex;justify-content:center;gap:16px;margin-top:6px;">'+
+    [["#22c55e","On/above target"],["#eab308","Below target"],["#ef4444","Below 11"]].map(function(item){
+      return '<span style="display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:600;color:#6b7280;"><span style="width:8px;height:8px;border-radius:50%;background:'+item[0]+';display:inline-block;"></span>'+item[1]+'</span>';
+    }).join("")+
+    '</div>';
   return svg;
 }
 
