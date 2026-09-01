@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-110000 | Progress chart redesign — smooth line, area fill, gridlines, value bubbles, target pill, chip legend -->
+<!-- hifz-20260901-120000 | Dor heatmap now dedupes identical same-day dots (duplicate saved records no longer stack extra dots) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-110000';
+const APP_VERSION='hifz-20260901-120000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -482,11 +482,12 @@ function buildHeatmap(dorRecords,studentName,dateFrom,dateTo){
       if(e.dor2Juz)paraDorJuzSet.add(String(e.dor2Juz));
     }
   });
-  // Collect every dot — no "keep only the best result" deduping. A same-day retry on the
+  // Collect every dot, keyed by juz+quarter+date+attempt-slot so a same-day retry on the
   // exact same juz/quarter (a split cell: dor1 and dor2 both filled in for the same slot)
-  // must show BOTH attempts, tagged 1st/2nd, otherwise a first-attempt Kaccha silently
-  // disappears behind a better second attempt.
-  const dots=[];
+  // shows BOTH attempts tagged 1st/2nd — a first-attempt Kaccha must never silently
+  // disappear behind a better second attempt. Deduped on that same key so an accidental
+  // duplicate save of the identical record doesn't stack extra dots into one cell.
+  const dotsByKey={};
   entries.forEach(entry=>{
     const sameCell=entry.dor1Juz&&entry.dor1Quarter&&entry.dor2Juz&&entry.dor2Quarter&&
       String(entry.dor1Juz)===String(entry.dor2Juz)&&heatQuarter(entry.dor1Quarter)===heatQuarter(entry.dor2Quarter);
@@ -500,11 +501,12 @@ function buildHeatmap(dorRecords,studentName,dateFrom,dateTo){
       if(noTimeOnly)return;
       const color=getDorColor(m,rep);
       if(!color)return;
-      dots.push({juz:String(juz),quarter:qn,color,date:entry.date,attempt});
+      const key=juz+"-"+qn+"-"+entry.date+"-"+attempt;
+      dotsByKey[key]={juz:String(juz),quarter:qn,color,date:entry.date,attempt};
     });
   });
   // Keep same-day split attempts in order (1st before 2nd)
-  dots.sort((a,b)=>a.date!==b.date?(a.date<b.date?-1:1):(a.attempt||0)-(b.attempt||0));
+  const dots=Object.values(dotsByKey).sort((a,b)=>a.date!==b.date?(a.date<b.date?-1:1):(a.attempt||0)-(b.attempt||0));
   // Build heatmap: juz -> quarter -> array of {color,attempt} dots
   const heatmap={};
   dots.forEach(({juz,quarter,color,attempt})=>{
