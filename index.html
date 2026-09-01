@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260806-770000 | Premium UI polish — shortName, Dor grid redesign, AM table alignment -->
+<!-- hifz-20260901-010000 | Dor-entered tick button now clickable to re-open editor -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260806-770000';
+const APP_VERSION='hifz-20260901-010000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -4317,7 +4317,7 @@ function App(){
                 ,React.createElement('div',{style:{display:"flex",gap:6,flexShrink:0},onClick:e=>e.stopPropagation()}
                   ,React.createElement('button',{onClick:()=>viewReportInBrowser(s),title:"View Report",style:{background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.25)",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"📄")
                   ,_hasDor
-                    ?React.createElement('button',{disabled:true,title:"Dor already entered",style:{background:"#f0f0f0",color:"#aaa",border:"1px solid #e0e0e0",borderRadius:8,width:36,height:36,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",cursor:"default"}},"✓")
+                    ?React.createElement('button',{onClick:()=>{setQuickDorCtx({student:s,period:selPeriod});setDorGrid([{}]);setDorRound(0);setView("quickDor");},title:"Dor already entered · tap to edit",style:{background:"#f0f0f0",color:"#aaa",border:"1px solid #e0e0e0",borderRadius:8,width:36,height:36,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},"✓")
                     :React.createElement('button',{onClick:()=>{setQuickDorCtx({student:s,period:selPeriod});setDorGrid([{}]);setDorRound(0);setView("quickDor");},title:"Add Dor record",style:{background:"#1b241d",color:GOLD,border:"1px solid rgba(201,165,83,0.3)",borderRadius:8,width:36,height:36,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},"Dor")
                   ,React.createElement('div',{style:{position:"relative",display:"inline-flex"}}
                     ,React.createElement('button',{onClick:()=>emailReportPDF(s),title:"Email PDF",style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"📧")
