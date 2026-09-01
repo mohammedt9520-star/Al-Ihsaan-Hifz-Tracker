@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-120000 | Dor heatmap now dedupes identical same-day dots (duplicate saved records no longer stack extra dots) -->
+<!-- hifz-20260901-130000 | Fix root cause of duplicate records: saveEvening/saveDorGrid/saveAM now delete superseded rows server-side, not just locally -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-120000';
+const APP_VERSION='hifz-20260901-130000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1664,11 +1664,20 @@ function DorEntryPage({studentNames,dorRecords,setDorRecords,records,yearPlan,re
       paraTestTotalMistakes:evHasPT(r)?String(r.ptMistakes||""):"",
       paraTestResult:evHasPT(r)?r.ptResult:""
     }));
+    const namesToClear=[...new Set(recs.map(s=>s.studentName))];
     setDorRecords(prev=>{
-      const names=new Set(recs.map(s=>s.studentName));
+      const names=new Set(namesToClear);
       const f=prev.filter(e=>!(e.date===date&&names.has(e.studentName)));
       const n=[...f,...recs];lsSaveDor(n);return n;
     });
+    // Sync only ever upserts — it never deletes — so without an explicit server-side delete
+    // here, re-saving this date+class repeatedly leaves the previous save's rows orphaned in
+    // Supabase (they reappear next time everything reloads from the cloud) and every re-save
+    // silently doubles up the Dor heatmap and Kaccha/Scrape counts.
+    if(namesToClear.length>0){
+      sbFetch("dor_records?date=eq."+encodeURIComponent(date)+"&student_name=in.("+namesToClear.map(encodeURIComponent).join(",")+")","DELETE")
+        .catch(function(e){console.warn("saveEvening cleanup delete:",e.message);});
+    }
     scheduleSync();
     showToast("Saved","success");
     if(typeof syncNow==="function"){syncNow().catch(()=>{});}
@@ -4865,6 +4874,14 @@ function App(){
           if(typeof lsSaveDor==="function")lsSaveDor(n);
           return n;
         });
+        // Sync only ever upserts — it never deletes — so without an explicit server-side
+        // delete here, re-opening this editor and saving again just orphans the previous
+        // save's rows in Supabase instead of replacing them (they resurface next full reload
+        // and double up the Dor heatmap / Kaccha & Scrape counts).
+        if(_editDates&&_editDates.size>0){
+          sbFetch("dor_records?student_name=eq."+encodeURIComponent(_qds.name)+"&date=in.("+[..._editDates].map(encodeURIComponent).join(",")+")","DELETE")
+            .catch(function(e){console.warn("_saveDorGrid cleanup delete:",e.message);});
+        }
         scheduleSync();if(typeof syncNow==="function")syncNow().catch(function(){});
         showToast(recs.length?("Dor saved for "+_qds.name+(_fromDE?"":" · "+dorGrid.length+" round"+(dorGrid.length>1?"s":""))):("Dor cleared for "+_qds.name),"success",3000);
         setQuickDorCtx(null);setDorGrid([{}]);setDorRound(0);setView(_retView);
@@ -5549,6 +5566,17 @@ function SabaqEntryPage({studentNames,records,dorRecords,setRecords,setDorRecord
         const f=prev.filter(e=>!(e.morningDor&&keys.has(e.studentName+"|"+e.date)));
         const n=[...f,...dors];lsSaveDor(n);return n;
       });
+    }
+    // Sync only ever upserts — it never deletes — so without an explicit server-side delete
+    // here, re-saving this class+date repeatedly (e.g. reopening the page later and hitting
+    // Save again) leaves the previous save's rows orphaned in Supabase: they resurface on the
+    // next full reload and silently double up daily_sabaq / the Dor heatmap each time.
+    sbFetch("daily_sabaq?class=eq."+encodeURIComponent(cls)+"&date=eq."+encodeURIComponent(date),"DELETE")
+      .catch(function(e){console.warn("saveAM cleanup delete (daily_sabaq):",e.message);});
+    if(dors.length>0){
+      const dorNames=[...new Set(dors.map(d=>d.studentName))];
+      sbFetch("dor_records?date=eq."+encodeURIComponent(date)+"&morning_dor=eq.true&student_name=in.("+dorNames.map(encodeURIComponent).join(",")+")","DELETE")
+        .catch(function(e){console.warn("saveAM cleanup delete (dor_records):",e.message);});
     }
     scheduleSync();
     showToast("Saved","success");
