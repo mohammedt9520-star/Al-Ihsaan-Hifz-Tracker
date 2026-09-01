@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-140000 | Full audit fixes: attendance %/auto-collate calc bugs, remaining sync-delete gaps, CSV injection, XSS gap, PostgREST filter escaping, TZ-drift dates -->
+<!-- hifz-20260901-150000 | Fix: browser 'offline' event was asserting Offline status directly instead of verifying — Android fires it spuriously even when connected -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-140000';
+const APP_VERSION='hifz-20260901-150000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2220,7 +2220,15 @@ function App(){
       // Re-sync immediately when connection is restored so the dot turns green
       setTimeout(function(){if(scheduleSyncRef.current)scheduleSyncRef.current();},1000);
     }
-    function onDeviceOffline(){setDeviceOnline(false);setSyncStatus("offline");}
+    function onDeviceOffline(){
+      setDeviceOnline(false);
+      // Don't assert "offline" straight from this event — Android Chrome in particular
+      // fires it spuriously (WiFi/mobile-data handoff, doze-mode wake) even when the
+      // connection is genuinely fine, and there was no way back to "live" until the next
+      // heartbeat up to 60s later. Trigger a real sync attempt instead and let its actual
+      // success/failure (already handled in syncNow) decide the displayed status.
+      if(scheduleSyncRef.current)scheduleSyncRef.current();
+    }
     window.addEventListener("online",onDeviceOnline);
     window.addEventListener("offline",onDeviceOffline);
     // Heartbeat: keep the dot green even when the user isn't actively editing
