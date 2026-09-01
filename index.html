@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-010000 | Dor-entered tick button now clickable to re-open editor -->
+<!-- hifz-20260901-020000 | Dor editor now preloads existing entries and saves as an edit, not a duplicate -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-010000';
+const APP_VERSION='hifz-20260901-020000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -512,6 +512,78 @@ function calcDorTotals(heatmap){
   return{completeJuz:Math.floor(totalQ/4),remainingQ:totalQ%4};
 }
 
+function _dorLevelFromRec(mistakes,repeated,scrape){
+  if(repeated)return 4;
+  if(scrape)return 3;
+  const m=parseFloat(mistakes);
+  if(isNaN(m))return 1;
+  return m<=1.5?1:2;
+}
+// Reconstructs a quickDor grid (array of rounds, one per calendar day starting dateFrom)
+// from previously-saved dorRecords, so the Quick Dor grid can be reopened for editing.
+function buildDorGridFromRecords(studentName,dateFrom,dateTo,dorRecords){
+  if(!studentName||!dateFrom||!dateTo||!Array.isArray(dorRecords))return[{}];
+  const recs=dorRecords.filter(d=>d.studentName===studentName&&d.date>=dateFrom&&d.date<=dateTo);
+  if(!recs.length)return[{}];
+  const start=new Date(dateFrom+"T12:00:00");
+  const rounds=[{}];
+  function ensureRound(idx){while(rounds.length<=idx)rounds.push({});return rounds[idx];}
+  function setLevel(grid,juz,q,lv){
+    const j=parseInt(juz),qi=parseInt(q);
+    if(!j||j<1||j>30||!qi||qi<1||qi>4||!lv)return;
+    const row=Object.assign({},grid[j]||{});
+    row[qi]=lv;
+    grid[j]=row;
+  }
+  recs.forEach(r=>{
+    const rd=new Date(r.date+"T12:00:00");
+    const offset=Math.round((rd-start)/86400000);
+    if(offset<0)return;
+    const grid=ensureRound(offset);
+    if(r.paraTest&&r.paraTestJuz){
+      const j=parseInt(r.paraTestJuz);
+      if(!j||j<1||j>30)return;
+      const lv=r.paraTestResult==="Passed"?1:r.paraTestResult==="Scraped"?3:4;
+      const row=Object.assign({},grid[j]||{});
+      row._pd=true;row[1]=lv;row[2]=lv;row[3]=lv;row[4]=lv;
+      grid[j]=row;
+      return;
+    }
+    if(r.paraDor&&r.dor1Juz&&r.dor1Quarter){
+      const j=parseInt(r.dor1Juz),q=parseInt(heatQuarter(r.dor1Quarter)||r.dor1Quarter);
+      if(!j||j<1||j>30)return;
+      const lv=_dorLevelFromRec(r.dor1Mistakes,r.dor1Repeated,r.dor1Scrape);
+      const row=Object.assign({},grid[j]||{});
+      row._pd=true;
+      if(q>=1&&q<=4)row[q]=lv;
+      grid[j]=row;
+      return;
+    }
+    const hasD1=!!(r.dor1Juz&&r.dor1Quarter);
+    const hasD2=!!(r.dor2Juz&&r.dor2Quarter&&!r.dor2Exempt);
+    const sameCell=hasD1&&hasD2&&String(r.dor2Juz)===String(r.dor1Juz)&&heatQuarter(r.dor2Quarter)===heatQuarter(r.dor1Quarter);
+    if(hasD1){
+      const j=parseInt(r.dor1Juz),q=parseInt(heatQuarter(r.dor1Quarter)||r.dor1Quarter);
+      const lv1=_dorLevelFromRec(r.dor1Mistakes,r.dor1Repeated,r.dor1Scrape);
+      if(sameCell){
+        const lv2=_dorLevelFromRec(r.dor2Mistakes,r.dor2Repeated,r.dor2Scrape);
+        if(j&&j>=1&&j<=30&&q>=1&&q<=4){
+          const row=Object.assign({},grid[j]||{});
+          row[q]={first:lv1,second:lv2};
+          grid[j]=row;
+        }
+      } else {
+        setLevel(grid,j,q,lv1);
+      }
+    }
+    if(hasD2&&!sameCell){
+      const j=parseInt(r.dor2Juz),q=parseInt(heatQuarter(r.dor2Quarter)||r.dor2Quarter);
+      const lv2=_dorLevelFromRec(r.dor2Mistakes,r.dor2Repeated,r.dor2Scrape);
+      setLevel(grid,j,q,lv2);
+    }
+  });
+  return rounds;
+}
 function DorCircle({color,size=18}){
   const c=DOR_COLOR_MAP[color]||DOR_COLOR_MAP.grey;
   return React.createElement('span', { style: {display:"inline-block",width:size,height:size,borderRadius:"50%",background:c.bg,flexShrink:0,verticalAlign:"middle"},});
@@ -4316,9 +4388,18 @@ function App(){
                 )
                 ,React.createElement('div',{style:{display:"flex",gap:6,flexShrink:0},onClick:e=>e.stopPropagation()}
                   ,React.createElement('button',{onClick:()=>viewReportInBrowser(s),title:"View Report",style:{background:"#07150e",color:"#c9a553",border:"1px solid rgba(201,165,83,0.25)",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"📄")
-                  ,_hasDor
-                    ?React.createElement('button',{onClick:()=>{setQuickDorCtx({student:s,period:selPeriod});setDorGrid([{}]);setDorRound(0);setView("quickDor");},title:"Dor already entered · tap to edit",style:{background:"#f0f0f0",color:"#aaa",border:"1px solid #e0e0e0",borderRadius:8,width:36,height:36,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},"✓")
-                    :React.createElement('button',{onClick:()=>{setQuickDorCtx({student:s,period:selPeriod});setDorGrid([{}]);setDorRound(0);setView("quickDor");},title:"Add Dor record",style:{background:"#1b241d",color:GOLD,border:"1px solid rgba(201,165,83,0.3)",borderRadius:8,width:36,height:36,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},"Dor")
+                  ,(()=>{
+                    const _openDor=()=>{
+                      const grid=selPeriod?buildDorGridFromRecords(s.name,selPeriod.dateFrom,selPeriod.dateTo,dorRecords):[{}];
+                      setQuickDorCtx({student:s,period:selPeriod});
+                      setDorGrid(grid&&grid.length?grid:[{}]);
+                      setDorRound(0);
+                      setView("quickDor");
+                    };
+                    return _hasDor
+                      ?React.createElement('button',{onClick:_openDor,title:"Dor already entered · tap to edit",style:{background:"#f0f0f0",color:"#aaa",border:"1px solid #e0e0e0",borderRadius:8,width:36,height:36,fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},"✓")
+                      :React.createElement('button',{onClick:_openDor,title:"Add Dor record",style:{background:"#1b241d",color:GOLD,border:"1px solid rgba(201,165,83,0.3)",borderRadius:8,width:36,height:36,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},"Dor");
+                  })()
                   ,React.createElement('div',{style:{position:"relative",display:"inline-flex"}}
                     ,React.createElement('button',{onClick:()=>emailReportPDF(s),title:"Email PDF",style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"📧")
                     ,_wasSent&&React.createElement('div',{title:"Report sent this month",style:{position:"absolute",top:-4,right:-4,width:11,height:11,borderRadius:"50%",background:"#22c55e",border:"2px solid "+CARD,pointerEvents:"none"}})
@@ -4598,10 +4679,23 @@ function App(){
             }
           }
         }
-        if(!recs.length){showToast("No cells filled in yet.","warning",2500);return;}
-        setDorRecords(function(prev){var n=[...prev,...recs];if(typeof lsSaveDor==="function")lsSaveDor(n);return n;});
+        if(!recs.length&&!_qdp){showToast("No cells filled in yet.","warning",2500);return;}
+        // When editing within a report period, the grid is the full picture for the dates
+        // it spans — replace whatever was previously saved for those dates rather than
+        // appending on top of it, so edits (including clearing a cell) actually stick.
+        var _editDates=null;
+        if(_qdp){
+          _editDates=new Set();
+          for(var _er=0;_er<dorGrid.length;_er++)_editDates.add(_roundDate(_er));
+        }
+        setDorRecords(function(prev){
+          var base=_editDates?prev.filter(function(e){return !(e.studentName===_qds.name&&_editDates.has(e.date));}):prev;
+          var n=[...base,...recs];
+          if(typeof lsSaveDor==="function")lsSaveDor(n);
+          return n;
+        });
         scheduleSync();if(typeof syncNow==="function")syncNow().catch(function(){});
-        showToast("Dor saved for "+_qds.name+(_fromDE?"":" · "+dorGrid.length+" round"+(dorGrid.length>1?"s":"")),"success",3000);
+        showToast(recs.length?("Dor saved for "+_qds.name+(_fromDE?"":" · "+dorGrid.length+" round"+(dorGrid.length>1?"s":""))):("Dor cleared for "+_qds.name),"success",3000);
         setQuickDorCtx(null);setDorGrid([{}]);setDorRound(0);setView(_retView);
       }
       // Swipe handling — uses dorSwipeRef declared at top-level (hooks must not be called conditionally)
