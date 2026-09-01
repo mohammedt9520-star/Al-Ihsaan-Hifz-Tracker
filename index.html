@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-040000 | Sync is more tolerant of slow/flaky wifi — longer timeouts, quiet auto-retry before "Offline" -->
+<!-- hifz-20260901-050000 | Half-line Total Lines precision fix, Dor heatmap shows both retry attempts, monthly progress trend chart on reports -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-040000';
+const APP_VERSION='hifz-20260901-050000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -482,31 +482,35 @@ function buildHeatmap(dorRecords,studentName,dateFrom,dateTo){
       if(e.dor2Juz)paraDorJuzSet.add(String(e.dor2Juz));
     }
   });
-  // Group by juz+quarter+date, pick best (lowest mistakes) per same date
-  const byKey={};
+  // Collect every dot — no "keep only the best result" deduping. A same-day retry on the
+  // exact same juz/quarter (a split cell: dor1 and dor2 both filled in for the same slot)
+  // must show BOTH attempts, tagged 1st/2nd, otherwise a first-attempt Kaccha silently
+  // disappears behind a better second attempt.
+  const dots=[];
   entries.forEach(entry=>{
-    [[entry.dor1Juz,entry.dor1Quarter,entry.dor1Mistakes,entry.dor1Repeated],
-     [entry.dor2Juz,entry.dor2Quarter,entry.dor2Mistakes,entry.dor2Repeated]
-    ].forEach(([juz,q,m,rep])=>{
+    const sameCell=entry.dor1Juz&&entry.dor1Quarter&&entry.dor2Juz&&entry.dor2Quarter&&
+      String(entry.dor1Juz)===String(entry.dor2Juz)&&heatQuarter(entry.dor1Quarter)===heatQuarter(entry.dor2Quarter);
+    [[entry.dor1Juz,entry.dor1Quarter,entry.dor1Mistakes,entry.dor1Repeated,sameCell?1:0],
+     [entry.dor2Juz,entry.dor2Quarter,entry.dor2Mistakes,entry.dor2Repeated,sameCell?2:0]
+    ].forEach(([juz,q,m,rep,attempt])=>{
       if(!juz||!q)return;
       const qn=heatQuarter(q);
       if(!qn)return;
       const noTimeOnly=(m===""||m===undefined||m===null);
       if(noTimeOnly)return;
-      const key=juz+"-"+qn+"-"+entry.date;
-      const ex=byKey[key];
-      if(!ex||parseFloat(m)<parseFloat(ex.mistakes)){
-        byKey[key]={juz:String(juz),quarter:qn,mistakes:m,repeated:rep,date:entry.date};
-      }
+      const color=getDorColor(m,rep);
+      if(!color)return;
+      dots.push({juz:String(juz),quarter:qn,color,date:entry.date,attempt});
     });
   });
-  // Build heatmap: juz -> quarter -> array of colors
+  // Keep same-day split attempts in order (1st before 2nd)
+  dots.sort((a,b)=>a.date!==b.date?(a.date<b.date?-1:1):(a.attempt||0)-(b.attempt||0));
+  // Build heatmap: juz -> quarter -> array of {color,attempt} dots
   const heatmap={};
-  Object.values(byKey).forEach(({juz,quarter,mistakes,repeated})=>{
+  dots.forEach(({juz,quarter,color,attempt})=>{
     if(!heatmap[juz])heatmap[juz]={};
     if(!heatmap[juz][quarter])heatmap[juz][quarter]=[];
-    const color=getDorColor(mistakes,repeated);
-    if(color)heatmap[juz][quarter].push(color);
+    heatmap[juz][quarter].push({color,attempt});
   });
   heatmap._paraDorJuz=paraDorJuzSet;
   return heatmap;
@@ -523,6 +527,68 @@ function calcDorTotals(heatmap){
     });
   });
   return{completeJuz:Math.floor(totalQ/4),remainingQ:totalQ%4};
+}
+
+// ── Monthly progress trend (report "Progress Over Time" chart) ─────────────
+// Academic-year window: uses the Year Planner's configured term dates when set,
+// else falls back to a Sept-Aug academic year around the report's own month.
+function academicYearBounds(refDateStr,yearPlan){
+  const bounds=getTermBoundsFromPlan(yearPlan||[]);
+  const ref=refDateStr?new Date(refDateStr+"T12:00:00"):new Date();
+  let start,end;
+  if(bounds.termStart){start=new Date(bounds.termStart+"T12:00:00");}
+  else{const y=ref.getFullYear(),m=ref.getMonth();const startYear=m>=8?y:y-1;start=new Date(startYear,8,1);}
+  if(bounds.termEnd){end=new Date(bounds.termEnd+"T12:00:00");}
+  else{end=new Date(start.getFullYear()+1,7,31);}
+  return{start,end};
+}
+// One True Running Average per month for this student, this academic year, most recent
+// record per month, capped to the last 6 months (rolling — as the year moves past month 6
+// the window slides forward instead of growing).
+function buildProgressTrend(studentName,allRecords,yearPlan,uptoDateStr){
+  const{start,end}=academicYearBounds(uptoDateStr,yearPlan);
+  const recs=(allRecords||[]).filter(function(r){
+    if(r.isStudentProfile||r.name!==studentName||!r.dateFrom)return false;
+    const d=new Date(r.dateFrom+"T12:00:00");
+    return d>=start&&d<=end;
+  });
+  const byMonth={};
+  recs.forEach(function(r){
+    const mk=r.dateFrom.slice(0,7);
+    if(!byMonth[mk]||r.dateFrom>byMonth[mk].dateFrom)byMonth[mk]=r;
+  });
+  let months=Object.keys(byMonth).sort();
+  if(months.length>6)months=months.slice(months.length-6);
+  return months.map(function(mk){
+    const r=byMonth[mk];
+    const c=calcEntry(r);
+    const d=new Date(mk+"-01T12:00:00");
+    return{label:d.toLocaleString("default",{month:"short"}),value:c.R||0};
+  });
+}
+// Renders the trend as an inline SVG line chart (string HTML, for the printed/emailed report)
+function buildProgressChartHTML(trendData){
+  if(!trendData||trendData.length<2){
+    return '<div style="padding:16px 18px;color:#aaa;font-size:12px;font-style:italic;">Not enough monthly reports yet this academic year to show a trend — check back next month.</div>';
+  }
+  const W=520,H=170,PADL=34,PADR=20,PADT=22,PADB=28;
+  const vals=trendData.map(function(d){return d.value;});
+  const maxV=Math.max(13,Math.ceil(Math.max.apply(null,vals)));
+  const n=trendData.length;
+  function xFor(i){return PADL+(n>1?(i/(n-1))*(W-PADL-PADR):(W-PADL-PADR)/2);}
+  function yFor(v){return H-PADB-(Math.max(0,v)/maxV)*(H-PADT-PADB);}
+  const pts=trendData.map(function(d,i){return xFor(i)+","+yFor(d.value);}).join(" ");
+  let svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:540px;display:block;margin:0 auto;">';
+  svg+='<line x1="'+PADL+'" y1="'+(H-PADB)+'" x2="'+(W-PADR)+'" y2="'+(H-PADB)+'" stroke="#e5e7eb" stroke-width="1"/>';
+  svg+='<polyline points="'+pts+'" fill="none" stroke="#c9a553" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+  trendData.forEach(function(d,i){
+    const x=xFor(i),y=yFor(d.value);
+    svg+='<circle cx="'+x+'" cy="'+y+'" r="4.5" fill="#c9a553"/>';
+    svg+='<text x="'+x+'" y="'+(y-9)+'" text-anchor="middle" font-size="10" font-weight="700" fill="#1a3a6b">'+d.value.toFixed(1)+'</text>';
+    svg+='<text x="'+x+'" y="'+(H-PADB+16)+'" text-anchor="middle" font-size="9" fill="#888">'+esc(d.label)+'</text>';
+  });
+  svg+='</svg>';
+  return svg;
 }
 
 function _dorLevelFromRec(mistakes,repeated,scrape){
@@ -623,10 +689,13 @@ function DorHeatmapView({heatmap}){
           React.createElement('span',{style:{fontSize:13,fontWeight:700,color:"#1e3a5f"}},juz)
         ),
         ...[1,2,3,4].map(q=>{
-          const cols=qs[q]&&qs[q].length?qs[q]:["grey"];
+          const cols=qs[q]&&qs[q].length?qs[q]:[{color:"grey",attempt:0}];
           return React.createElement('div',{key:q,style:QCELL},
             React.createElement('div',{style:DOTS},
-              cols.map((c,ci)=>React.createElement('div',{key:ci,style:{width:10,height:10,borderRadius:"50%",flexShrink:0,background:c==="green"?"#22c55e":c==="orange"?"#f59e0b":c==="red"?"#ef4444":"#c0c0c0"}}))
+              cols.map((dot,ci)=>React.createElement('div',{key:ci,style:{display:"flex",flexDirection:"column",alignItems:"center",gap:1}},
+                React.createElement('div',{style:{width:10,height:10,borderRadius:"50%",flexShrink:0,background:dot.color==="green"?"#22c55e":dot.color==="orange"?"#f59e0b":dot.color==="red"?"#ef4444":"#c0c0c0"}}),
+                dot.attempt>0&&React.createElement('span',{style:{fontSize:7,fontWeight:800,color:"#9CA3AF",lineHeight:1}},dot.attempt===1?"1st":"2nd")
+              ))
             )
           );
         })
@@ -645,6 +714,9 @@ function DorHeatmapView({heatmap}){
 
 
 function fmt(n,dec=2){if(!isFinite(n)||isNaN(n))return"—";return n.toFixed(dec);}
+// Sabaq lines are only ever recorded to the nearest half-line — round to that instead of
+// a whole number, so a half-line remainder (e.g. 124.5) never silently gets floored/ceiled away.
+function roundHalf(n){return Math.round((parseFloat(n)||0)*2)/2;}
 function getAvgColor(avg){if(!avg||avg===0)return MUTED;if(avg>=11)return GREEN;if(avg>=10)return ORANGE;return RED;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 // ── SHA-256 password hashing (crypto.subtle) ──────────────────
@@ -721,8 +793,8 @@ function sanitiseRecord(r){
     class: _safeClass,
     // V1: totalFullSides cap 0-9999
     totalFullSides: String(Math.max(0,Math.min(9999,parseFloat(r.totalFullSides)||0))),
-    // plusLines cap 0-12
-    plusLines:       String(Math.max(0,Math.min(12,parseInt(r.plusLines)||0))),
+    // plusLines cap 0-12.5 — half-line entries (e.g. 7.5) must survive sanitisation, not get floored
+    plusLines:       String(Math.max(0,Math.min(12.5,roundHalf(r.plusLines)))),
     // V2/V3/V4: absences, paraDorMornings, totalDaysOfSabaq — all capped 0-31
     absences:        String(Math.max(0,Math.min(31,parseInt(r.absences)||0))),
     paraDorMornings: String(Math.max(0,Math.min(31,parseInt(r.paraDorMornings)||0))),
@@ -856,13 +928,13 @@ function toWhatsAppNumber(phone){
 
 // Generate a PDF blob from a report record.
 // onDone(err, blob) — err is null on success.
-function generateReportPDF(record, dorRecs, allRecs, onDone){
+function generateReportPDF(record, dorRecs, allRecs, onDone, yearPlan){
   if(!hasReportData(record)){onDone(new Error("No data"));return;}
   loadPDFLibs(function(){
     try{
       var calc=Object.assign({},record,calcEntry(record));
-      var html1=generateReportHTML(record,calc,dorRecs||[],allRecs||[],1);
-      var html2=generateReportHTML(record,calc,dorRecs||[],allRecs||[],2);
+      var html1=generateReportHTML(record,calc,dorRecs||[],allRecs||[],1,yearPlan);
+      var html2=generateReportHTML(record,calc,dorRecs||[],allRecs||[],2,yearPlan);
       renderPageToCanvas(html1,function(err1,canvas1){
         if(err1){onDone(err1);return;}
         renderPageToCanvas(html2,function(err2,canvas2){
@@ -969,7 +1041,7 @@ function svgCircleLarge(color){
   return '<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:'+c+';vertical-align:middle;margin-left:7px;flex-shrink:0;"></span>';
 }
 
-function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
+function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPlan){
   if(!entry||!calc)return"<html><body><p>No record data available.</p></body></html>";
   if(!Array.isArray(dorRecords))dorRecords=[];
   if(!Array.isArray(allRecords))allRecords=[];
@@ -1019,9 +1091,13 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
 
   var isHafidh=(allRecords||[]).some(function(rec){return rec.isStudentProfile&&rec.name===entry.name&&rec.isHafidh;});
   // ── Dor Heatmap builder ──────────────────────────────────
-  function hmDot(color){
-    var c=color==="green"?"#22c55e":color==="orange"?"#f59e0b":color==="red"?"#ef4444":"#c0c0c0";
-    return '<div style="width:10px;height:10px;border-radius:50%;background:'+c+';display:inline-block;margin:1px;flex-shrink:0;"></div>';
+  function hmDot(dot){
+    var c=dot.color==="green"?"#22c55e":dot.color==="orange"?"#f59e0b":dot.color==="red"?"#ef4444":"#c0c0c0";
+    var label=dot.attempt===1?"1st":dot.attempt===2?"2nd":"";
+    return '<div style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;margin:1px;">'+
+      '<div style="width:10px;height:10px;border-radius:50%;background:'+c+';flex-shrink:0;"></div>'+
+      (label?'<span style="font-size:6px;font-weight:700;color:#9ca3af;line-height:1;">'+label+'</span>':'')+
+      '</div>';
   }
   function buildHeatmapHTML(){
     var ROW="display:grid;grid-template-columns:72px 1fr 1fr 1fr 1fr;border-bottom:1px solid #f0f2f5;min-height:46px;align-items:center;";
@@ -1056,7 +1132,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
         h+='<span style="font-size:14px;font-weight:700;color:#1e3a5f;">'+juz+'</span>';
         h+='</div>';
         [1,2,3,4].forEach(function(q){
-          var colors=qs[q]&&qs[q].length?qs[q]:["grey"];
+          var colors=qs[q]&&qs[q].length?qs[q]:[{color:"grey",attempt:0}];
           h+='<div style="'+QCELL+'"><div style="'+DOTS+'">'+colors.map(hmDot).join("")+'</div></div>';
         });
         h+='</div>';
@@ -1202,7 +1278,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<div class="sec-hdr sec-hdr-green"><span class="sec-num">3</span> Sabaq Completed This Month</div>';
   h+='<table class="dtbl"><tr>';
   h+='<td><div class="lbl">Page Numbers</div><div class="val">'+esc(entry.fromPage)+' – '+esc(entry.toPage)+'</div></td>';
-  h+='<td><div class="lbl">Total Lines</div><div class="val">'+fmt(calc.I,0)+'</div></td>';
+  h+='<td><div class="lbl">Total Lines</div><div class="val">'+fmt(calc.I,1)+'</div></td>';
   h+='<td><div class="lbl">Total Pages Memorised</div><div class="val">'+fmt(calc.totalAvgPages,2)+'</div></td>';
   h+='</tr><tr>';
   const mkC=avgCircleColor==="green"?"#27ae60":avgCircleColor==="orange"?"#e67e22":"#e74c3c";
@@ -1353,6 +1429,16 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum){
   h+='<div class="sec-hdr sec-hdr-blue"><span class="sec-num">'+cmtNum+'</span> Teacher\'s Comments</div>';
   h+='<div class="comments-body">'+esc(entry.teacherComments||"No comments recorded.")+'</div>';
   h+='</div>';
+
+  // Progress Over Time — True Running Average per month, this academic year (rolling 6 months)
+  if(!isHafidh){
+    const trendNum=cmtNum+1;
+    const trendData=buildProgressTrend(entry.name,allRecords,yearPlan,entry.dateFrom);
+    h+='<div class="card">';
+    h+='<div class="sec-hdr sec-hdr-teal"><span class="sec-num">'+trendNum+'</span> Progress Over Time (True Running Average)</div>';
+    h+='<div style="padding:14px 18px;">'+buildProgressChartHTML(trendData)+'</div>';
+    h+='</div>';
+  }
 
   // Footer
   h+='<div class="card" style="border:1.5px solid #e0c97a;">';
@@ -2713,7 +2799,7 @@ function App(){
       setTimeout(function(){
         try{
           var calc=Object.assign({},record,calcEntry(record));
-          var html=generateReportHTML(record,calc,dorRecords||[],records||[]);
+          var html=generateReportHTML(record,calc,dorRecords||[],records||[],1,yearPlan);
           // Store report HTML in database; serve via view-report Edge Function
           fetch(SUPABASE_URL+"/rest/v1/report_store",{
             method:"POST",
@@ -2824,7 +2910,7 @@ function App(){
       return;
     }
     const calc={...record,...calcEntry(record)};
-    const reportHTML=generateReportHTML(record,calc,dorRecords,records);
+    const reportHTML=generateReportHTML(record,calc,dorRecords,records,1,yearPlan);
 
     // 1. Open report in new tab so parent can see/print it
     const blob=new Blob([reportHTML],{type:'text/html'});
@@ -2892,7 +2978,7 @@ function App(){
         .catch(function(e){showToast("❌ Send failed: "+e.message,"error",7000);});
       };
       reader.readAsDataURL(pdfBlob);
-    });
+    },yearPlan);
   }
 
   // ── View report inline in a new browser tab (no download needed) ──────────
@@ -2900,7 +2986,7 @@ function App(){
     if(!hasReportData(record)){showToast("No data for "+record.name+" yet — add their pages/days first.","warning",4000);return;}
     try{
       var calc=Object.assign({},record,calcEntry(record));
-      var html=generateReportHTML(record,calc,dorRecords||[],records||[]);
+      var html=generateReportHTML(record,calc,dorRecords||[],records||[],1,yearPlan);
       var blob=new Blob([html],{type:"text/html;charset=utf-8"});
       var url=URL.createObjectURL(blob);
       window.open(url,"_blank");
@@ -2934,7 +3020,7 @@ function App(){
       );
       setTimeout(function(){window.open("https://wa.me/"+waNum+"?text="+msg,"_blank");},600);
       showToast("✅ PDF saved to Downloads — attach it in the WhatsApp tab and press send! 💬","success",7000);
-    });
+    },yearPlan);
   }
 
   async function saveEntry(){
@@ -2951,7 +3037,8 @@ function App(){
     function clampFloat(v,min,max){var n=parseFloat(v)||0;return String(Math.max(min,Math.min(max,n)));}
     let savedForm={...form,
       totalFullSides: clampInt(form.totalFullSides,0,9999),
-      plusLines: clampInt(form.plusLines,0,12),
+      // Half-line entries (e.g. 7.5) are valid — round to the nearest half rather than truncating
+      plusLines: String(Math.max(0,Math.min(12.5,roundHalf(form.plusLines)))),
       totalDaysOfSabaq: clampInt(form.totalDaysOfSabaq,0,31),
       absences: clampInt(form.absences,0,31),
       paraDorMornings: clampInt(form.paraDorMornings,0,31),
@@ -3565,7 +3652,7 @@ function App(){
                     ["Days Recorded",preview._dailyCount,"#374151"],
                     ["Present Days",preview._presentCount,"#16a34a"],
                     ["Absent Days",preview._dailyCount-preview._presentCount,"#dc2626"],
-                    ["Sabaq Lines",Math.round(preview._totalLines),"#2563eb"],
+                    ["Sabaq Lines",roundHalf(preview._totalLines),"#2563eb"],
                     preview._fromPage&&["From Page",preview._fromPage,"#374151"],
                     preview._autoToPage&&["To Page (auto)",preview._autoToPage,"#16a34a"],
                     ["Full Sides",preview.totalFullSides,"#B8934A"],
@@ -3739,7 +3826,7 @@ function App(){
           React.createElement('div', { style: {background:ACCENT+"44",borderRadius:8,padding:16,marginTop:16,border:"1px solid "+(GOLD)+"33"},}
             , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",marginBottom:12,fontSize:14},}, "📊 Live Preview"  )
             , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8},}
-              , [["Total Lines",fmt(previewCalc.I,0)],["Sabaq Days",fmt(previewCalc.J,0)],["Average",fmt(previewCalc.K,2)],["True Avg",fmt(previewCalc.R,2)],["Champ Avg",fmt(previewCalc.championDailyAverage,3)],["Attendance",fmt(previewCalc.attendancePct,2)+"%"]].map(([l,v])=>(
+              , [["Total Lines",fmt(previewCalc.I,1)],["Sabaq Days",fmt(previewCalc.J,0)],["Average",fmt(previewCalc.K,2)],["True Avg",fmt(previewCalc.R,2)],["Champ Avg",fmt(previewCalc.championDailyAverage,3)],["Attendance",fmt(previewCalc.attendancePct,2)+"%"]].map(([l,v])=>(
                 React.createElement('div', { key: l, style: {background:DARK+"88",borderRadius:6,padding:"8px 10px"},}
                   , React.createElement('div', { style: {color:MUTED,fontSize:10},}, l)
                   , React.createElement('div', { style: {color:GOLD,fontSize:16,fontWeight:"bold"},}, v)
@@ -4945,7 +5032,7 @@ function App(){
           React.createElement("button",{onClick:function(){exportCSV(dailySabaqEntries,["id","studentName","class","date","absent","sabaqPara","spLines","spMistakes","spScrape","paraDor","pdJuz","pdQuarter","pdMistakes","hasDor","dorJuz","dorQuarter","dorMistakes"],"daily_sabaq");},style:{background:"#F8F9FA",border:"1px solid "+BORDER,borderRadius:10,padding:"12px",cursor:"pointer",textAlign:"left",fontWeight:"600",fontSize:12,color:TEXT}},"CSV: Daily Sabaq"),
           React.createElement("button",{onClick:function(){exportCSV(registerData,["key","class","session","date","studentName","status","minutesLate","absenceReason","madeUp","msgSent"],"register");},style:{background:"#F8F9FA",border:"1px solid "+BORDER,borderRadius:10,padding:"12px",cursor:"pointer",textAlign:"left",fontWeight:"600",fontSize:12,color:TEXT}},"CSV: Register")
         ),
-        React.createElement("button",{onClick:function(){exportAllReports(records,dorRecords,Array.isArray(calced)?calced:[]);},style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"11px 20px",cursor:"pointer",fontWeight:"600",fontSize:13,width:"100%"}},"Export All Student Reports")
+        React.createElement("button",{onClick:function(){exportAllReports(records,dorRecords,Array.isArray(calced)?calced:[],yearPlan);},style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"11px 20px",cursor:"pointer",fontWeight:"600",fontSize:13,width:"100%"}},"Export All Student Reports")
       )
 
       , React.createElement("div",{style:{background:CARD,borderRadius:14,border:"1px solid "+BORDER,padding:24,marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}},
@@ -7312,8 +7399,9 @@ function collateMonthlyRecord(studentName, cls, yearMonth, dailySabaqEntries, re
 
   // Total full sides = floor(totalLines / LINES_PER_SIDE)
   const totalFullSides = Math.floor(totalLines / LINES_PER_SIDE);
-  // Plus lines = remainder
-  const plusLines = Math.round(totalLines % LINES_PER_SIDE);
+  // Plus lines = remainder, rounded to the nearest half-line (not a whole number —
+  // that used to floor/ceil away a genuine 0.5 remainder, e.g. 124.5 -> 124)
+  const plusLines = roundHalf(totalLines % LINES_PER_SIDE);
 
   // ── Quality metrics from daily entries ──
   // Sabaq Para mistakes
@@ -7475,7 +7563,7 @@ function exportCSV(data,fields,filename){
     setTimeout(function(){try{document.body.removeChild(a);}catch(e){}URL.revokeObjectURL(url);},100);
   }catch(e){showToast("Export failed: "+e.message,"error");}
 }
-function exportAllReports(records,dorRecords,calced){
+function exportAllReports(records,dorRecords,calced,yearPlan){
   if(!records||records.length===0){showToast("No records to export.","warning");return;}
   var students=[];
   var seen={};
@@ -7486,7 +7574,7 @@ function exportAllReports(records,dorRecords,calced){
   students.forEach(function(n){
     var recs=records.filter(function(x){return x.name===n&&!x.isStudentProfile;}).sort(function(a,b){return (b.dateFrom||"").localeCompare(a.dateFrom||"");});
     // Skip students whose most recent record has no actual data filled in
-    if(recs.length>0&&hasReportData(recs[0]))h+='<div class="sr">'+generateReportHTML(recs[0],calcEntry(recs[0]),dorRecords,records)+'</div>';
+    if(recs.length>0&&hasReportData(recs[0]))h+='<div class="sr">'+generateReportHTML(recs[0],calcEntry(recs[0]),dorRecords,records,1,yearPlan)+'</div>';
   });
   h+="</body></html>";
   var blob=new Blob([h],{type:"text/html;charset=utf-8;"});
