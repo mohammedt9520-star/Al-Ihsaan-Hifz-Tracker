@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260902-072421 | Fix: update banner was auto-refreshing 2s after appearing (before anyone could see or read it, and mid-typing) instead of waiting for "Refresh Now" -->
+<!-- hifz-20260902-090157 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -158,7 +158,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260902-072421';
+const APP_VERSION='hifz-20260902-090157';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2167,6 +2167,9 @@ function App(){
   const [monthGridMonth,setMonthGridMonth]=React.useState("");
   const [monthGridRows,setMonthGridRows]=React.useState([]);
   const [xlsxDownloadMonth,setXlsxDownloadMonth]=React.useState(getTodayStr().slice(0,7));
+  // Quick-edit popup for a single student's record (Reports page pencil button) — working
+  // copy of the record being edited, or null when the popup is closed
+  const [studentEditRec,setStudentEditRec]=React.useState(null);
   const [profileClass,setProfileClass]=React.useState("HIFZ CLASS A");
   const [editingProfile,setEditingProfile]=React.useState(false);
   const [sabaqEntryClass,setSabaqEntryClass]=React.useState("HIFZ CLASS A");
@@ -2733,8 +2736,9 @@ function App(){
       });
     });
   }
-  function openMonthGrid(){
-    var m=xlsxDownloadMonth||getTodayStr().substring(0,7);
+  function openMonthGrid(monthOverride){
+    var m=monthOverride||xlsxDownloadMonth||getTodayStr().substring(0,7);
+    setXlsxDownloadMonth(m);
     setMonthGridMonth(m);
     setMonthGridRows(buildMonthGridRows(m));
     setShowMonthGrid(true);
@@ -2769,6 +2773,27 @@ function App(){
   async function closeMonthGrid(){
     if(monthGridDirty()){const ok=await showConfirm("Discard unsaved changes?","Close Without Saving");if(!ok)return;}
     setShowMonthGrid(false);
+  }
+
+  // ── Single-student quick edit (Reports page pencil button) ─────────────────
+  // A lighter version of Quick Edit Month scoped to one already-existing record —
+  // no month-matching needed, it updates that record's id directly.
+  function openStudentEdit(s){
+    var full=records.find(function(r){return r.id===s.id;});
+    if(!full){showToast("Record not found — it may have been deleted.","error");return;}
+    setStudentEditRec(Object.assign({},defaultEntry,full));
+  }
+  function updStudentEditField(field,val){
+    setStudentEditRec(function(prev){return prev?Object.assign({},prev,{[field]:val}):prev;});
+  }
+  function saveStudentEdit(){
+    if(!studentEditRec)return;
+    var san=sanitiseRecord(studentEditRec);
+    if(!san){showToast("Could not save — check the values entered.","error");return;}
+    setRecords(function(prev){return prev.map(function(r){return r.id===san.id?san:r;});});
+    scheduleSync();
+    showToast("✅ "+san.name+" updated","success");
+    setStudentEditRec(null);
   }
 
   function normaliseUKPhone(val){
@@ -3804,7 +3829,7 @@ function App(){
               style:{background:showCollation?"#1e2d3d":"transparent",color:showCollation?"#fff":"#1e2d3d",border:"2px solid #1e2d3d",borderRadius:9,padding:"7px 14px",cursor:"pointer",fontWeight:"600",fontSize:12,display:"flex",alignItems:"center",gap:6}
             },"📊 Build Report from Daily Entries")
             , React.createElement('button',{
-              onClick:openMonthGrid,
+              onClick:()=>openMonthGrid(),
               style:{background:GOLD,color:DARK,border:"none",borderRadius:9,padding:"8px 16px",cursor:"pointer",fontWeight:"700",fontSize:12.5,display:"flex",alignItems:"center",gap:6,boxShadow:"0 1px 3px rgba(201,165,83,0.35)"}
             },"📝 Quick Edit Month")
             /* Compact export toolbar — one bordered pill, segments divided by hairlines */
@@ -4694,6 +4719,14 @@ function App(){
         setPostSaveView("reports");
       }
       return React.createElement('div',{style:{padding:"20px 16px 100px"}}
+        /* ── Quick Edit Month — small pencil, top right ── */
+        ,React.createElement('div',{style:{display:"flex",justifyContent:"flex-end",marginBottom:4}}
+          ,React.createElement('button',{
+            onClick:()=>openMonthGrid(selPeriod?selPeriod.dateFrom.substring(0,7):undefined),
+            title:"Quick Edit Month",
+            style:{background:ACCENT,color:GOLD,border:"1px solid "+(GOLD)+"44",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14}
+          },"✏️")
+        )
         /* ── Period + Class controls ── */
         ,React.createElement('div',{style:{marginBottom:20,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}
           ,React.createElement('select',{value:selKey,onChange:e=>setRptPeriodKey(e.target.value),style:{...inputStyle,maxWidth:240,fontWeight:"600",textAlign:"center",fontSize:13}}
@@ -4719,24 +4752,20 @@ function App(){
               const allBothSel=allBothIds.length>0&&allBothIds.every(id=>selectedStudents.includes(id));
               return React.createElement('div',{style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 4px 0",gap:8}}
                 ,React.createElement('div',{style:{fontSize:12,color:MUTED}},rptStudents.length+" report"+(rptStudents.length!==1?"s":"")+(totalSel>rptStudents.length?" · "+totalSel+" total selected":""))
-                ,React.createElement('div',{style:{display:"flex",gap:12}}
+                ,React.createElement('div',{style:{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}
                   ,React.createElement('button',{
                     onClick:()=>setSelectedStudents(prev=>allSelHere?prev.filter(id=>!rptStudents.some(s=>s.id===id)):[...new Set([...prev,...rptStudents.map(s=>s.id)])]),
-                    style:{background:"none",border:"none",cursor:"pointer",fontSize:12,fontWeight:700,color:GOLD,padding:"4px 0"}
+                    style:{background:"none",border:"none",cursor:"pointer",fontSize:12,fontWeight:700,color:GOLD,padding:"2px 0"}
                   },allSelHere?"Deselect this class":"Select this class")
                   ,React.createElement('button',{
                     onClick:()=>setSelectedStudents(allBothSel?[]:allBothIds),
-                    style:{background:"none",border:"none",cursor:"pointer",fontSize:12,fontWeight:700,color:GOLD,padding:"4px 0"}
+                    style:{background:"none",border:"none",cursor:"pointer",fontSize:12,fontWeight:700,color:GOLD,padding:"2px 0"}
                   },allBothSel?"Deselect all":"Select A + B")
                 )
               );
             })()
             ,rptStudents.map(s=>{
               const isSel=selectedStudents.includes(s.id);
-              const _prof=records.find(x=>x.isStudentProfile&&x.name===s.name)||{};
-              const _fph=s.fatherPhone||_prof.fatherPhone||"";
-              const _mph=s.motherPhone||_prof.motherPhone||"";
-              const _hasWA=!!(_fph||_mph);
               const _monthStr=s.dateFrom?new Date(s.dateFrom+"T12:00:00").toLocaleString("default",{month:"long",year:"numeric"}):"";
               const _sentKey=s.name+"_"+(_monthStr||"unknown");
               const _wasSent=!!emailsSent[_sentKey];
@@ -4767,7 +4796,7 @@ function App(){
                     ,React.createElement('button',{onClick:()=>emailReportPDF(s),title:"Email PDF",style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"📧")
                     ,_wasSent&&React.createElement('div',{title:"Report sent this month",style:{position:"absolute",top:-4,right:-4,width:11,height:11,borderRadius:"50%",background:"#22c55e",border:"2px solid "+CARD,pointerEvents:"none"}})
                   )
-                  ,_hasWA&&React.createElement('button',{onClick:()=>whatsappReport(s,_fph||_mph),title:"WhatsApp",style:{background:"#25D366",color:"#fff",border:"none",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"💬")
+                  ,React.createElement('button',{onClick:()=>openStudentEdit(s),title:"Quick Edit",style:{background:ACCENT,color:GOLD,border:"1px solid "+(GOLD)+"44",borderRadius:8,width:36,height:36,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}},"✏️")
                 )
               );
             })
@@ -5565,7 +5594,7 @@ function App(){
       var thStyle={padding:"8px 6px",fontSize:11,color:MUTED,fontWeight:"700",textAlign:"center",borderBottom:"2px solid "+BORDER,whiteSpace:"nowrap"};
       var thNameStyle=Object.assign({},thStyle,{textAlign:"left",position:"sticky",left:0,background:CARD,zIndex:1});
       var tdStyle={padding:"4px 4px",borderBottom:"1px solid "+BORDER};
-      var tdNameStyle=Object.assign({},tdStyle,{fontWeight:"600",color:TEXT,whiteSpace:"nowrap",position:"sticky",left:0,paddingRight:12});
+      var tdNameStyle=Object.assign({},tdStyle,{fontWeight:"600",color:TEXT,whiteSpace:"nowrap",position:"sticky",left:0,paddingRight:12,zIndex:2,boxShadow:"2px 0 4px -2px rgba(0,0,0,0.12)"});
       var inputCellStyle={width:64,padding:"6px 4px",border:"1px solid "+(MUTED)+"33",borderRadius:6,fontSize:12,textAlign:"center",background:DARK,color:TEXT};
       return React.createElement('div',{
         style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16},
@@ -5592,8 +5621,12 @@ function App(){
               ),
               React.createElement('tbody',null,
                 monthGridRows.map(function(row,idx){
-                  return React.createElement('tr',{key:row.name+"|"+idx,style:{background:idx%2?ACCENT:CARD}},
-                    [React.createElement('td',{key:"name",style:tdNameStyle},row.name)]
+                  // Sticky name cell needs its OWN opaque background matching this row's
+                  // stripe — without one, cells scrolled underneath show straight through
+                  // it instead of being hidden, so the name becomes unreadable while scrolling.
+                  var rowBg=idx%2?ACCENT:CARD;
+                  return React.createElement('tr',{key:row.name+"|"+idx,style:{background:rowBg}},
+                    [React.createElement('td',{key:"name",style:Object.assign({},tdNameStyle,{background:rowBg})},row.name)]
                       .concat(MONTH_GRID_FIELDS.map(function(f){
                         return React.createElement('td',{key:f.key,style:tdStyle},
                           React.createElement('input',{
@@ -5615,6 +5648,46 @@ function App(){
           React.createElement('div',{style:{padding:"16px 24px",borderTop:"1px solid "+BORDER,display:"flex",gap:10,justifyContent:"flex-end"}},
             React.createElement('button',{onClick:closeMonthGrid,style:{background:"transparent",color:TEXT,border:"1px solid "+MUTED,borderRadius:8,padding:"11px 20px",cursor:"pointer",fontSize:14}},"Cancel"),
             React.createElement('button',{onClick:saveMonthGrid,style:{background:"linear-gradient(135deg,#C8A55A 0%,#B8934A 100%)",color:"#fff",border:"none",borderRadius:8,padding:"11px 24px",cursor:"pointer",fontWeight:"700",fontSize:14}},"💾 Save Changes")
+          )
+        )
+      );
+    })()
+  ,studentEditRec&&(function(){
+      var fieldStyle={width:"100%",padding:"9px 10px",border:"1px solid "+(MUTED)+"33",borderRadius:8,fontSize:13,background:DARK,color:TEXT,boxSizing:"border-box"};
+      var labelStyle={display:"block",fontSize:11,color:MUTED,fontWeight:"700",marginBottom:4};
+      return React.createElement('div',{
+        style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16},
+        onClick:function(e){if(e.target===e.currentTarget)setStudentEditRec(null);}
+      },
+        React.createElement('div',{style:{background:CARD,borderRadius:20,maxWidth:480,width:"100%",maxHeight:"90vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.35)"}},
+          React.createElement('div',{style:{padding:"18px 24px",borderBottom:"1px solid "+BORDER}},
+            React.createElement('h3',{style:{margin:0,color:GOLD}},"✏️ Quick Edit"),
+            React.createElement('div',{style:{fontSize:12,color:MUTED,marginTop:2}},studentEditRec.name+" — "+(studentEditRec.monthName||monthLabel((studentEditRec.dateFrom||getTodayStr()).substring(0,7))))
+          ),
+          React.createElement('div',{style:{padding:"20px 24px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}},
+            MONTH_GRID_FIELDS.map(function(f){
+              return React.createElement('div',{key:f.key},
+                React.createElement('label',{style:labelStyle},f.label),
+                React.createElement('input',{
+                  type:"number",step:f.step||"1",value:studentEditRec[f.key]===undefined||studentEditRec[f.key]===null?"":studentEditRec[f.key],
+                  onChange:function(e){updStudentEditField(f.key,e.target.value);},
+                  style:fieldStyle
+                })
+              );
+            }).concat([
+              React.createElement('div',{key:"comments",style:{gridColumn:"1 / -1"}},
+                React.createElement('label',{style:labelStyle},"Teacher Comments"),
+                React.createElement('textarea',{
+                  value:studentEditRec.teacherComments||"",rows:3,
+                  onChange:function(e){updStudentEditField("teacherComments",e.target.value);},
+                  style:Object.assign({},fieldStyle,{resize:"vertical",fontFamily:"inherit"})
+                })
+              )
+            ])
+          ),
+          React.createElement('div',{style:{padding:"16px 24px",borderTop:"1px solid "+BORDER,display:"flex",gap:10,justifyContent:"flex-end"}},
+            React.createElement('button',{onClick:function(){setStudentEditRec(null);},style:{background:"transparent",color:TEXT,border:"1px solid "+MUTED,borderRadius:8,padding:"11px 20px",cursor:"pointer",fontSize:14}},"Cancel"),
+            React.createElement('button',{onClick:saveStudentEdit,style:{background:"linear-gradient(135deg,#C8A55A 0%,#B8934A 100%)",color:"#fff",border:"none",borderRadius:8,padding:"11px 24px",cursor:"pointer",fontWeight:"700",fontSize:14}},"💾 Save Changes")
           )
         )
       );
