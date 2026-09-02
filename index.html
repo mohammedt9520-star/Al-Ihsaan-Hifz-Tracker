@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260902-071249 | Feature: Quick Edit Month in-app popup (edit a month's data directly, saves straight to the database) + "Download This Month (filled in)" XLSX option -->
+<!-- hifz-20260902-071814 | Parked "Build Report from Daily Entries" (behind COLLATION_FEATURE_ENABLED flag) + redesigned Add Monthly Entry toolbar into one compact, themed export pill -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260902-071249';
+const APP_VERSION='hifz-20260902-071814';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -236,6 +236,9 @@ const TOPBAR_BG="#07150e";
 const BORDER="#e6e1d3";
 function lsGetClasses(){try{const v=JSON.parse(localStorage.getItem("hifzClasses")||"null");return Array.isArray(v)&&v.length?v:["HIFZ CLASS A","HIFZ CLASS B"];}catch(e){return ["HIFZ CLASS A","HIFZ CLASS B"];}}
 let CLASSES=lsGetClasses();
+// "Build Report from Daily Entries" (auto-collate a monthly entry from daily sabaq records)
+// — parked per admin request until it's reworked; flip back to true to restore it.
+const COLLATION_FEATURE_ENABLED=false;
 const BEHAVIOUR_LABELS={1:"Very Poor",2:"Poor",3:"Average",4:"Good",5:"Very Good"};
 const BEHAVIOUR_COLORS={1:RED,2:ORANGE,3:"#f1c40f",4:GREEN,5:"#1abc9c"};
 // Columns shown in the Quick Edit Month grid, in order
@@ -3791,25 +3794,31 @@ function App(){
       , React.createElement('div', { style: {background:CARD,borderRadius:24,padding:28,border:"1px solid "+BORDER,boxShadow:"0 1px 2px rgba(13,26,18,0.06), 0 8px 26px rgba(13,26,18,0.07)"},}
         , React.createElement('div', { style: {display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24,flexWrap:"wrap",gap:12},}
           , React.createElement('h2', { style: {color:GOLD},}, editingId?"✏️ Edit Record":"➕ Add Monthly Entry")
-          , !editingId&&React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}},
-            React.createElement('button',{
+          , !editingId&&React.createElement('div',{style:{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}},
+            COLLATION_FEATURE_ENABLED&&React.createElement('button',{
               onClick:()=>setShowCollation(s=>!s),
               style:{background:showCollation?"#1e2d3d":"transparent",color:showCollation?"#fff":"#1e2d3d",border:"2px solid #1e2d3d",borderRadius:9,padding:"7px 14px",cursor:"pointer",fontWeight:"600",fontSize:12,display:"flex",alignItems:"center",gap:6}
             },"📊 Build Report from Daily Entries")
             , React.createElement('button',{
               onClick:openMonthGrid,
-              style:{background:GOLD,color:DARK,border:"2px solid "+GOLD,borderRadius:9,padding:"7px 14px",cursor:"pointer",fontWeight:"700",fontSize:12,display:"flex",alignItems:"center",gap:6}
+              style:{background:GOLD,color:DARK,border:"none",borderRadius:9,padding:"8px 16px",cursor:"pointer",fontWeight:"700",fontSize:12.5,display:"flex",alignItems:"center",gap:6,boxShadow:"0 1px 3px rgba(201,165,83,0.35)"}
             },"📝 Quick Edit Month")
-          )
-          , !editingId&&React.createElement('div', { style: {display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"},}
-            , React.createElement('select',{value:xlsxDownloadMonth,onChange:e=>setXlsxDownloadMonth(e.target.value),
-                style:{background:CARD,color:TEXT,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 10px",fontSize:13}
-              },monthOptionsFor(records).map(m=>React.createElement('option',{key:m,value:m},monthLabel(m))))
-            , React.createElement('button', { onClick:()=>downloadXLSXTemplate(xlsxDownloadMonth), style: {background:ACCENT,color:GOLD,border:"1px solid "+(GOLD)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:"bold"}},  "⬇ Download This Month (filled in)")
-            , React.createElement('button', { onClick:()=>downloadXLSXTemplate(), style: {background:"transparent",color:MUTED,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13}},  "⬇ Blank Template")
-            , React.createElement('label', { style: {background:ACCENT,color:TEXT,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13},}, "📂 Import XLSX"
-
-              , React.createElement('input', { type: "file", accept: ".xlsx,.xls,.csv", onChange: importXLSX, style: {display:"none"},})
+            /* Compact export toolbar — one bordered pill, segments divided by hairlines */
+            , React.createElement('div',{style:{display:"flex",alignItems:"stretch",height:34,background:ACCENT,border:"1px solid "+BORDER,borderRadius:9,overflow:"hidden"}}
+              , React.createElement('select',{value:xlsxDownloadMonth,onChange:e=>setXlsxDownloadMonth(e.target.value),title:"Month to export",
+                  style:{background:"transparent",color:TEXT,border:"none",borderRight:"1px solid "+BORDER,padding:"0 10px",fontSize:12,cursor:"pointer",outline:"none",maxWidth:120}
+                },monthOptionsFor(records).map(m=>React.createElement('option',{key:m,value:m},monthLabel(m))))
+              , React.createElement('button',{title:"Download this month's data, already filled in",onClick:()=>downloadXLSXTemplate(xlsxDownloadMonth),
+                  style:{background:"transparent",color:GOLD,border:"none",borderRight:"1px solid "+BORDER,padding:"0 13px",cursor:"pointer",fontSize:12,fontWeight:"700"}
+                },"⬇ Filled")
+              , React.createElement('button',{title:"Download a blank template",onClick:()=>downloadXLSXTemplate(),
+                  style:{background:"transparent",color:MUTED,border:"none",borderRight:"1px solid "+BORDER,padding:"0 13px",cursor:"pointer",fontSize:12}
+                },"⬇ Blank")
+              , React.createElement('label',{title:"Import an XLSX file",
+                  style:{display:"flex",alignItems:"center",color:TEXT,padding:"0 13px",cursor:"pointer",fontSize:12}
+                },"📂 Import"
+                , React.createElement('input',{type:"file",accept:".xlsx,.xls,.csv",onChange:importXLSX,style:{display:"none"}})
+              )
             )
           )
         )
@@ -3827,7 +3836,7 @@ function App(){
 
         , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:16},}
           /* COLLATION PANEL */
-          , showCollation&&!editingId&&React.createElement('div',{style:{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:12,padding:20,marginBottom:20}},
+          , COLLATION_FEATURE_ENABLED&&showCollation&&!editingId&&React.createElement('div',{style:{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:12,padding:20,marginBottom:20}},
             React.createElement('div',{style:{color:"#1D4ED8",fontWeight:"700",fontSize:14,marginBottom:12}},"📊 Auto-fill from Daily Sabaq Entries"),
             React.createElement('div',{style:{background:"#dbeafe",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:"#1e40af"}},
               "Select a student and month to preview collated data from daily sabaq entries. Then tap Apply to pre-fill the form."
