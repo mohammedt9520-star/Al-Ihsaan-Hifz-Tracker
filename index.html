@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260901-185500 | Fix: self-sustaining Realtime sync loop — loadCloud() was re-pushing data it had just read, causing a read→write→notify cycle across tabs/devices that could present as a stuck "offline" status -->
+<!-- hifz-20260902-071249 | Feature: Quick Edit Month in-app popup (edit a month's data directly, saves straight to the database) + "Download This Month (filled in)" XLSX option -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -154,7 +154,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260901-185500';
+const APP_VERSION='hifz-20260902-071249';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -238,6 +238,19 @@ function lsGetClasses(){try{const v=JSON.parse(localStorage.getItem("hifzClasses
 let CLASSES=lsGetClasses();
 const BEHAVIOUR_LABELS={1:"Very Poor",2:"Poor",3:"Average",4:"Good",5:"Very Good"};
 const BEHAVIOUR_COLORS={1:RED,2:ORANGE,3:"#f1c40f",4:GREEN,5:"#1abc9c"};
+// Columns shown in the Quick Edit Month grid, in order
+const MONTH_GRID_FIELDS=[
+  {key:"fromPage",label:"From Pg"},
+  {key:"toPage",label:"To Pg"},
+  {key:"totalFullSides",label:"Total Sides"},
+  {key:"plusLines",label:"+Lines",step:"0.5"},
+  {key:"absences",label:"Absences"},
+  {key:"paraDorMornings",label:"Para Dor AM"},
+  {key:"totalDaysOfSabaq",label:"Days of Sabaq"},
+  {key:"targetGiven",label:"Target"},
+  {key:"upcomingTarget",label:"Next Target"},
+  {key:"behaviour",label:"Behaviour"},
+];
 
 const DOR_COLOR_MAP={
   green:{bg:GREEN,label:"Good (0 – 1.5)"},
@@ -256,6 +269,18 @@ const JUZ_OPTIONS=[...Array(30)].map((_,i)=>i+1);
 function getTodayStr(){return new Date().toISOString().split("T")[0];}
 // Returns first two words of a name — keeps tables neat for long 3-part names
 function shortName(n){if(!n)return n;var p=n.trim().split(/\s+/);return p.slice(0,2).join(" ");}
+
+// Month helpers for the "Quick Edit Month" grid and the "download this month" XLSX option
+function monthLastDay(month){var p=month.split("-");var d=new Date(parseInt(p[0],10),parseInt(p[1],10),0);return p[0]+"-"+p[1]+"-"+String(d.getDate()).padStart(2,"0");}
+function monthLabel(month){var p=month.split("-");var d=new Date(parseInt(p[0],10),parseInt(p[1],10)-1,1);return d.toLocaleDateString("en-GB",{month:"long",year:"numeric"});}
+// Every distinct month already present in the monthly records, plus the current month,
+// newest first — used to populate the month picker without depending on the year plan.
+function monthOptionsFor(records){
+  var set={};
+  (Array.isArray(records)?records:[]).forEach(function(r){if(r.dateFrom&&/^\d{4}-\d{2}/.test(r.dateFrom))set[r.dateFrom.substring(0,7)]=true;});
+  set[getTodayStr().substring(0,7)]=true;
+  return Object.keys(set).sort().reverse();
+}
 
 function getDorColor(mistakes,repeated){
   const m=parseFloat(mistakes);
@@ -2129,6 +2154,12 @@ function App(){
   const [collationDateFrom,setCollationDateFrom]=React.useState("");
   const [collationDateTo,setCollationDateTo]=React.useState("");
   const [showCollation,setShowCollation]=React.useState(false);
+  // Quick Edit Month — in-app spreadsheet-style popup for editing a whole month's
+  // monthly-entry data at once, without a download/re-import round trip
+  const [showMonthGrid,setShowMonthGrid]=React.useState(false);
+  const [monthGridMonth,setMonthGridMonth]=React.useState("");
+  const [monthGridRows,setMonthGridRows]=React.useState([]);
+  const [xlsxDownloadMonth,setXlsxDownloadMonth]=React.useState(getTodayStr().slice(0,7));
   const [profileClass,setProfileClass]=React.useState("HIFZ CLASS A");
   const [editingProfile,setEditingProfile]=React.useState(false);
   const [sabaqEntryClass,setSabaqEntryClass]=React.useState("HIFZ CLASS A");
@@ -2529,61 +2560,71 @@ function App(){
           }
         }
         if(!newRecs.length){showToast("❌ No valid records found. Check Name column (B) is filled and file matches the XLSX template.","error");return;}
-        // I3: within-batch dedup by name+month before pushing to store
-        var _batchSeen={};
-        var _batchUnique=newRecs.filter(function(rec){
-          var _key=rec.name+"||"+(rec.dateFrom?rec.dateFrom.substring(0,7):"");
-          if(_batchSeen[_key])return false;
-          _batchSeen[_key]=true;return true;
-        });
-        var _batchDupCount=newRecs.length-_batchUnique.length;
-        setRecords(function(prev){
-          var added=0,updated=0;const next=[...prev];
-          _batchUnique.forEach(function(rec){
-            const m=rec.dateFrom?rec.dateFrom.substring(0,7):"";
-            const dupIdx=m?next.findIndex(function(r2){return !r2.isStudentProfile&&r2.name===rec.name&&r2.dateFrom&&r2.dateFrom.substring(0,7)===m;}):-1;
-            if(dupIdx>=0){next[dupIdx]=Object.assign({},rec,{id:next[dupIdx].id});updated++;}
-            else{next.push(rec);added++;}
-            // Auto-create student profile anchor if one doesn't exist yet,
-            // or update the existing profile with any contact info from the sheet
-            var profIdx=next.findIndex(function(r2){return r2.name===rec.name&&r2.isStudentProfile;});
-            var contactPatch={
-              fatherPhone:rec.fatherPhone||undefined,
-              parentEmail1:rec.parentEmail1||undefined,
-              motherPhone:rec.motherPhone||undefined,
-              parentEmail2:rec.parentEmail2||undefined,
-            };
-            // strip undefined keys so we don't overwrite existing data with blanks
-            Object.keys(contactPatch).forEach(function(k){if(!contactPatch[k])delete contactPatch[k];});
-            if(profIdx<0){
-              next.push(Object.assign({},defaultEntry,{
-                id:uid(),name:rec.name,class:rec.class,
-                dateFrom:rec.dateFrom||"",dateTo:rec.dateFrom||"",
-                totalFullSides:"0",plusLines:"0",absences:"0",paraDorMornings:"0",
-                totalDaysOfSabaq:"0",targetGiven:13,upcomingTarget:13,behaviour:5,
-                weakSabaqInstances:"N/A",weakDorInstances:"N/A",
-                eveningPossibleDays:"0",eveningAbsences:"0",
-                isStudentProfile:true,
-              },contactPatch));
-            } else if(Object.keys(contactPatch).length>0){
-              next[profIdx]=Object.assign({},next[profIdx],contactPatch);
-            }
-          });
-          lsSave(next);
-          var _parts=[];
-          if(added>0)_parts.push(added+" new");
-          if(updated>0)_parts.push(updated+" updated");
-          showToast("\u2705 Import complete \u2014 "+(_parts.length?_parts.join(", "):"no changes")+" record(s)","success");
-          scheduleSync();
-          return next;
-        });
+        mergeMonthlyRecords(newRecs,"\u2705 Import complete");
       }catch(err){showToast("XLSX import error: "+err.message,"error");}
     };
     reader.readAsArrayBuffer(file);
     e.target.value="";
   }
 
-  function downloadXLSXTemplate(){
+  // Shared upsert-by-name+month logic used by both XLSX import and the Quick Edit Month
+  // popup: matches each incoming record against an existing one for the same student in
+  // the same calendar month (by dateFrom) and updates it in place instead of duplicating,
+  // and keeps each student's profile anchor row (name/class/contact info) in sync.
+  function mergeMonthlyRecords(newRecs,doneMsgPrefix){
+    // within-batch dedup by name+month before pushing to store
+    var _batchSeen={};
+    var _batchUnique=newRecs.filter(function(rec){
+      var _key=rec.name+"||"+(rec.dateFrom?rec.dateFrom.substring(0,7):"");
+      if(_batchSeen[_key])return false;
+      _batchSeen[_key]=true;return true;
+    });
+    setRecords(function(prev){
+      var added=0,updated=0;const next=[...prev];
+      _batchUnique.forEach(function(rec){
+        const m=rec.dateFrom?rec.dateFrom.substring(0,7):"";
+        const dupIdx=m?next.findIndex(function(r2){return !r2.isStudentProfile&&r2.name===rec.name&&r2.dateFrom&&r2.dateFrom.substring(0,7)===m;}):-1;
+        if(dupIdx>=0){next[dupIdx]=Object.assign({},rec,{id:next[dupIdx].id});updated++;}
+        else{next.push(rec);added++;}
+        // Auto-create student profile anchor if one doesn't exist yet,
+        // or update the existing profile with any contact info from the sheet
+        var profIdx=next.findIndex(function(r2){return r2.name===rec.name&&r2.isStudentProfile;});
+        var contactPatch={
+          fatherPhone:rec.fatherPhone||undefined,
+          parentEmail1:rec.parentEmail1||undefined,
+          motherPhone:rec.motherPhone||undefined,
+          parentEmail2:rec.parentEmail2||undefined,
+        };
+        // strip undefined keys so we don't overwrite existing data with blanks
+        Object.keys(contactPatch).forEach(function(k){if(!contactPatch[k])delete contactPatch[k];});
+        if(profIdx<0){
+          next.push(Object.assign({},defaultEntry,{
+            id:uid(),name:rec.name,class:rec.class,
+            dateFrom:rec.dateFrom||"",dateTo:rec.dateFrom||"",
+            totalFullSides:"0",plusLines:"0",absences:"0",paraDorMornings:"0",
+            totalDaysOfSabaq:"0",targetGiven:13,upcomingTarget:13,behaviour:5,
+            weakSabaqInstances:"N/A",weakDorInstances:"N/A",
+            eveningPossibleDays:"0",eveningAbsences:"0",
+            isStudentProfile:true,
+          },contactPatch));
+        } else if(Object.keys(contactPatch).length>0){
+          next[profIdx]=Object.assign({},next[profIdx],contactPatch);
+        }
+      });
+      lsSave(next);
+      var _parts=[];
+      if(added>0)_parts.push(added+" new");
+      if(updated>0)_parts.push(updated+" updated");
+      showToast((doneMsgPrefix||"\u2705 Saved")+" \u2014 "+(_parts.length?_parts.join(", "):"no changes")+" record(s)","success");
+      scheduleSync();
+      return next;
+    });
+  }
+
+  // prefillMonth: optional "YYYY-MM" — when given, any student who already has a monthly
+  // entry for that month gets the sheet populated with their real numbers (not just name/
+  // class/contact), so it can be tweaked and re-imported instead of started from blank.
+  function downloadXLSXTemplate(prefillMonth){
     try{
       if(typeof XLSX==="undefined"){showToast("XLSX library not loaded yet — please wait and try again.","warning");return;}
       var _smap={};
@@ -2608,6 +2649,17 @@ function App(){
           // Pre-populate contact columns from existing student profile
           var _prof=(Array.isArray(records)?records:[]).find(function(r){return r.name===name&&r.isStudentProfile;});
           if(_prof){row[24]=_prof.fatherPhone||"";row[25]=_prof.parentEmail1||"";row[26]=_prof.motherPhone||"";row[27]=_prof.parentEmail2||"";}
+          // Prefill this student's real data for the requested month, if they already have an entry
+          if(prefillMonth){
+            var _existing=(Array.isArray(records)?records:[]).find(function(r){return !r.isStudentProfile&&r.name===name&&r.dateFrom&&r.dateFrom.substring(0,7)===prefillMonth;});
+            if(_existing){
+              row[2]=_existing.fromPage||"";row[3]=_existing.toPage||"";row[4]=_existing.totalFullSides||"";
+              row[5]=_existing.plusLines||"";row[6]=_existing.absences||"";row[7]=_existing.paraDorMornings||"";
+              row[12]=_existing.dateFrom||"";row[13]=_existing.dateTo||"";row[14]=_existing.totalDaysOfSabaq||"";
+              row[15]=_existing.targetGiven||"13";row[17]=_existing.upcomingTarget||"13";row[22]=_existing.behaviour||"5";
+              row[23]=_existing.teacherComments||"";
+            }
+          }
           _rows.push(row);
         });
       }else{
@@ -2652,9 +2704,64 @@ function App(){
       }
       var _wb=XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(_wb,_ws,"Hifz Monthly");
-      XLSX.writeFile(_wb,"Hifz_Monthly_Template.xlsx");
+      XLSX.writeFile(_wb,prefillMonth?("Hifz_Monthly_"+prefillMonth+".xlsx"):"Hifz_Monthly_Template.xlsx");
       showToast("Template downloaded! Fill in the blue/white columns. Grey (auto) columns are calculated automatically when you re-import.","info",6000);
     }catch(ex){showToast("Download error: "+ex.message,"error");}
+  }
+
+  // ── Quick Edit Month — in-app spreadsheet-style popup ──────────────────────
+  // Lets a student's whole-month numbers be edited directly in the app and saved straight
+  // to the database, no download/edit/re-import round trip needed.
+  function buildMonthGridRows(month){
+    var classByName={};
+    (Array.isArray(records)?records:[]).forEach(function(r){if(r.name&&!classByName[r.name])classByName[r.name]=r.class;});
+    return studentNames.map(function(name){
+      var existing=records.find(function(r){return !r.isStudentProfile&&r.name===name&&r.dateFrom&&r.dateFrom.substring(0,7)===month;});
+      if(existing)return Object.assign({},defaultEntry,existing,{_hadExisting:true});
+      return Object.assign({},defaultEntry,{
+        name:name,class:classByName[name]||CLASSES[0],
+        dateFrom:month+"-01",dateTo:monthLastDay(month),
+        targetGiven:13,upcomingTarget:13,behaviour:5,
+        _hadExisting:false,
+      });
+    });
+  }
+  function openMonthGrid(){
+    var m=xlsxDownloadMonth||getTodayStr().substring(0,7);
+    setMonthGridMonth(m);
+    setMonthGridRows(buildMonthGridRows(m));
+    setShowMonthGrid(true);
+  }
+  async function changeMonthGridMonth(m){
+    if(monthGridDirty()){const ok=await showConfirm("Switch month? Unsaved changes on "+monthLabel(monthGridMonth)+" will be lost.","Unsaved Changes");if(!ok)return;}
+    setMonthGridMonth(m);
+    setMonthGridRows(buildMonthGridRows(m));
+  }
+  function updMonthGridCell(idx,field,val){
+    setMonthGridRows(function(prev){var next=prev.slice();next[idx]=Object.assign({},next[idx],{[field]:val});return next;});
+  }
+  function monthGridRowHasContent(row){
+    if(row._hadExisting)return true;
+    return ["fromPage","toPage","totalFullSides","plusLines","absences","paraDorMornings","totalDaysOfSabaq","teacherComments"]
+      .some(function(f){var v=String(row[f]||"").trim();return v&&v!=="0";});
+  }
+  function monthGridDirty(){
+    var baseline=buildMonthGridRows(monthGridMonth);
+    return JSON.stringify(baseline)!==JSON.stringify(monthGridRows);
+  }
+  function saveMonthGrid(){
+    var toSave=monthGridRows.filter(monthGridRowHasContent).map(function(row){
+      var rec=Object.assign({},row,{id:uid()});
+      delete rec._hadExisting;
+      return sanitiseRecord(rec);
+    }).filter(Boolean);
+    if(!toSave.length){showToast("No changes to save.","warning");return;}
+    mergeMonthlyRecords(toSave,"✅ "+monthLabel(monthGridMonth)+" updated");
+    setShowMonthGrid(false);
+  }
+  async function closeMonthGrid(){
+    if(monthGridDirty()){const ok=await showConfirm("Discard unsaved changes?","Close Without Saving");if(!ok)return;}
+    setShowMonthGrid(false);
   }
 
   function normaliseUKPhone(val){
@@ -3684,14 +3791,22 @@ function App(){
       , React.createElement('div', { style: {background:CARD,borderRadius:24,padding:28,border:"1px solid "+BORDER,boxShadow:"0 1px 2px rgba(13,26,18,0.06), 0 8px 26px rgba(13,26,18,0.07)"},}
         , React.createElement('div', { style: {display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:24,flexWrap:"wrap",gap:12},}
           , React.createElement('h2', { style: {color:GOLD},}, editingId?"✏️ Edit Record":"➕ Add Monthly Entry")
-          , !editingId&&React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8}},
+          , !editingId&&React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}},
             React.createElement('button',{
               onClick:()=>setShowCollation(s=>!s),
               style:{background:showCollation?"#1e2d3d":"transparent",color:showCollation?"#fff":"#1e2d3d",border:"2px solid #1e2d3d",borderRadius:9,padding:"7px 14px",cursor:"pointer",fontWeight:"600",fontSize:12,display:"flex",alignItems:"center",gap:6}
             },"📊 Build Report from Daily Entries")
+            , React.createElement('button',{
+              onClick:openMonthGrid,
+              style:{background:GOLD,color:DARK,border:"2px solid "+GOLD,borderRadius:9,padding:"7px 14px",cursor:"pointer",fontWeight:"700",fontSize:12,display:"flex",alignItems:"center",gap:6}
+            },"📝 Quick Edit Month")
           )
-          , React.createElement('div', { style: {display:"flex",gap:10,flexWrap:"wrap"},}
-            , React.createElement('button', { onClick: downloadXLSXTemplate, style: {background:ACCENT,color:GOLD,border:"1px solid "+(GOLD)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:"bold"}},  "⬇ Download XLSX Template")
+          , !editingId&&React.createElement('div', { style: {display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"},}
+            , React.createElement('select',{value:xlsxDownloadMonth,onChange:e=>setXlsxDownloadMonth(e.target.value),
+                style:{background:CARD,color:TEXT,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 10px",fontSize:13}
+              },monthOptionsFor(records).map(m=>React.createElement('option',{key:m,value:m},monthLabel(m))))
+            , React.createElement('button', { onClick:()=>downloadXLSXTemplate(xlsxDownloadMonth), style: {background:ACCENT,color:GOLD,border:"1px solid "+(GOLD)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13,fontWeight:"bold"}},  "⬇ Download This Month (filled in)")
+            , React.createElement('button', { onClick:()=>downloadXLSXTemplate(), style: {background:"transparent",color:MUTED,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13}},  "⬇ Blank Template")
             , React.createElement('label', { style: {background:ACCENT,color:TEXT,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 16px",cursor:"pointer",fontSize:13},}, "📂 Import XLSX"
 
               , React.createElement('input', { type: "file", accept: ".xlsx,.xls,.csv", onChange: importXLSX, style: {display:"none"},})
@@ -5433,6 +5548,64 @@ function App(){
   ,React.createElement(Toast,null)
   ,React.createElement(ConfirmModal,null)
   ,React.createElement(InputModal,null)
+  ,showMonthGrid&&(function(){
+      var thStyle={padding:"8px 6px",fontSize:11,color:MUTED,fontWeight:"700",textAlign:"center",borderBottom:"2px solid "+BORDER,whiteSpace:"nowrap"};
+      var thNameStyle=Object.assign({},thStyle,{textAlign:"left",position:"sticky",left:0,background:CARD,zIndex:1});
+      var tdStyle={padding:"4px 4px",borderBottom:"1px solid "+BORDER};
+      var tdNameStyle=Object.assign({},tdStyle,{fontWeight:"600",color:TEXT,whiteSpace:"nowrap",position:"sticky",left:0,paddingRight:12});
+      var inputCellStyle={width:64,padding:"6px 4px",border:"1px solid "+(MUTED)+"33",borderRadius:6,fontSize:12,textAlign:"center",background:DARK,color:TEXT};
+      return React.createElement('div',{
+        style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",zIndex:3000,display:"flex",alignItems:"center",justifyContent:"center",padding:16},
+        onClick:function(e){if(e.target===e.currentTarget)closeMonthGrid();}
+      },
+        React.createElement('div',{style:{background:CARD,borderRadius:20,maxWidth:1150,width:"100%",maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.35)"}},
+          React.createElement('div',{style:{padding:"18px 24px",borderBottom:"1px solid "+BORDER,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}},
+            React.createElement('div',null,
+              React.createElement('h3',{style:{margin:0,color:GOLD}},"📝 Quick Edit Month"),
+              React.createElement('div',{style:{fontSize:12,color:MUTED,marginTop:2}},"Edit numbers directly — Save writes straight to the database, no download needed.")
+            ),
+            React.createElement('select',{value:monthGridMonth,onChange:function(e){changeMonthGridMonth(e.target.value);},
+              style:{background:ACCENT,color:TEXT,border:"1px solid "+(MUTED)+"44",borderRadius:8,padding:"8px 12px",fontSize:13,fontWeight:"600"}
+            },monthOptionsFor(records).map(function(m){return React.createElement('option',{key:m,value:m},monthLabel(m));}))
+          ),
+          React.createElement('div',{style:{overflow:"auto",padding:"12px 24px",flex:1}},
+            React.createElement('table',{style:{borderCollapse:"collapse",width:"100%",fontSize:12}},
+              React.createElement('thead',null,
+                React.createElement('tr',null,
+                  [React.createElement('th',{key:"name",style:thNameStyle},"Name")]
+                    .concat(MONTH_GRID_FIELDS.map(function(f){return React.createElement('th',{key:f.key,style:thStyle},f.label);}))
+                    .concat([React.createElement('th',{key:"comments",style:thStyle},"Comments")])
+                )
+              ),
+              React.createElement('tbody',null,
+                monthGridRows.map(function(row,idx){
+                  return React.createElement('tr',{key:row.name+"|"+idx,style:{background:idx%2?ACCENT:CARD}},
+                    [React.createElement('td',{key:"name",style:tdNameStyle},row.name)]
+                      .concat(MONTH_GRID_FIELDS.map(function(f){
+                        return React.createElement('td',{key:f.key,style:tdStyle},
+                          React.createElement('input',{
+                            type:"number",step:f.step||"1",value:row[f.key]===undefined||row[f.key]===null?"":row[f.key],
+                            onChange:function(e){updMonthGridCell(idx,f.key,e.target.value);},
+                            style:inputCellStyle
+                          })
+                        );
+                      }))
+                      .concat([React.createElement('td',{key:"comments",style:tdStyle},
+                        React.createElement('input',{type:"text",value:row.teacherComments||"",onChange:function(e){updMonthGridCell(idx,"teacherComments",e.target.value);},
+                          style:Object.assign({},inputCellStyle,{width:170,textAlign:"left"})})
+                      )])
+                  );
+                })
+              )
+            )
+          ),
+          React.createElement('div',{style:{padding:"16px 24px",borderTop:"1px solid "+BORDER,display:"flex",gap:10,justifyContent:"flex-end"}},
+            React.createElement('button',{onClick:closeMonthGrid,style:{background:"transparent",color:TEXT,border:"1px solid "+MUTED,borderRadius:8,padding:"11px 20px",cursor:"pointer",fontSize:14}},"Cancel"),
+            React.createElement('button',{onClick:saveMonthGrid,style:{background:"linear-gradient(135deg,#C8A55A 0%,#B8934A 100%)",color:"#fff",border:"none",borderRadius:8,padding:"11px 24px",cursor:"pointer",fontWeight:"700",fontSize:14}},"💾 Save Changes")
+          )
+        )
+      );
+    })()
   );
 }
 
