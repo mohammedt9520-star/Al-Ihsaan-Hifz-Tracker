@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260902-071814 | Parked "Build Report from Daily Entries" (behind COLLATION_FEATURE_ENABLED flag) + redesigned Add Monthly Entry toolbar into one compact, themed export pill -->
+<!-- hifz-20260902-072421 | Fix: update banner was auto-refreshing 2s after appearing (before anyone could see or read it, and mid-typing) instead of waiting for "Refresh Now" -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -135,8 +135,12 @@ if("serviceWorker"in navigator){
       var nw=reg.installing;
       nw.addEventListener('statechange',function(){
         if(nw.state==='installed'&&navigator.serviceWorker.controller){
-          // Auto-activate new SW — no user tap needed
-          setTimeout(function(){nw.postMessage({type:'SKIP_WAITING'});},2000);
+          // Show the update banner and WAIT for the user to tap "Refresh Now" — do not
+          // auto-activate. This used to fire postMessage({type:'SKIP_WAITING'}) on its own
+          // 2s after the new worker installed, which reloaded the page out from under
+          // whoever was using it (mid-entry data loss) and made the banner flash by too
+          // fast to ever notice, let alone read. The banner's own "Refresh Now" button
+          // already sends this same postMessage — that's the only trigger now.
           window.__swWaiting=nw;
           window.dispatchEvent(new CustomEvent('swupdateavailable',{detail:nw}));
         }
@@ -154,7 +158,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260902-071814';
+const APP_VERSION='hifz-20260902-072421';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
