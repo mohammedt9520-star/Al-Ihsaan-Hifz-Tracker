@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261029-102907 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
+<!-- hifz-20261029-105505 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -158,7 +158,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261029-102907';
+const APP_VERSION='hifz-20261029-105505';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -610,11 +610,10 @@ function buildProgressTrend(studentName,allRecords,yearPlan,uptoDateStr){
   });
 }
 // Traffic-light colour for one month's average against its own target that month:
-// on/above target = green, below target but still >=11 = orange, below 11 = red.
+// on/above target = green, within 2 lines below = orange, further below = red.
 function progressDotColor(value,target){
-  if(value>=target)return"#22c55e";
-  if(value>=11)return"#eab308";
-  return"#ef4444";
+  const t=avgTier(value,target);
+  return t==="green"?"#22c55e":t==="orange"?"#eab308":"#ef4444";
 }
 // Renders the trend as an inline SVG line chart (string HTML, for the printed/emailed report)
 function buildProgressChartHTML(trendData){
@@ -824,7 +823,10 @@ function fmt(n,dec=2){if(!isFinite(n)||isNaN(n))return"—";return n.toFixed(dec
 // Sabaq lines are only ever recorded to the nearest half-line — round to that instead of
 // a whole number, so a half-line remainder (e.g. 124.5) never silently gets floored/ceiled away.
 function roundHalf(n){return Math.round((parseFloat(n)||0)*2)/2;}
-function getAvgColor(avg){if(!avg||avg===0)return MUTED;if(avg>=11)return GREEN;if(avg>=10)return ORANGE;return RED;}
+// Traffic light relative to the student's own target (lines/day): at/above target = green,
+// within 2 lines below = orange, further below = red. e.g. target 7 -> 7 green, 5-6.99 orange, <5 red.
+function avgTier(avg,target){const t=parseFloat(target)||13;const a=parseFloat(avg)||0;if(a>=t-0.005)return"green";if(a>=t-2-0.005)return"orange";return"red";}
+function getAvgColor(avg,target){if(!avg||avg===0)return MUTED;const t=avgTier(avg,target);return t==="green"?GREEN:t==="orange"?ORANGE:RED;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 // ── SHA-256 password hashing (crypto.subtle) ──────────────────
 // Replaces btoa() encoding. Async; callers that need sync result
@@ -1161,7 +1163,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPl
   if(!Array.isArray(dorRecords))dorRecords=[];
   if(!Array.isArray(allRecords))allRecords=[];
 
-  const avgCircleColor=calc.K>=13?"green":calc.K>=11?"orange":"red";
+  const avgCircleColor=avgTier(calc.K,entry.targetGiven);
   const dateRange=entry.dateFrom&&entry.dateTo?formatDateDMY(entry.dateFrom)+" \u2013 "+formatDateDMY(entry.dateTo):"\u2014";
   const monthRange=getMonthRange(entry.dateFrom,entry.dateTo);
   const bhvLabel=BEHAVIOUR_LABELS[entry.behaviour]||"\u2014";
@@ -2450,7 +2452,7 @@ function App(){
 
   const classA=latestPerStudent.filter(s=>s.class==="HIFZ CLASS A");
   const classB=latestPerStudent.filter(s=>s.class==="HIFZ CLASS B");
-  const belowTarget=latestPerStudent.filter(s=>s.K>0&&s.K<11);
+  const belowTarget=latestPerStudent.filter(s=>s.K>0&&avgTier(s.K,s.targetGiven)==="red");
   const profileDorRecords=React.useMemo(()=>{
     if(!profileName||!Array.isArray(dorRecords))return[];
     return dorRecords.filter(d=>d.studentName===profileName);
@@ -4367,7 +4369,7 @@ function App(){
                 React.createElement('div', { style:{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}},
                   avgK!==null&&React.createElement('div',{style:{textAlign:"right"}},
                     React.createElement('div',{style:{color:MUTED,fontSize:10,marginBottom:2}},"Class Avg"),
-                    React.createElement('div',{style:{color:getAvgColor(avgK),fontWeight:"700",fontSize:16}},fmt(avgK,1))
+                    React.createElement('div',{style:{color:getAvgColor(avgK,periodRecs.length?periodRecs.reduce((a,r)=>a+(parseFloat(r.targetGiven)||13),0)/periodRecs.length:13),fontWeight:"700",fontSize:16}},fmt(avgK,1))
                   ),
                   avgAbs!==null&&React.createElement('div',{style:{textAlign:"right"}},
                     React.createElement('div',{style:{color:MUTED,fontSize:10,marginBottom:2}},"Avg Abs"),
@@ -4397,7 +4399,7 @@ function App(){
                           ),
                           React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8}},
                             latest&&React.createElement('div',{style:{textAlign:"right",marginRight:4}},
-                              React.createElement('div',{style:{color:getAvgColor(latest.K),fontWeight:"700",fontSize:15}},fmt(latest.K,1)),
+                              React.createElement('div',{style:{color:getAvgColor(latest.K,latest.targetGiven),fontWeight:"700",fontSize:15}},fmt(latest.K,1)),
                               React.createElement('div',{style:{color:MUTED,fontSize:10}},"avg/day")
                             ),
                             React.createElement('button',{
@@ -4600,7 +4602,7 @@ function App(){
           React.createElement('div', null
             /* STATS */
             , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:14,marginBottom:24},}
-              , React.createElement(StatBox, { label: "Latest Average" , value: fmt(pl.K,2), color: getAvgColor(pl.K),})
+              , React.createElement(StatBox, { label: "Latest Average" , value: fmt(pl.K,2), color: getAvgColor(pl.K,pl.targetGiven),})
               , React.createElement(StatBox, { label: "Attendance", value: fmt(pl.attendancePct,2)+"%",})
               , React.createElement(StatBox, { label: "Total Months" , value: profileRecords.length,})
               , React.createElement(StatBox, { label: "Class", value: pl.class, color: TEXT,})
@@ -4884,7 +4886,7 @@ function App(){
                       , React.createElement('div', { style: {color:MUTED,fontSize:12},}, "Pages " , r.fromPage, "–", r.toPage)
                     )
                     , React.createElement('div', { style: {display:"flex",gap:16,fontSize:13,flexWrap:"wrap"},}
-                      , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:getAvgColor(r.K),fontWeight:"bold"},}, fmt(r.K,2)))
+                      , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:getAvgColor(r.K,r.targetGiven),fontWeight:"bold"},}, fmt(r.K,2)))
                       , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "True: " ), React.createElement('span', { style: {color:TEXT},}, fmt(r.R,2)))
                       , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Attend: " ), React.createElement('span', { style: {color:TEXT},}, fmt(r.attendancePct,2), "%"))
                       , React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:BEHAVIOUR_COLORS[r.behaviour]||GREEN},}, r.behaviour, "/5"))
@@ -5498,7 +5500,7 @@ function App(){
             React.createElement('div', { key: r.id, style: {background:CARD,borderRadius:10,padding:"14px 18px",border:"1px solid "+(RED)+"33",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"},}
               , React.createElement('div', { style: {flex:1},}, React.createElement('div', { style: {color:TEXT,fontWeight:"bold",fontSize:15,cursor:"pointer",textDecoration:"underline"}, onClick: ()=>{setProfileName(r.name);setView("profile");},}, r.name), React.createElement('div', { style: {color:MUTED,fontSize:12},}, r.class, " ·"  , r.monthName))
               , React.createElement('div', { style: {display:"flex",gap:16,fontSize:13,flexWrap:"wrap"},}
-                , r.K<11&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:RED,fontWeight:"bold"},}, fmt(r.K,2)))
+                , avgTier(r.K,r.targetGiven)==="red"&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Avg: " ), React.createElement('span', { style: {color:RED,fontWeight:"bold"},}, fmt(r.K,2)))
                 , parseInt(r.behaviour)<3&&React.createElement('div', null, React.createElement('span', { style: {color:MUTED},}, "Bhv: " ), React.createElement('span', { style: {color:ORANGE,fontWeight:"bold"},}, r.behaviour, "/5 — "  , BEHAVIOUR_LABELS[r.behaviour]))
               )
             )
