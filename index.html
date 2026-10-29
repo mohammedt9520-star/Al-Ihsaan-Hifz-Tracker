@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20260902-090157 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
+<!-- hifz-20261029-102907 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -158,7 +158,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20260902-090157';
+const APP_VERSION='hifz-20261029-102907';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -240,6 +240,8 @@ const TOPBAR_BG="#07150e";
 const BORDER="#e6e1d3";
 function lsGetClasses(){try{const v=JSON.parse(localStorage.getItem("hifzClasses")||"null");return Array.isArray(v)&&v.length?v:["HIFZ CLASS A","HIFZ CLASS B"];}catch(e){return ["HIFZ CLASS A","HIFZ CLASS B"];}}
 let CLASSES=lsGetClasses();
+function lsGetJSON(k){try{const v=JSON.parse(localStorage.getItem(k)||"{}");return v&&typeof v==="object"&&!Array.isArray(v)?v:{};}catch(e){return{};}}
+function lsSaveJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 // "Build Report from Daily Entries" (auto-collate a monthly entry from daily sabaq records)
 // — parked per admin request until it's reworked; flip back to true to restore it.
 const COLLATION_FEATURE_ENABLED=false;
@@ -892,7 +894,10 @@ function sanitiseRecord(r){
   if(!r||typeof r!=="object")return null;
   if(!r.id||!r.name)return null;
   // V7: blank/invalid class → default to first class
-  const _safeClass=CLASSES.includes(r.class)?r.class:CLASSES[0];
+  // A class that isn't in this device's CLASSES list (e.g. one created on another device) must be
+  // kept and registered, not silently folded into the first class — that moved students to Class A.
+  const _safeClass=(typeof r.class==="string"&&r.class.trim())?r.class.trim():CLASSES[0];
+  if(!CLASSES.includes(_safeClass)){CLASSES=[...CLASSES,_safeClass];try{localStorage.setItem("hifzClasses",JSON.stringify(CLASSES));}catch(e){}}
   var out={
     ...r,
     class: _safeClass,
@@ -2111,8 +2116,17 @@ function LatesPage({registerData,setView,records}){
   );
 }
 function App(){
-  const [records,setRecords]=React.useState(()=>lsGet());
-  const [dorRecords,setDorRecords]=React.useState(()=>lsGetDor());
+  // The four data arrays are held in full as all*; the unprefixed names the rest of the app reads
+  // are the same data with students who have LEFT filtered out (see leftStudents below).
+  // setRecords/setDorRecords/... always act on the full arrays.
+  const [allRecords,setRecords]=React.useState(()=>lsGet());
+  const [allDorRecords,setDorRecords]=React.useState(()=>lsGetDor());
+  const [allRegisterData,setRegisterData]=React.useState(()=>lsGetRegister());
+  const [allDailySabaqEntries,setDailySabaqEntries]=React.useState(()=>lsGetDailySabaq());
+  // name -> {date}; students who have left. Kept in app_settings so it syncs across devices.
+  const [leftStudents,setLeftStudents]=React.useState(()=>lsGetJSON("hifzLeftStudents"));
+  // "<periodKey>|<class>" -> [names]; students excluded from the Sabaq Champion ranking.
+  const [champExcluded,setChampExcluded]=React.useState(()=>lsGetJSON("hifzChampExcluded"));
   const [view,setViewRaw]=React.useState("menu");
   const viewHistory=React.useRef([]);
   function setView(v){
@@ -2151,6 +2165,13 @@ function App(){
   const [postSaveView,setPostSaveView]=React.useState("menu");
   const [missingOpen,setMissingOpen]=React.useState(false);
   const [profileName,setProfileName]=React.useState("");
+  // Left students vanish from every class/report/register list. The one exception is the profile
+  // currently open, so a left student's records stay reachable from the Left Students page.
+  const _hideName=function(n){return !!leftStudents[n]&&!(view==="profile"&&n===profileName);};
+  const records=React.useMemo(()=>allRecords.filter(r=>!_hideName(r.name)),[allRecords,leftStudents,view,profileName]);
+  const dorRecords=React.useMemo(()=>allDorRecords.filter(r=>!_hideName(r.studentName)),[allDorRecords,leftStudents,view,profileName]);
+  const registerData=React.useMemo(()=>allRegisterData.filter(r=>!_hideName(r.studentName)),[allRegisterData,leftStudents,view,profileName]);
+  const dailySabaqEntries=React.useMemo(()=>allDailySabaqEntries.filter(r=>!_hideName(r.studentName)),[allDailySabaqEntries,leftStudents,view,profileName]);
   const [historyClass,setHistoryClass]=React.useState("");
   const [historyDateFrom,setHistoryDateFrom]=React.useState("");
   const [historyDateTo,setHistoryDateTo]=React.useState("");
@@ -2176,7 +2197,6 @@ function App(){
   const [sabaqEntryDate,setSabaqEntryDate]=React.useState(getTodayStr());
   // Year Planner & Register
   const [yearPlan,setYearPlan]=React.useState(()=>lsGetYearPlan());
-  const [registerData,setRegisterData]=React.useState(()=>lsGetRegister());
   const hafidhStudents=React.useMemo(function(){
     return new Set(records.filter(function(rec){return rec.isStudentProfile&&rec.isHafidh;}).map(function(rec){return rec.name;}));
   },[records]);
@@ -2199,7 +2219,6 @@ function App(){
   const [absenceMonth,setAbsenceMonth]=React.useState(getTodayStr().substring(0,7));
   const [plannerClass,setPlannerClass]=React.useState("HIFZ CLASS A");
   const [plannerSession,setPlannerSession]=React.useState("morning");
-  const [dailySabaqEntries,setDailySabaqEntries]=React.useState(()=>lsGetDailySabaq());
   const [profileEdits,setProfileEdits]=React.useState({});
   const [classesView,setClassesView]=React.useState("list"); // list | classDetail | addStudent
   const [selectedClass,setSelectedClass]=React.useState("HIFZ CLASS A");
@@ -2399,11 +2418,11 @@ function App(){
     loadCloud().then(function(){showSyncMsg("Loaded ✓");}).catch(function(e){showSyncMsg("Error ✗");console.warn("Load failed:",e.message);});
   }
   React.useEffect(()=>{
-    lsSave(records);lsSaveDor(dorRecords);lsSaveYearPlan(yearPlan);
-    lsSaveRegister(registerData);lsSaveDailySabaq(dailySabaqEntries);
+    lsSave(allRecords);lsSaveDor(allDorRecords);lsSaveYearPlan(yearPlan);
+    lsSaveRegister(allRegisterData);lsSaveDailySabaq(allDailySabaqEntries);
     if(skipNextSyncEffect.current){skipNextSyncEffect.current=false;return;} // just loaded from cloud — nothing new to push
     scheduleSync();
-  },[records,dorRecords,yearPlan,registerData,dailySabaqEntries]);
+  },[allRecords,allDorRecords,yearPlan,allRegisterData,allDailySabaqEntries]);
   React.useEffect(()=>{lsSaveHT(htEmail);},[htEmail]);
 
   const studentNames=React.useMemo(()=>{
@@ -2866,7 +2885,7 @@ function App(){
         var mEmailIdx=hdrs.findIndex(function(h){return h.includes("mother")&&h.includes("email");});
         if(nameIdx<0){showToast("Could not find 'Name' column in file.","error");return;}
         var added=0,updated=0;
-        var next=Array.isArray(records)?[...records]:[];
+        var next=Array.isArray(allRecords)?[...allRecords]:[];
         var today2=getTodayStr();
         for(var ri=1;ri<rows.length;ri++){
           var row=rows[ri];
@@ -3305,13 +3324,16 @@ function App(){
       showToast("Absences ("+abs+") + Para Dor mornings ("+pdm+") cannot exceed Total Days of Sabaq ("+tds+").","error");
       return;
     }
-    // Auto-fill emails from previous records if not new student
-    if(!addNewStudent&&!editingId){
-      const prev=calced.filter(r=>r.name===form.name).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
-      if(prev&&(prev.parentEmail1||prev.parentEmail2)){
-        savedForm.parentEmail1=savedForm.parentEmail1||prev.parentEmail1||"";
-        savedForm.parentEmail2=savedForm.parentEmail2||prev.parentEmail2||"";
-      }
+    // A brand-new student must not clash with anyone already on the system (in either class, or among the left)
+    if(addNewStudent&&!editingId){
+      const clash=findStudentAnywhere(savedForm.name);
+      if(clash){showToast(clash.name+" already exists"+(clash.cls?" in "+clash.cls:"")+(clash.left?" (marked as left — restore them from Left Students)":" — untick \"Add New Student\" and select them from the list instead")+".","error",7000);return;}
+      savedForm.name=savedForm.name.trim();
+    }
+    // Auto-fill parent contacts (emails, phones, ID) from anything already saved for this student
+    if(!editingId){
+      const c=getContact(savedForm.name);
+      ["parentEmail1","parentEmail2","fatherPhone","motherPhone","uniqueId"].forEach(f=>{savedForm[f]=(savedForm[f]&&String(savedForm[f]).trim())?savedForm[f]:(c[f]||"");});
     }
     if(editingId){
       const exists=records.some(r=>r.id===editingId);
@@ -3321,7 +3343,7 @@ function App(){
     else{
       // Guard: prevent duplicate records for same student+month
       const newMonth=savedForm.dateFrom?savedForm.dateFrom.substring(0,7):"";
-      const hasDup=newMonth&&records.some(r=>r.name===savedForm.name&&r.id!==editingId&&r.dateFrom&&r.dateFrom.substring(0,7)===newMonth);
+      const hasDup=newMonth&&allRecords.some(r=>!r.isStudentProfile&&r.name===savedForm.name&&r.id!==editingId&&r.dateFrom&&r.dateFrom.substring(0,7)===newMonth);
       if(hasDup){const _dup=await showConfirm("A record for "+savedForm.name+" in "+newMonth+" already exists.","Save Duplicate?");if(!_dup)return;}
       setRecords(prev=>[...prev,{...savedForm,id:uid()}]);
     }
@@ -3405,14 +3427,135 @@ function App(){
     setEditingProfile(false);
   }
 
+  // ── Student helpers ───────────────────────────────────────────
+  // A student's "home" class: the class of their latest real monthly record, else of their profile placeholder.
+  function getStudentClass(name){
+    const mine=allRecords.filter(r=>r.name===name);
+    const real=mine.filter(r=>!r.isStudentProfile).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
+    return (real||mine[0]||{}).class||null;
+  }
+  // Contact details live on whichever records they were typed into (profile placeholder, monthly
+  // records) — take the newest non-empty value for each field across all of them.
+  function getContact(name){
+    const mine=allRecords.filter(r=>r.name===name).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""));
+    const out={};
+    ["parentEmail1","parentEmail2","fatherPhone","motherPhone","uniqueId"].forEach(f=>{
+      const hit=mine.find(r=>r[f]&&String(r[f]).trim());out[f]=hit?hit[f]:"";
+    });
+    return out;
+  }
+  function findStudentAnywhere(name){
+    const n=String(name||"").trim().toLowerCase();
+    const hit=allRecords.find(r=>r.name&&r.name.trim().toLowerCase()===n);
+    return hit?{name:hit.name,cls:getStudentClass(hit.name),left:!!leftStudents[hit.name]}:null;
+  }
+  // Move every record of each named student into the given class in one pass, merging the
+  // duplicates that appear when a student already has rows in both classes.
+  async function relocateStudents(moves){
+    let recs=allRecords,daily=allDailySabaqEntries,reg=allRegisterData;
+    const dropSabaq=[],dropDaily=[],delRegister=[];
+    let merged=0;
+    const FILL=["parentEmail1","parentEmail2","fatherPhone","motherPhone","uniqueId"];
+    const monthOf=r=>r.dateFrom?r.dateFrom.substring(0,7):"";
+    const weight=r=>(parseFloat(r.totalFullSides)||0)+(parseFloat(r.plusLines)||0)+(parseInt(r.totalDaysOfSabaq)||0);
+    moves.forEach(({name,newCls})=>{
+      const oldClasses=[...new Set(recs.filter(r=>r.name===name&&r.class!==newCls).map(r=>r.class))];
+      const mine=recs.filter(r=>r.name===name);
+      let profile=null;const real=[];
+      mine.forEach(r=>{
+        const moved=r.class===newCls?r:{...r,class:newCls};
+        if(r.isStudentProfile){
+          if(!profile){profile=moved;return;}
+          const p={...profile};
+          FILL.forEach(f=>{if(!p[f]&&moved[f])p[f]=moved[f];});
+          if(moved.isHafidh)p.isHafidh=true;
+          profile=p;dropSabaq.push(r.id);merged++;return;
+        }
+        const m=monthOf(r);
+        const clash=m?real.findIndex(x=>monthOf(x.rec)===m&&x.orig!==r.class):-1;
+        if(clash<0){real.push({rec:moved,orig:r.class});return;}
+        // The same month exists in both classes: keep the one carrying more data (ties keep the destination's)
+        const cur=real[clash];
+        const keepNew=weight(moved)>weight(cur.rec)||(weight(moved)===weight(cur.rec)&&r.class===newCls);
+        if(keepNew){dropSabaq.push(cur.rec.id);real[clash]={rec:moved,orig:r.class};}
+        else dropSabaq.push(r.id);
+        merged++;
+      });
+      recs=[...recs.filter(r=>r.name!==name),...(profile?[profile]:[]),...real.map(x=>x.rec)];
+      const destDates=new Set(daily.filter(d=>d.studentName===name&&d.class===newCls).map(d=>d.date));
+      daily=daily.flatMap(d=>{
+        if(d.studentName!==name||d.class===newCls)return[d];
+        if(destDates.has(d.date)){dropDaily.push(d.id);merged++;return[];}
+        return[{...d,class:newCls}];
+      });
+      const destReg=new Set(reg.filter(x=>x.studentName===name&&x.class===newCls).map(x=>x.session+"|"+x.date));
+      reg=reg.flatMap(x=>{
+        if(x.studentName!==name||x.class===newCls)return[x];
+        if(destReg.has(x.session+"|"+x.date)){merged++;return[];}
+        return[{...x,class:newCls,key:getRegisterKey(newCls,x.session,x.date)}];
+      });
+      oldClasses.forEach(oc=>delRegister.push({name,cls:oc}));
+    });
+    if(syncTimer.current){clearTimeout(syncTimer.current);syncTimer.current=null;}
+    setRecords(recs);setDailySabaqEntries(daily);setRegisterData(reg);
+    lsSave(recs);lsSaveDailySabaq(daily);lsSaveRegister(reg);
+    // Register rows embed the class in their id, so the old-class rows must be deleted on the
+    // server (the moved rows are re-created under new ids by the next sync). Let any sync that is
+    // already in flight finish first so it can't re-create what is deleted here.
+    for(let t=0;isSyncing.current&&t<30;t++)await new Promise(res=>setTimeout(res,100));
+    const idList=ids=>"("+ids.map(encodeURIComponent).join(",")+")";
+    const jobs=[];
+    for(let i=0;i<dropSabaq.length;i+=50)jobs.push(sbFetch("sabaq_records?id=in."+idList(dropSabaq.slice(i,i+50)),"DELETE"));
+    for(let i=0;i<dropDaily.length;i+=50)jobs.push(sbFetch("daily_sabaq?id=in."+idList(dropDaily.slice(i,i+50)),"DELETE"));
+    delRegister.forEach(d=>jobs.push(sbFetch("register_data?student_name=eq."+encodeURIComponent(d.name)+"&class=eq."+encodeURIComponent(d.cls),"DELETE")));
+    const res=await Promise.allSettled(jobs);
+    if(res.some(r=>r.status==="rejected"))console.warn("relocateStudents: some server deletes failed",res.filter(r=>r.status==="rejected").map(r=>r.reason&&r.reason.message));
+    scheduleSync();
+    return merged;
+  }
   async function moveStudentClass(name, oldCls, newCls){
     if(!newCls||newCls===oldCls)return;
-    const _mvc=await showConfirm("Move "+name+" from "+oldCls+" to "+newCls+"? All their records, register and daily entries will be updated.","Move Student");if(!_mvc)return;
-    setRecords(prev=>{const next=prev.map(r=>r.name===name&&r.class===oldCls?{...r,class:newCls}:r);lsSave(next);return next;});
-    setDailySabaqEntries(prev=>{const next=prev.map(r=>r.studentName===name&&r.class===oldCls?{...r,class:newCls}:r);lsSaveDailySabaq(next);return next;});
-    setRegisterData(prev=>{const next=prev.map(r=>r.studentName===name&&r.class===oldCls?{...r,class:newCls}:r);lsSaveRegister(next);return next;});
+    const _mvc=await showConfirm("Move "+name+" from "+oldCls+" to "+newCls+"? All their records, register and daily entries move with them, and any duplicates are merged.","Move Student");if(!_mvc)return;
+    const merged=await relocateStudents([{name,newCls}]);
     setProfileClass(newCls);
-    syncNow().catch(()=>{});
+    showToast(name+" moved to "+newCls+(merged>0?" ("+merged+" duplicate"+(merged!==1?"s":"")+" merged)":""),"success");
+  }
+  // Students whose rows are split across classes (the add-student wrong-class bug): gather each
+  // into their home class. Returns [{name,from,to}] for the confirmation prompt.
+  function findSplitStudents(){
+    const byName={};
+    allRecords.forEach(r=>{if(r.name&&!r.name.startsWith("(")){(byName[r.name]=byName[r.name]||new Set()).add(r.class);}});
+    return Object.keys(byName).filter(n=>byName[n].size>1).map(n=>({name:n,from:[...byName[n]],to:getStudentClass(n)}));
+  }
+  async function repairSplitStudents(){
+    const split=findSplitStudents();
+    if(split.length===0){showToast("No students are split across classes.","success");return;}
+    const _ok=await showConfirm("These students have records in more than one class:\n\n"+split.map(x=>"• "+x.name+" ("+x.from.join(" + ")+") → "+x.to).join("\n")+"\n\nEach will be gathered into the class of their most recent monthly record, and duplicates merged.","Fix Duplicates");if(!_ok)return;
+    const merged=await relocateStudents(split.map(x=>({name:x.name,newCls:x.to})));
+    showToast("Fixed "+split.length+" student"+(split.length!==1?"s":"")+(merged>0?" — "+merged+" duplicate row"+(merged!==1?"s":"")+" merged":""),"success");
+  }
+  // ── Left students ─────────────────────────────────────────────
+  async function markStudentLeft(name){
+    const _ml=await showConfirm(name+" will be hidden from every class, register and report. Nothing is deleted — you can find them under Left Students and restore them any time.","Mark as Left");if(!_ml)return;
+    const next={...leftStudents,[name]:{date:getTodayStr(),cls:getStudentClass(name)||""}};
+    setLeftStudents(next);lsSaveJSON("hifzLeftStudents",next);
+    setProfileName("");setEditingProfile(false);
+    scheduleSync();
+    showToast(name+" marked as left.","success");
+  }
+  function restoreLeftStudent(name){
+    const next={...leftStudents};delete next[name];
+    setLeftStudents(next);lsSaveJSON("hifzLeftStudents",next);
+    scheduleSync();
+    showToast(name+" restored.","success");
+  }
+  function toggleChampExclude(key,name){
+    const cur=champExcluded[key]||[];
+    const nextList=cur.includes(name)?cur.filter(n=>n!==name):[...cur,name];
+    const next={...champExcluded,[key]:nextList};
+    if(nextList.length===0)delete next[key];
+    setChampExcluded(next);lsSaveJSON("hifzChampExcluded",next);
+    scheduleSync();
   }
 
   function openEdit(id){
@@ -3441,14 +3584,16 @@ function App(){
     try{
       const planRows=yearPlan.map(p=>({id:p.id||(p.class+"_"+p.session),class:p.class,session:p.session,dates:p.dates,updated_at:new Date().toISOString()}));
       const results=await Promise.allSettled([
-        sbUpsert("sabaq_records",records.map(sbMapSabaqOut)),
-        sbUpsert("dor_records",dorRecords.map(sbMapDorOut)),
-        sbUpsert("daily_sabaq",dailySabaqEntries.map(sbMapDailyOut)),
-        sbUpsert("register_data",registerData.map(sbMapRegisterOut)),
+        sbUpsert("sabaq_records",allRecords.map(sbMapSabaqOut)),
+        sbUpsert("dor_records",allDorRecords.map(sbMapDorOut)),
+        sbUpsert("daily_sabaq",allDailySabaqEntries.map(sbMapDailyOut)),
+        sbUpsert("register_data",allRegisterData.map(sbMapRegisterOut)),
         sbUpsert("year_plan",planRows),
         sbUpsert("app_settings",[
           {key:"adminPassword",value:getAdminPassword(),updated_at:new Date().toISOString()},
-          {key:"htEmail",value:htEmail||"",updated_at:new Date().toISOString()}
+          {key:"htEmail",value:htEmail||"",updated_at:new Date().toISOString()},
+          {key:"leftStudents",value:JSON.stringify(leftStudents),updated_at:new Date().toISOString()},
+          {key:"champExcluded",value:JSON.stringify(champExcluded),updated_at:new Date().toISOString()}
         ],"key")
       ]);
       const failures=results.filter(r=>r.status==="rejected");
@@ -3489,6 +3634,11 @@ function App(){
       if(pw&&pw.value)localStorage.setItem("adminPassword",pw.value);
       const ht=stR.data.find(r=>r.key==="htEmail");
       if(ht&&ht.value!==undefined){setHtEmail(ht.value);lsSaveHT(ht.value);}
+      [["leftStudents",setLeftStudents,"hifzLeftStudents"],["champExcluded",setChampExcluded,"hifzChampExcluded"]].forEach(function(t){
+        const row=stR.data.find(r=>r.key===t[0]);
+        if(!row||!row.value)return;
+        try{const v=JSON.parse(row.value);if(v&&typeof v==="object"&&!Array.isArray(v)){t[1](v);lsSaveJSON(t[2],v);}}catch(e){console.warn("loadCloud "+t[0],e.message);}
+      });
     }
     isFirstLoad.current=false;
     var anyLoaded=sR.ok||dR.ok||dlR.ok||rR.ok||pR.ok||stR.ok;
@@ -3516,6 +3666,7 @@ function App(){
     {icon:"📄",label:"Reports",view:"reports"},
     {icon:"🏆",label:"Sabaq Champ",view:"poster"},
     {icon:"🔖",label:"Dor Champ",view:"dorchamp"},
+    {icon:"🚪",label:"Left Students",view:"leftStudents"},
     {icon:"🎓",label:"Head Admin Portal",view:"headteacher",danger:true},
   ];
 
@@ -3716,6 +3867,7 @@ function App(){
           {icon:"🔖",label:"Dor Champion",sub:"Class Dor rankings",view:"dorchamp",accent:"#4F46E5"},
         ]},
         {label:"Admin",items:[
+          {icon:"🚪",label:"Left Students",sub:Object.keys(leftStudents).length>0?Object.keys(leftStudents).length+" archived":"Archived records",view:"leftStudents",accent:"#6B7280"},
           {icon:"🎓",label:"Head Admin Portal",sub:"Data, exports & settings",view:"headteacher",accent:"#DC2626",danger:true},
         ]},
       ];
@@ -3813,6 +3965,29 @@ function App(){
     /* ABSENCES */
     , view==="absences"&&React.createElement(AbsencesPage, {yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
     , view==="monthlyReport"&&React.createElement(MonthlyReportPage, {records:records,dailySabaqEntries:dailySabaqEntries,dorRecords:dorRecords,registerData:registerData,hafidhStudents:hafidhStudents,})
+
+    /* LEFT STUDENTS */
+    , view==="leftStudents"&&(()=>{
+      const names=Object.keys(leftStudents).sort((a,b)=>a.localeCompare(b));
+      return React.createElement('div',{style:{maxWidth:640,margin:"0 auto",padding:24}},
+        React.createElement('div',{style:{color:TEXT,fontWeight:"700",fontSize:18,marginBottom:4}},"🚪 Left Students"),
+        React.createElement('div',{style:{color:MUTED,fontSize:12,marginBottom:20}},"These students are hidden from every class, register and report. Their records are kept here and can be viewed or restored."),
+        names.length===0
+          ? React.createElement('div',{style:{textAlign:"center",padding:50,color:MUTED,fontSize:13,background:CARD,borderRadius:12,border:"1px solid "+BORDER}},"No students have been marked as left.")
+          : names.map(n=>{
+              const info=leftStudents[n]||{};
+              const nRecs=allRecords.filter(r=>r.name===n&&!r.isStudentProfile).length;
+              return React.createElement('div',{key:n,style:{background:CARD,border:"1px solid "+BORDER,borderRadius:12,padding:"12px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}},
+                React.createElement('div',{style:{flex:1,minWidth:160}},
+                  React.createElement('div',{style:{color:TEXT,fontWeight:"600",fontSize:14}},n),
+                  React.createElement('div',{style:{color:MUTED,fontSize:11,marginTop:2}},(info.cls||getStudentClass(n)||"")+(info.date?" · left "+info.date:"")+" · "+nRecs+" monthly record"+(nRecs!==1?"s":""))
+                ),
+                React.createElement('button',{onClick:()=>{setProfileClass(info.cls||getStudentClass(n)||CLASSES[0]);setProfileName(n);setView("profile");},style:{background:"transparent",border:"1px solid "+BORDER,color:TEXT,borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"500"}},"View records"),
+                React.createElement('button',{onClick:()=>restoreLeftStudent(n),style:{background:GOLD,color:"#fff",border:"none",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"600"}},"Restore")
+              );
+            })
+      );
+    })()
 
     /* LATES */
     , view==="lates"&&React.createElement(LatesPage, {registerData:registerData,setView:setView,records:records})
@@ -4013,9 +4188,11 @@ function App(){
               , React.createElement('select', { value: form.name, onChange: e=>{
                 const name=e.target.value;
                 fc("name",name);
-                const latest=calced.filter(r=>r.name===name).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
-                if(latest){
-                  fc("class",latest.class);
+                // Use the student's real class even if they only have a profile placeholder so far —
+                // otherwise a student added to Class B from the Classes page defaulted to Class A here.
+                const cls=getStudentClass(name);
+                if(cls){
+                  fc("class",cls);
                 }
               }, style: inputStyle,}
                 , React.createElement('option', { value: "",}, "— Select existing student —"    )
@@ -4089,17 +4266,23 @@ function App(){
 
         /* PARENT EMAILS - only shown if new student or no emails saved */
         , (addNewStudent||editingId||(()=>{
-          const latest=calced.filter(r=>r.name===form.name).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
-          return !latest||(!(latest.parentEmail1||latest.parentEmail2));
+          const c=getContact(form.name);
+          return !(c.parentEmail1||c.parentEmail2||c.fatherPhone||c.motherPhone);
         })())&&form.name&&(
           React.createElement('div', { style: {marginTop:16,background:DARK,borderRadius:10,padding:16,border:"1px solid "+(GOLD)+"22"},}
-            , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:13,marginBottom:12},}, "📧 Parent Emails "   , (!addNewStudent&&!editingId)&&React.createElement('span', { style: {color:MUTED,fontWeight:"normal",fontSize:11},}, "(no emails saved for this student)"     ))
+            , React.createElement('div', { style: {color:GOLD,fontWeight:"bold",fontSize:13,marginBottom:12},}, "📧 Parent Contact Details "   , (!addNewStudent&&!editingId)&&React.createElement('span', { style: {color:MUTED,fontWeight:"normal",fontSize:11},}, "(no contact details saved for this student)"     ))
             , React.createElement('div', { style: {display:"grid",gridTemplateColumns:"1fr 1fr",gap:12},}
               , React.createElement(FormRow, { label: "Father's Email" ,}
                 , React.createElement(Input, { type: "email", value: form.parentEmail1, onChange: v=>fc("parentEmail1",v), placeholder: "father@email.com",})
               )
               , React.createElement(FormRow, { label: "Mother's Email" ,}
                 , React.createElement(Input, { type: "email", value: form.parentEmail2, onChange: v=>fc("parentEmail2",v), placeholder: "mother@email.com",})
+              )
+              , React.createElement(FormRow, { label: "Father's Phone" ,}
+                , React.createElement(Input, { type: "tel", value: form.fatherPhone||"", onChange: v=>fc("fatherPhone",v), placeholder: "+44 7xxx xxxxxx",})
+              )
+              , React.createElement(FormRow, { label: "Mother's Phone" ,}
+                , React.createElement(Input, { type: "tel", value: form.motherPhone||"", onChange: v=>fc("motherPhone",v), placeholder: "+44 7xxx xxxxxx",})
               )
             )
           )
@@ -4156,6 +4339,10 @@ function App(){
                     setNewClassName("");setClassListVer(v=>v+1);},
                   style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"10px 18px",cursor:"pointer",fontWeight:"700",fontSize:13,whiteSpace:"nowrap"}},"+ Add Class")
               )
+            )
+          , findSplitStudents().length>0&&React.createElement('div',{style:{background:"#FEF3C7",border:"1px solid #FCD34D",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}},
+              React.createElement('div',{style:{flex:1,minWidth:200,color:"#92400E",fontSize:13}},"⚠️ "+findSplitStudents().length+" student"+(findSplitStudents().length!==1?"s have":" has")+" records in more than one class (shows as a duplicate)."),
+              React.createElement('button',{onClick:repairSplitStudents,style:{background:"#D97706",color:"#fff",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontWeight:"700",fontSize:12}},"Fix now")
             )
           , allClasses.map(cls=>{
             const classStudents=[...new Set(records.filter(r=>r.class===cls&&r.name&&!r.name.startsWith("(")).map(r=>r.name))].sort();
@@ -4223,6 +4410,11 @@ function App(){
                               style:{background:"transparent",border:"1px solid #2563eb44",color:"#2563eb",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,flexShrink:0}
                             },"⇄"),
                             React.createElement('button',{
+                              onClick:e=>{e.stopPropagation();markStudentLeft(name);},
+                              title:"Mark as left",
+                              style:{background:"transparent",border:"1px solid "+MUTED+"55",color:MUTED,borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,flexShrink:0}
+                            },"🚪"),
+                            React.createElement('button',{
                               onClick:e=>{e.stopPropagation();deleteStudent(name,cls);},
                               style:{background:"transparent",border:"1px solid "+RED+"44",color:RED,borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,flexShrink:0}
                             },"🗑")
@@ -4288,8 +4480,8 @@ function App(){
                           onClick:function(){
                             if(!newStudent.name.trim()){setNewStudentMsg("❌ Full name is required.");return;}
                             if(newStudent.name.trim().length>80){setNewStudentMsg("❌ Name too long (max 80 characters).");return;}
-                            const nameExists=records.some(function(r){return r.name.trim().toLowerCase()===newStudent.name.trim().toLowerCase()&&r.class===cls;});
-                            if(nameExists){setNewStudentMsg("❌ "+newStudent.name.trim()+" already exists in "+cls+".");return;}
+                            const clash=findStudentAnywhere(newStudent.name);
+                            if(clash){setNewStudentMsg("❌ "+clash.name+" already exists"+(clash.cls?" in "+clash.cls:"")+(clash.left?" (marked as left — restore from Left Students)":"")+".");return;}
                             const today2=getTodayStr();
                             const studentRecord={
                               id:uid(),name:newStudent.name.trim(),class:cls,
@@ -4304,8 +4496,7 @@ function App(){
                               isStudentProfile:true,
                             };
                             setRecords(function(prev){const next=[...prev,studentRecord];lsSave(next);return next;});
-                            setNewStudentMsg("✅ "+newStudent.name.trim()+" added!");
-                            syncNow().catch(function(){});
+                            setNewStudentMsg("✅ "+newStudent.name.trim()+" added to "+cls+"!");
                             setNewStudent({name:"",class:cls,uniqueId:"STU-"+Math.random().toString(36).substring(2,8).toUpperCase(),startDate:"",fatherEmail:"",fatherPhone:"",motherEmail:"",motherPhone:""});
                             setTimeout(function(){setNewStudentMsg("");},3000);
                           },
@@ -4330,14 +4521,14 @@ function App(){
               onClick:()=>{
                 if(!editingProfile){
                   // Load current values into edit buffer from latest record
-                  const latestRec=records.filter(r=>r.name===profileName).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0]||{};
+                  const _ct=getContact(profileName);
                   setProfileEdits({
                     name:profileName,
-                    class:latestRec.class||"HIFZ CLASS A",
-                    parentEmail1:latestRec.parentEmail1||"",
-                    parentEmail2:latestRec.parentEmail2||"",
-                    fatherPhone:latestRec.fatherPhone||"",
-                    motherPhone:latestRec.motherPhone||"",
+                    class:getStudentClass(profileName)||"HIFZ CLASS A",
+                    parentEmail1:_ct.parentEmail1||"",
+                    parentEmail2:_ct.parentEmail2||"",
+                    fatherPhone:_ct.fatherPhone||"",
+                    motherPhone:_ct.motherPhone||"",
                   });
                   setEditingProfile(true);
                 } else {
@@ -4351,8 +4542,7 @@ function App(){
           // Move Class — only visible when a student is selected and not editing
           !editingProfile&&profileName&&React.createElement('button',{
             onClick:async ()=>{
-              const curRec=records.filter(r=>r.name===profileName).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
-              const curClass=curRec?curRec.class:CLASSES[0];
+              const curClass=(records.some(r=>r.name===profileName&&r.class===profileClass)?profileClass:getStudentClass(profileName))||CLASSES[0];
               const opts=CLASSES.filter(c=>c!==curClass);
               if(opts.length===0){showToast("No other classes to move to.","warning");return;}
               let newCls;if(opts.length===1){newCls=opts[0];}else{const _sel=await showInputModal("Select destination class","Move "+profileName,{type:"select",choices:opts.map(function(c){return{label:c,value:c};})});newCls=_sel||null;}
@@ -4360,10 +4550,14 @@ function App(){
             },
             style:{background:"transparent",color:TEXT,border:"1px solid "+BORDER,borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"500"}
           },"⇄ Move"),
+          !editingProfile&&profileName&&!leftStudents[profileName]&&React.createElement('button',{
+            onClick:()=>markStudentLeft(profileName),
+            title:"Mark as left",
+            style:{background:"transparent",color:MUTED,border:"1px solid "+BORDER,borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"500"}
+          },"🚪 Left"),
           !editingProfile&&profileName&&React.createElement('button',{
             onClick:()=>{
-              const curRec=records.filter(r=>r.name===profileName).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
-              deleteStudent(profileName,curRec?curRec.class:profileClass);
+              deleteStudent(profileName,(records.some(r=>r.name===profileName&&r.class===profileClass)?profileClass:getStudentClass(profileName))||profileClass);
             },
             style:{background:"transparent",color:RED,border:"1px solid "+RED+"44",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:"500"}
           },"🗑"),
@@ -4383,6 +4577,10 @@ function App(){
           , studentNames.filter(n=>calced.some(r=>r.name===n&&r.class===profileClass)||records.some(r=>r.name===n&&r.class===profileClass)).map(n=>React.createElement('option', { key: n, value: n,}, n))
         )
       )
+      , profileName&&leftStudents[profileName]&&React.createElement('div',{style:{background:"#F3F4F6",border:"1px solid "+BORDER,borderRadius:10,padding:"10px 14px",marginBottom:16,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}},
+          React.createElement('div',{style:{flex:1,minWidth:180,color:MUTED,fontSize:13}},"🚪 "+profileName+" has left"+(leftStudents[profileName].date?" ("+leftStudents[profileName].date+")":"")+" — hidden from classes and reports."),
+          React.createElement('button',{onClick:()=>restoreLeftStudent(profileName),style:{background:GOLD,color:"#fff",border:"none",borderRadius:8,padding:"7px 14px",cursor:"pointer",fontWeight:"700",fontSize:12}},"Restore")
+        )
       , !profileName&&(
         React.createElement('div', { style: {textAlign:"center",padding:60,color:MUTED},}, "Select a student to view their profile."      )
       )
@@ -4390,7 +4588,9 @@ function App(){
         React.createElement('div', { style: {textAlign:"center",padding:60,color:MUTED},}, "No records found for "    , profileName, ".")
       )
       , profileName&&profileRecords.length>0&&(()=>{
-        const pl=profileRecords[profileRecords.length-1]||{};
+        // Contact details can sit on a different record (profile placeholder vs monthly record), so merge them.
+        const _pc=getContact(profileName);
+        const pl={...(profileRecords[profileRecords.length-1]||{}),..._pc};
         const chartData=[...profileRecords].reverse().map(r=>({label:(r.monthName||"").split(" ")[0],value:r.K||0}));
         const bestK=profileRecords.length>0?Math.max(...profileRecords.map(r=>r.K||0)):0;
         const heatmap=buildHeatmap(profileDorRecords,profileName,pl.dateFrom||"",pl.dateTo||"");
@@ -4472,10 +4672,18 @@ function App(){
                   onClick:()=>{
                     if(!profileEdits.name||!profileEdits.name.trim()){showToast("Name cannot be empty.","error");return;}
                     const newName=profileEdits.name.trim();
-                    const editClass=profileEdits.class||(pl&&pl.class)||null;
+                    const _clash=newName!==profileName?findStudentAnywhere(newName):null;
+                    if(_clash){showToast(_clash.name+" already exists"+(_clash.cls?" in "+_clash.cls:"")+".","error");return;}
+                    const _oldCls=getStudentClass(profileName);
+                    const _newCls=profileEdits.class||_oldCls;
+                    // Class change: run the dedupe-aware move first (under the OLD name, which is what this
+                    // render's data holds); the rename/contact update below is applied on top of it.
+                    if(_newCls&&_oldCls&&_newCls!==_oldCls){
+                      relocateStudents([{name:profileName,newCls:_newCls}]).then(()=>setProfileClass(_newCls));
+                    }
                     setRecords(prev=>{
-                      const next=prev.map(r=>r.name===profileName&&(!editClass||r.class===editClass)?{
-                        ...r,name:newName,class:profileEdits.class||r.class,
+                      const next=prev.map(r=>r.name===profileName?{
+                        ...r,name:newName,
                         parentEmail1:profileEdits.parentEmail1!=null?profileEdits.parentEmail1:(r.parentEmail1||""),
                         parentEmail2:profileEdits.parentEmail2!=null?profileEdits.parentEmail2:(r.parentEmail2||""),
                         fatherPhone:profileEdits.fatherPhone!=null?profileEdits.fatherPhone:(r.fatherPhone||""),
@@ -4495,7 +4703,7 @@ function App(){
                     }
                     setEditingProfile(false);
                     showToast("Profile saved","success");
-                    syncNow().catch(()=>{});
+                    scheduleSync();
                   },
                   style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,
                     padding:"9px 20px",cursor:"pointer",fontWeight:"600",fontSize:13}
@@ -5332,10 +5540,10 @@ function App(){
         React.createElement("div",{style:{color:TEXT,fontWeight:"600",fontSize:15,marginBottom:4}},"Download Data"),
         React.createElement("div",{style:{color:MUTED,fontSize:12,marginBottom:14}},"Export all data as CSV files. Opens in Excel or Google Sheets."),
         React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}},
-          React.createElement("button",{onClick:function(){exportCSV(records,["id","name","class","dateFrom","dateTo","totalFullSides","plusLines","absences","paraDorMornings","totalDaysOfSabaq","targetGiven","upcomingTarget","parentEmail1","parentEmail2","fatherPhone","motherPhone","teacherComments","behaviour","weakSabaqInstances","weakDorInstances","eveningPossibleDays","eveningAbsences","fromPage","toPage","isStudentProfile"],"sabaq_records");},style:{background:"#F8F9FA",border:"1px solid "+BORDER,borderRadius:10,padding:"12px",cursor:"pointer",textAlign:"left",fontWeight:"600",fontSize:12,color:TEXT}},"CSV: Sabaq Records"),
-          React.createElement("button",{onClick:function(){exportCSV(dorRecords,["id","studentName","date","dor1Juz","dor1Quarter","dor1Mistakes","dor1Repeated","dor2Juz","dor2Quarter","dor2Mistakes","dor2Repeated","paraDor","paraTest"],"dor_records");},style:{background:"#F8F9FA",border:"1px solid "+BORDER,borderRadius:10,padding:"12px",cursor:"pointer",textAlign:"left",fontWeight:"600",fontSize:12,color:TEXT}},"CSV: Dor Records"),
-          React.createElement("button",{onClick:function(){exportCSV(dailySabaqEntries,["id","studentName","class","date","absent","sabaqPara","spLines","spMistakes","spScrape","paraDor","pdJuz","pdQuarter","pdMistakes","hasDor","dorJuz","dorQuarter","dorMistakes"],"daily_sabaq");},style:{background:"#F8F9FA",border:"1px solid "+BORDER,borderRadius:10,padding:"12px",cursor:"pointer",textAlign:"left",fontWeight:"600",fontSize:12,color:TEXT}},"CSV: Daily Sabaq"),
-          React.createElement("button",{onClick:function(){exportCSV(registerData,["key","class","session","date","studentName","status","minutesLate","absenceReason","madeUp","msgSent"],"register");},style:{background:"#F8F9FA",border:"1px solid "+BORDER,borderRadius:10,padding:"12px",cursor:"pointer",textAlign:"left",fontWeight:"600",fontSize:12,color:TEXT}},"CSV: Register")
+          React.createElement("button",{onClick:function(){exportCSV(allRecords,["id","name","class","dateFrom","dateTo","totalFullSides","plusLines","absences","paraDorMornings","totalDaysOfSabaq","targetGiven","upcomingTarget","parentEmail1","parentEmail2","fatherPhone","motherPhone","teacherComments","behaviour","weakSabaqInstances","weakDorInstances","eveningPossibleDays","eveningAbsences","fromPage","toPage","isStudentProfile"],"sabaq_records");},style:{background:"#F8F9FA",border:"1px solid "+BORDER,borderRadius:10,padding:"12px",cursor:"pointer",textAlign:"left",fontWeight:"600",fontSize:12,color:TEXT}},"CSV: Sabaq Records"),
+          React.createElement("button",{onClick:function(){exportCSV(allDorRecords,["id","studentName","date","dor1Juz","dor1Quarter","dor1Mistakes","dor1Repeated","dor2Juz","dor2Quarter","dor2Mistakes","dor2Repeated","paraDor","paraTest"],"dor_records");},style:{background:"#F8F9FA",border:"1px solid "+BORDER,borderRadius:10,padding:"12px",cursor:"pointer",textAlign:"left",fontWeight:"600",fontSize:12,color:TEXT}},"CSV: Dor Records"),
+          React.createElement("button",{onClick:function(){exportCSV(allDailySabaqEntries,["id","studentName","class","date","absent","sabaqPara","spLines","spMistakes","spScrape","paraDor","pdJuz","pdQuarter","pdMistakes","hasDor","dorJuz","dorQuarter","dorMistakes"],"daily_sabaq");},style:{background:"#F8F9FA",border:"1px solid "+BORDER,borderRadius:10,padding:"12px",cursor:"pointer",textAlign:"left",fontWeight:"600",fontSize:12,color:TEXT}},"CSV: Daily Sabaq"),
+          React.createElement("button",{onClick:function(){exportCSV(allRegisterData,["key","class","session","date","studentName","status","minutesLate","absenceReason","madeUp","msgSent"],"register");},style:{background:"#F8F9FA",border:"1px solid "+BORDER,borderRadius:10,padding:"12px",cursor:"pointer",textAlign:"left",fontWeight:"600",fontSize:12,color:TEXT}},"CSV: Register")
         ),
         React.createElement("button",{onClick:function(){exportAllReports(records,dorRecords,Array.isArray(calced)?calced:[],yearPlan);},style:{background:GOLD,color:"#fff",border:"none",borderRadius:10,padding:"11px 20px",cursor:"pointer",fontWeight:"600",fontSize:13,width:"100%"}},"Export All Student Reports")
       )
@@ -5503,11 +5711,29 @@ function App(){
         const selKey=champPeriodKey||(periods[0]?periods[0].dateFrom+"__"+periods[0].dateTo:"");
         const selPeriod=periods.find(p=>p.dateFrom+"__"+p.dateTo===selKey)||periods[0];
         const periodRecords=selPeriod?calced.filter(r=>recordMatchesPeriod(r,selPeriod)):[];
-        const clsARecords=periodRecords.filter(r=>r.class==="HIFZ CLASS A"&&!hafidhStudents.has(r.name)).sort((a,b)=>(b.championTotalSides||0)-(a.championTotalSides||0));
-        const clsBRecords=periodRecords.filter(r=>r.class==="HIFZ CLASS B"&&!hafidhStudents.has(r.name)).sort((a,b)=>(b.championTotalSides||0)-(a.championTotalSides||0));
-        const list=posterClass==="HIFZ CLASS A"?clsARecords:clsBRecords;
+        const _bySides=(a,b)=>(b.championTotalSides||0)-(a.championTotalSides||0);
+        // Students excluded for this month+class (e.g. doing revision, so their "sabaq" average is inflated)
+        // drop out of the ranking and sit greyed-out at the bottom; everyone else moves up.
+        const exKey=(selPeriod?selPeriod.dateFrom.substring(0,7):"")+"|"+posterClass;
+        const exNames=champExcluded[exKey]||[];
+        const classList=periodRecords.filter(r=>r.class===posterClass&&!hafidhStudents.has(r.name)).sort(_bySides);
+        const list=classList.filter(r=>!exNames.includes(r.name));
+        const excludedList=classList.filter(r=>exNames.includes(r.name));
         const first=list[0]||null;
         const second=list[1]||null;
+        const exBtn=(name,size)=>React.createElement('button',{onClick:()=>{toggleChampExclude(exKey,name);showToast(name+" excluded from the ranking — restore from the greyed-out list at the bottom.","info",4000);},title:"Exclude from ranking",style:{background:"transparent",border:"none",color:MUTED,opacity:0.35,cursor:"pointer",fontSize:size||14,padding:"2px 4px",flexShrink:0,lineHeight:1}},"⊘");
+        const excludedBlock=excludedList.length>0&&React.createElement('div',{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",marginTop:8,opacity:0.7}},
+          React.createElement('div',{style:{padding:"6px 16px",fontSize:9,letterSpacing:"0.15em",textTransform:"uppercase",color:"#9aaa9b",fontWeight:700,borderBottom:"1px solid rgba(107,114,128,0.08)"}},"Excluded from ranking"),
+          excludedList.map((s,i)=>React.createElement('div',{key:s.id,style:{display:"flex",alignItems:"center",padding:"8px 16px",borderBottom:i<excludedList.length-1?"1px solid rgba(107,114,128,0.06)":"none",filter:"grayscale(1)"}},
+            React.createElement('div',{style:{minWidth:36,fontSize:11,color:"#b5bcb6",flexShrink:0,textAlign:"center"}},"—"),
+            React.createElement('div',{style:{flex:1,fontSize:13,color:"#9aa39b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.name),
+            React.createElement('div',{style:{display:"flex",gap:16,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums",color:"#b5bcb6"}},
+              React.createElement('span',{style:{width:66,textAlign:"center"}},fmt(s.championTotalSides,2)),
+              React.createElement('span',{style:{width:52,textAlign:"center"}},parseFloat((s.championDailyAverage||0).toFixed(2)))
+            ),
+            React.createElement('button',{onClick:()=>toggleChampExclude(exKey,s.name),title:"Include in ranking again",style:{background:"transparent",border:"none",color:MUTED,cursor:"pointer",fontSize:14,padding:"2px 4px",marginLeft:6,flexShrink:0,lineHeight:1,filter:"none"}},"↺")
+          ))
+        );
         return(
           React.createElement('div',null
             /* Controls */
@@ -5519,12 +5745,13 @@ function App(){
                 ,CLASSES.map((c,i)=>React.createElement('button',{key:c,onClick:()=>setPosterClass(c),style:{background:posterClass===c?"#c9a553":"transparent",color:posterClass===c?"#fff":"#6d7a6e",border:"none",borderRight:i===0?"1px solid rgba(201,165,83,0.3)":"none",padding:"8px 20px",cursor:"pointer",fontWeight:posterClass===c?"600":"400",fontSize:12,letterSpacing:"0.05em"}},c))
               )
             )
-            ,!first?React.createElement('div',{style:{textAlign:"center",color:MUTED,padding:60,fontSize:14}},"No entries for this period."):(
+            ,!first?React.createElement('div',{style:{maxWidth:460,margin:"0 auto"}},React.createElement('div',{style:{textAlign:"center",color:MUTED,padding:60,fontSize:14}},excludedList.length>0?"Everyone is excluded from this ranking.":"No entries for this period."),excludedBlock):(
               React.createElement('div',{style:{maxWidth:460,margin:"0 auto"}}
                 /* Champion hero card */
                 ,React.createElement('div',{style:{background:"linear-gradient(165deg,#fffef9 0%,#f8f4e8 100%)",border:"1px solid rgba(201,165,83,0.2)",borderRadius:18,overflow:"hidden",marginBottom:8,boxShadow:"0 4px 28px rgba(0,0,0,0.07)"}}
                   ,React.createElement('div',{style:{height:2,background:"linear-gradient(90deg,transparent,#c9a553 20%,#c9a553 80%,transparent)"}})
                   ,React.createElement('div',{style:{padding:"24px 28px",textAlign:"center"}}
+                    ,React.createElement('div',{style:{textAlign:"right",height:0,overflow:"visible"}},exBtn(first.name,15))
                     ,React.createElement('div',{style:{fontSize:16,letterSpacing:"0.2em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:4}},"Sabaq Champion")
                     ,React.createElement('div',{style:{fontSize:12,color:"#c9a553",letterSpacing:"0.05em",marginBottom:20}},(posterClass==="HIFZ CLASS A"?"Hifz Class A":"Hifz Class B")+" · "+(selPeriod?selPeriod.label:""))
                     ,React.createElement('div',{style:{fontSize:26,color:"#c9a553",marginBottom:10,lineHeight:1}},"♛")
@@ -5564,6 +5791,7 @@ function App(){
                     ,React.createElement('span',{style:{color:MUTED,width:66,textAlign:"center"}},fmt(second.championTotalSides,2))
                     ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"center"}},parseFloat((second.championDailyAverage||0).toFixed(2)))
                   )
+                  ,exBtn(second.name)
                 )
                 /* 3rd+ list — no internal header, column-aligned */
                 ,list.length>2&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
@@ -5574,8 +5802,10 @@ function App(){
                       ,React.createElement('span',{style:{color:MUTED,width:66,textAlign:"center"}},fmt(s.championTotalSides,2))
                       ,React.createElement('span',{style:{color:MUTED,width:52,textAlign:"center"}},parseFloat((s.championDailyAverage||0).toFixed(2)))
                     )
+                    ,exBtn(s.name,13)
                   ))
                 )
+                ,excludedBlock
               )
             )
           )
@@ -7437,7 +7667,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
         pending.map(({name,absences})=>{
           const pendingAbs=absences.filter(e=>e.status==="A"&&!e.msgSent);
           const latestRec=records.filter(r=>r.name===name).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
-          const phone=latestRec?(latestRec.fatherPhone||latestRec.motherPhone||""):"";
+          const phone=(function(){var wp=records.filter(function(r){return r.name===name&&(r.fatherPhone||r.motherPhone);}).sort(function(a,b){return (b.dateFrom||"").localeCompare(a.dateFrom||"");})[0];return wp?(wp.fatherPhone||wp.motherPhone):(latestRec?(latestRec.fatherPhone||latestRec.motherPhone||""):"");})();
           return React.createElement('div',{key:name,style:{background:"#fff",borderRadius:14,border:"1.5px solid #FCA5A5",padding:"16px 18px",marginBottom:12,boxShadow:"0 2px 8px rgba(220,38,38,0.07)"}},
             React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}},
               React.createElement('div',null,
@@ -7512,7 +7742,7 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
         scheduled.map(({name,absences})=>{
           const sentAbs=absences.filter(e=>e.msgSent&&e.status!=="AG");
           const latestRec=records.filter(r=>r.name===name).sort((a,b)=>(b.dateFrom||"").localeCompare(a.dateFrom||""))[0];
-          const phone=latestRec?(latestRec.fatherPhone||latestRec.motherPhone||""):"";
+          const phone=(function(){var wp=records.filter(function(r){return r.name===name&&(r.fatherPhone||r.motherPhone);}).sort(function(a,b){return (b.dateFrom||"").localeCompare(a.dateFrom||"");})[0];return wp?(wp.fatherPhone||wp.motherPhone):(latestRec?(latestRec.fatherPhone||latestRec.motherPhone||""):"");})();
           return React.createElement('div',{key:name,style:{background:"#FFFBEB",borderRadius:14,border:"1px solid #FCD34D",padding:"14px 20px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
             React.createElement('div',null,
               React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"600",fontSize:13}},name),
