@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261102-150000 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
+<!-- hifz-20261102-160000 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -158,7 +158,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261102-150000';
+const APP_VERSION='hifz-20261102-160000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -5747,6 +5747,7 @@ function App(){
         const classList=periodRecords.filter(r=>r.class===posterClass&&!hafidhStudents.has(r.name)).sort(_bySides);
         const list=classList.filter(r=>!exNames.includes(r.name));
         const excludedList=classList.filter(r=>exNames.includes(r.name));
+        const shortN=nm=>{const w=String(nm||'').trim().split(/\s+/);return w.length>2?w.slice(0,2).join(' '):w.join(' ');};
         const first=list[0]||null;
         const second=list[1]||null;
         const exBtn=(name,size)=>React.createElement('button',{onClick:()=>{toggleChampExclude(exKey,name);showToast(name+" excluded from the ranking — restore from the greyed-out list at the bottom.","info",4000);},title:"Exclude from ranking",style:{background:"transparent",border:"none",color:MUTED,opacity:0.35,cursor:"pointer",fontSize:size||14,padding:"2px 4px",flexShrink:0,lineHeight:1}},"⊘");
@@ -5754,7 +5755,7 @@ function App(){
           React.createElement('div',{style:{padding:"6px 16px",fontSize:9,letterSpacing:"0.15em",textTransform:"uppercase",color:"#9aaa9b",fontWeight:700,borderBottom:"1px solid rgba(107,114,128,0.08)"}},"Excluded from ranking"),
           excludedList.map((s,i)=>React.createElement('div',{key:s.id,style:{display:"flex",alignItems:"center",padding:"8px 16px",borderBottom:i<excludedList.length-1?"1px solid rgba(107,114,128,0.06)":"none",filter:"grayscale(1)"}},
             React.createElement('div',{style:{minWidth:36,fontSize:11,color:"#b5bcb6",flexShrink:0,textAlign:"center"}},"—"),
-            React.createElement('div',{style:{flex:1,fontSize:13,color:"#9aa39b",lineHeight:1.25,wordBreak:"normal",overflowWrap:"anywhere"}},s.name),
+            React.createElement('div',{style:{flex:1,fontSize:13,color:"#9aa39b",lineHeight:1.25,wordBreak:"normal",overflowWrap:"anywhere"}},shortN(s.name)),
             React.createElement('div',{style:{display:"flex",gap:10,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums",color:"#b5bcb6"}},
               React.createElement('span',{style:{width:58,textAlign:"center"}},fmt(s.championTotalSides,2)),
               React.createElement('span',{style:{width:46,textAlign:"center"}},parseFloat((s.championDailyAverage||0).toFixed(2)))
@@ -5812,7 +5813,7 @@ function App(){
                   ,React.createElement('div',{style:{minWidth:36,flexShrink:0,fontSize:22,lineHeight:1,textAlign:"center"}},"🥈")
                   ,React.createElement('div',{style:{flex:1,minWidth:0}}
                     ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:1}},"Runner Up")
-                    ,React.createElement('div',{style:{fontSize:14,fontWeight:600,color:TEXT,lineHeight:1.25,wordBreak:"normal",overflowWrap:"anywhere"}},second.name)
+                    ,React.createElement('div',{style:{fontSize:14,fontWeight:600,color:TEXT,lineHeight:1.25,wordBreak:"normal",overflowWrap:"anywhere"}},shortN(second.name))
                   )
                   ,React.createElement('div',{style:{display:"flex",gap:10,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
                     ,React.createElement('span',{style:{color:MUTED,width:58,textAlign:"center"}},fmt(second.championTotalSides,2))
@@ -5824,7 +5825,7 @@ function App(){
                 ,list.length>2&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
                   ,list.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.id,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
                     ,React.createElement('div',{style:{minWidth:36,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",textAlign:"center"}},"#"+(i+3))
-                    ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,lineHeight:1.25,wordBreak:"normal",overflowWrap:"anywhere"}},s.name)
+                    ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,lineHeight:1.25,wordBreak:"normal",overflowWrap:"anywhere"}},shortN(s.name))
                     ,React.createElement('div',{style:{display:"flex",gap:10,flexShrink:0,fontSize:12,fontVariantNumeric:"tabular-nums"}}
                       ,React.createElement('span',{style:{color:MUTED,width:58,textAlign:"center"}},fmt(s.championTotalSides,2))
                       ,React.createElement('span',{style:{color:MUTED,width:46,textAlign:"center"}},parseFloat((s.championDailyAverage||0).toFixed(2)))
