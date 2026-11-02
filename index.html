@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261102-170000 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
+<!-- hifz-20261102-180000 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -158,7 +158,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261102-170000';
+const APP_VERSION='hifz-20261102-180000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -3876,7 +3876,7 @@ function App(){
         ]},
         {label:"Champions",items:[
           {icon:"🏆",label:"Most Sabaq Award",sub:"Class sabaq rankings",view:"poster",accent:"#D97706"},
-          {icon:"🔖",label:"Best Dor Award",sub:"Class Dor rankings",view:"dorchamp",accent:"#4F46E5"},
+          {icon:"🔖",label:"Best Dor Award",sub:"Dor award winners",view:"dorchamp",accent:"#4F46E5"},
         ]},
         {label:"Admin",items:[
           {icon:"🚪",label:"Left Students",sub:Object.keys(leftStudents).length>0?Object.keys(leftStudents).length+" archived":"Archived records",view:"leftStudents",accent:"#6B7280"},
@@ -5618,112 +5618,67 @@ function App(){
         const dateFrom=selPeriod?selPeriod.dateFrom:"";
         const dateTo=selPeriod?selPeriod.dateTo:"";
         const champs=calcDorChampions(dorRecords,records,dateFrom,dateTo);
-        const c=dorChampClass==="HIFZ CLASS B"?champs.classB:champs.classA;
-        const{first,second,qualifyingQ,maxQ,allRanked}=c;
-        // Tie detection: top two qualifiers are identical on all three criteria
-        const isTied=!!(allRanked&&allRanked.length>=2&&
-          allRanked[0].kacchaCount===allRanked[1].kacchaCount&&
-          allRanked[0].scrapeCount===allRanked[1].scrapeCount&&
-          allRanked[0].greenCount===allRanked[1].greenCount);
-        // All students sharing the same top stats (could be 3+ tied)
-        const tiedGroup=isTied?allRanked.filter(s=>s.kacchaCount===allRanked[0].kacchaCount&&s.scrapeCount===allRanked[0].scrapeCount&&s.greenCount===allRanked[0].greenCount):[];
-        const manualKey=(dorChampClass||"HIFZ CLASS A")+"__"+selKey;
-        const manualWinner=dorChampManualWinner[manualKey]||null;
-        // If manual winner set among tied group, put them first; keep rest alphabetical
-        const displayRanked=(()=>{
-          if(!allRanked)return[];
-          if(isTied&&manualWinner&&tiedGroup.find(s=>s.name===manualWinner)){
-            const winner=allRanked.find(s=>s.name===manualWinner);
-            const rest=allRanked.filter(s=>s.name!==manualWinner);
-            return winner?[winner,...rest]:allRanked;
+        const monthKey=selPeriod?selPeriod.dateFrom.substring(0,7):"";
+        const renderClass=(cls,c,idx)=>{
+          const allRanked=c.allRanked||[];
+          const top=allRanked[0];
+          const isTied=!!(allRanked.length>=2&&allRanked[0].kacchaCount===allRanked[1].kacchaCount&&allRanked[0].scrapeCount===allRanked[1].scrapeCount&&allRanked[0].greenCount===allRanked[1].greenCount);
+          const tiedGroup=isTied?allRanked.filter(s=>s.kacchaCount===top.kacchaCount&&s.scrapeCount===top.scrapeCount&&s.greenCount===top.greenCount):[];
+          const manualKey=cls+"__"+selKey;
+          const tieWinner=dorChampManualWinner[manualKey]||null;
+          const mKey=monthKey+"|"+cls;
+          const manualName=(dorManual[mKey]||[])[0]||null;
+          const label=cls==="HIFZ CLASS A"?"Hifz Class A":"Hifz Class B";
+          const classNames=[...new Set(records.filter(r=>!r.isStudentProfile&&r.class===cls&&!hafidhStudents.has(r.name)).map(r=>r.name))].sort();
+          let winner=null;
+          if(top){
+            if(isTied)winner=(tieWinner&&tiedGroup.find(s=>s.name===tieWinner))?tieWinner:null;
+            else winner=top.name;
+          } else winner=manualName;
+          const editing=!top&&(dorManualEdit===cls||(!manualName));
+          let body;
+          if(top&&isTied&&!winner){
+            body=React.createElement('div',null
+              ,React.createElement('div',{style:{fontWeight:700,fontSize:12,color:"#92400E",marginBottom:8}},"🤝 Tied — Select Winner")
+              ,React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}}
+                ,tiedGroup.map(s=>React.createElement('button',{key:s.name,onClick:()=>setDorChampManualWinner(function(prev){return Object.assign({},prev,{[manualKey]:s.name});}),style:{background:"#c9a553",color:"#fff",border:"none",borderRadius:10,padding:"8px 16px",cursor:"pointer",fontWeight:700,fontSize:13}},s.name))
+              )
+            );
+          } else if(!top&&editing){
+            body=React.createElement('div',null
+              ,React.createElement('div',{style:{fontSize:11,color:MUTED,marginBottom:8}},"No Dor data — enter the winner manually")
+              ,React.createElement('select',{value:manualName||"",onChange:e=>{saveDorManual(mKey,e.target.value?[e.target.value]:[]);if(e.target.value)setDorManualEdit(false);},style:{...inputStyle,width:"100%",maxWidth:300,fontSize:13}}
+                ,React.createElement('option',{value:""},"Select student…")
+                ,classNames.map(n=>React.createElement('option',{key:n,value:n},n))
+              )
+            );
+          } else {
+            body=React.createElement('div',null
+              ,React.createElement('div',{style:{fontSize:32,fontWeight:700,color:"#1b241d",letterSpacing:"0.02em",lineHeight:1.25,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}},winner)
+              ,(top&&isTied&&winner)&&React.createElement('button',{onClick:()=>setDorChampManualWinner(function(prev){const n=Object.assign({},prev);delete n[manualKey];return n;}),style:{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"#92400E",marginTop:6}},"✋ Change winner")
+              ,(!top&&manualName)&&React.createElement('button',{onClick:()=>setDorManualEdit(cls),style:{background:"none",border:"none",cursor:"pointer",fontSize:11,color:"#92400E",marginTop:6}},"✏️ Change winner")
+            );
           }
-          return allRanked;
-        })();
-        const clsName=dorChampClass||"HIFZ CLASS A";
-        const mKey=(selPeriod?selPeriod.dateFrom.substring(0,7):"")+"|"+clsName;
-        const manualList=(dorManual[mKey]||[]).slice(0,1);
-        const useManual=!displayRanked[0]&&manualList.length>0;
-        const shownRanked=useManual?manualList.map(n=>({name:n})):displayRanked;
-        const displayFirst=shownRanked[0]||null;
-        const displaySecond=shownRanked[1]||null;
-        const classNames=[...new Set(records.filter(r=>!r.isStudentProfile&&r.class===clsName&&!hafidhStudents.has(r.name)).map(r=>r.name))].sort();
-                const showEditor=!displayRanked[0]&&(!displayFirst||dorManualEdit);
-        const manualEditor=showEditor&&React.createElement('div',{style:{maxWidth:460,margin:"0 auto 14px",background:"#fafaf9",border:"1px solid rgba(201,165,83,0.3)",borderRadius:14,padding:"14px 16px"}}
-          ,React.createElement('div',{style:{fontSize:12,fontWeight:700,color:"#5a6b5c",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:4,textAlign:"center"}},"Enter Manually")
-          ,React.createElement('div',{style:{fontSize:11,color:MUTED,textAlign:"center",marginBottom:12}},"Choose the "+(clsName==="HIFZ CLASS A"?"Hifz Class A":"Hifz Class B")+" winner.")
-          ,React.createElement('select',{value:manualList[0]||"",onChange:e=>{saveDorManual(mKey,e.target.value?[e.target.value]:[]);if(e.target.value)setDorManualEdit(false);},style:{...inputStyle,width:"100%",fontSize:13}}
-            ,React.createElement('option',{value:""},"Select student…")
-            ,classNames.map(n=>React.createElement('option',{key:n,value:n},n))
-          )
-        );
+          return React.createElement('div',{key:cls,style:{padding:"20px 0",borderTop:idx>0?"1px solid rgba(201,165,83,0.2)":"none"}}
+            ,React.createElement('div',{style:{fontSize:12,fontWeight:600,letterSpacing:"0.2em",color:"#c9a553",textTransform:"uppercase",marginBottom:10}},label)
+            ,body
+          );
+        };
         return React.createElement('div',null
-          /* Controls */
           ,React.createElement('div',{style:{marginBottom:20,display:"flex",flexDirection:"column",alignItems:"center",gap:10}}
             ,React.createElement('select',{value:selKey,onChange:e=>{setDorChampPeriodKey(e.target.value);const p=periods.find(x=>x.dateFrom+"__"+x.dateTo===e.target.value);if(p){setDorChampDateFrom(p.dateFrom);setDorChampDateTo(p.dateTo);}},style:{...inputStyle,maxWidth:240,fontWeight:"600",textAlign:"center",fontSize:13}}
               ,periods.map(p=>{const k=p.dateFrom+"__"+p.dateTo;return React.createElement('option',{key:k,value:k},p.label);})
             )
-            ,React.createElement('div',{style:{display:"flex",gap:0,borderRadius:8,overflow:"hidden",border:"1px solid rgba(201,165,83,0.3)",width:"fit-content"}}
-              ,["HIFZ CLASS A","HIFZ CLASS B"].map((c2,i)=>React.createElement('button',{key:c2,onClick:()=>setDorChampClass(c2),style:{background:dorChampClass===c2||(dorChampClass===""&&c2==="HIFZ CLASS A")?"#c9a553":"transparent",color:dorChampClass===c2||(dorChampClass===""&&c2==="HIFZ CLASS A")?"#fff":"#6d7a6e",border:"none",borderRight:i===0?"1px solid rgba(201,165,83,0.3)":"none",padding:"8px 20px",cursor:"pointer",fontWeight:dorChampClass===c2||(dorChampClass===""&&c2==="HIFZ CLASS A")?"600":"400",fontSize:12,letterSpacing:"0.05em"}},c2))
-            )
           )
-          ,manualEditor
-          ,!displayFirst?(
-            React.createElement('div',{style:{textAlign:"center",color:MUTED,padding:"20px 0 40px",fontSize:13}},"No Dor data for this period — enter the winner manually above.")
-          ):(
-            React.createElement('div',{style:{maxWidth:460,margin:"0 auto"}}
-              ,useManual&&!showEditor&&React.createElement('div',{style:{textAlign:"center",marginBottom:12}}
-                ,React.createElement('button',{onClick:()=>setDorManualEdit(true),style:{background:"none",border:"1px solid rgba(201,165,83,0.5)",borderRadius:8,padding:"4px 14px",cursor:"pointer",fontSize:11,color:"#92400E",fontWeight:600}},"✏️ Change winner"))
-              ,!useManual&&React.createElement('div',{style:{fontSize:11,color:"#9aaa9b",textAlign:"center",marginBottom:16,lineHeight:1.6}}
-                ,"Qualifying: at least "
-                ,React.createElement('span',{style:{color:GOLD,fontWeight:600}},qualifyingQ)
-                ," Dor sessions completed"
-                ,maxQ>0&&React.createElement('span',null," (out of ",maxQ," possible)")
-              )
-              /* Tied banner — shown when tie and no manual winner yet */
-              ,(isTied&&!manualWinner)&&React.createElement('div',{style:{background:"#FEF3C7",border:"1px solid #F59E0B",borderRadius:14,padding:"14px 16px",marginBottom:14,textAlign:"center"}}
-                ,React.createElement('div',{style:{fontWeight:700,fontSize:13,color:"#92400E",marginBottom:8}},"🤝 Champions Tied — Select Winner")
-                ,React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center"}}
-                  ,tiedGroup.map(s=>React.createElement('button',{key:s.name,
-                    onClick:()=>setDorChampManualWinner(function(prev){return Object.assign({},prev,{[manualKey]:s.name});}),
-                    style:{background:"#c9a553",color:"#fff",border:"none",borderRadius:10,padding:"8px 16px",cursor:"pointer",fontWeight:700,fontSize:13}}
-                    ,s.name
-                  ))
-                )
-              )
-              /* Tied banner — shown when manual winner chosen, allow reset */
-              ,(isTied&&manualWinner)&&React.createElement('div',{style:{background:"rgba(201,165,83,0.08)",border:"1px solid rgba(201,165,83,0.3)",borderRadius:10,padding:"8px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}
-                ,React.createElement('span',{style:{fontSize:11,color:"#92400E",fontWeight:600}},"✋ Winner manually selected")
-                ,React.createElement('button',{onClick:()=>setDorChampManualWinner(function(prev){const n=Object.assign({},prev);delete n[manualKey];return n;}),style:{background:"none",border:"1px solid #F59E0B",borderRadius:7,padding:"3px 10px",cursor:"pointer",fontSize:11,color:"#92400E",fontWeight:600}},"Reset")
-              )
-              /* Champion hero card */
-              ,React.createElement('div',{style:{background:"linear-gradient(165deg,#fffef9 0%,#f8f4e8 100%)",border:"1px solid rgba(201,165,83,0.2)",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 4px 28px rgba(0,0,0,0.07)"}}
-                ,React.createElement('div',{style:{height:2,background:"linear-gradient(90deg,transparent,#c9a553 20%,#c9a553 80%,transparent)"}})
-                ,React.createElement('div',{style:{padding:"24px 28px",textAlign:"center"}}
-                  ,React.createElement('div',{style:{fontSize:12,letterSpacing:"0.2em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:4}},"Best Dor Award")
-                  ,React.createElement('div',{style:{fontSize:10,color:"#c9a553",letterSpacing:"0.05em",marginBottom:20}},((dorChampClass||"HIFZ CLASS A")==="HIFZ CLASS A"?"Hifz Class A":"Hifz Class B")+" · "+(selPeriod?selPeriod.label:""))
-                  ,React.createElement('div',{style:{fontSize:34,fontWeight:700,color:"#1b241d",letterSpacing:"0.02em",marginBottom:18,lineHeight:1.25,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}},displayFirst.name)
-                  ,React.createElement('div',{style:{fontSize:12,color:"#8a9a8b",textAlign:"center",marginTop:4,letterSpacing:"0.02em",lineHeight:1.8,direction:"rtl"}},"مَا شَاءَ اللَّهُ، اللَّهُمَّ زِدْ وَبَارِكْ")
-                )
-              )
-              /* Column-header strip */
-              ,false&&React.createElement('div',{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:10,padding:"8px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}
-                ,React.createElement('div',{style:{minWidth:36,flexShrink:0}})
-                ,React.createElement('div',{style:{fontSize:11,letterSpacing:"0.08em",color:"#5a6b5c",fontWeight:600,flex:1}},"Rankings")
-              )
-              /* Runner up */
-              ,false&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.13)",borderRadius:12,padding:"12px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
-                ,React.createElement('div',{style:{minWidth:36,flexShrink:0,fontSize:22,lineHeight:1,textAlign:"center"}},"🥈")
-                ,React.createElement('div',{style:{flex:1,minWidth:0}}
-                  ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:1}},"Runner Up")
-                  ,React.createElement('div',{style:{fontSize:14,fontWeight:600,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},displaySecond.name)
-                )
-              )
-              /* 3rd+ list */
-              ,false&&shownRanked.length>2&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
-                ,shownRanked.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.name,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
-                  ,React.createElement('div',{style:{minWidth:36,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",textAlign:"center"}},"#"+(i+3))
-                  ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.name)
-                ))
+          ,React.createElement('div',{style:{maxWidth:460,margin:"0 auto"}}
+            ,React.createElement('div',{style:{background:"linear-gradient(165deg,#fffef9 0%,#f8f4e8 100%)",border:"1px solid rgba(201,165,83,0.2)",borderRadius:18,overflow:"hidden",boxShadow:"0 4px 28px rgba(0,0,0,0.07)"}}
+              ,React.createElement('div',{style:{height:2,background:"linear-gradient(90deg,transparent,#c9a553 20%,#c9a553 80%,transparent)"}})
+              ,React.createElement('div',{style:{padding:"24px 28px",textAlign:"center"}}
+                ,React.createElement('div',{style:{fontSize:16,letterSpacing:"0.2em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:4}},"Best Dor Award")
+                ,React.createElement('div',{style:{fontSize:13,color:"#c9a553",letterSpacing:"0.05em",marginBottom:8}},selPeriod?selPeriod.label:"")
+                ,renderClass("HIFZ CLASS A",champs.classA,0)
+                ,renderClass("HIFZ CLASS B",champs.classB,1)
+                ,React.createElement('div',{style:{fontSize:12,color:"#8a9a8b",textAlign:"center",marginTop:6,letterSpacing:"0.02em",lineHeight:1.8,direction:"rtl"}},"مَا شَاءَ اللَّهُ، اللَّهُمَّ زِدْ وَبَارِكْ")
               )
             )
           )
