@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261102-120000 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
+<!-- hifz-20261102-130000 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -158,7 +158,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261102-120000';
+const APP_VERSION='hifz-20261102-130000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -5641,34 +5641,20 @@ function App(){
         },[allRanked,isTied,manualWinner]);
         const clsName=dorChampClass||"HIFZ CLASS A";
         const mKey=(selPeriod?selPeriod.dateFrom.substring(0,7):"")+"|"+clsName;
-        const manualList=dorManual[mKey]||[];
+        const manualList=(dorManual[mKey]||[]).slice(0,1);
         const useManual=!displayRanked[0]&&manualList.length>0;
         const shownRanked=useManual?manualList.map(n=>({name:n})):displayRanked;
         const displayFirst=shownRanked[0]||null;
         const displaySecond=shownRanked[1]||null;
         const classNames=[...new Set(records.filter(r=>!r.isStudentProfile&&r.class===clsName&&!hafidhStudents.has(r.name)).map(r=>r.name))].sort();
-        const available=classNames.filter(n=>!manualList.includes(n));
-        const showEditor=!displayRanked[0]&&(!displayFirst||dorManualEdit);
-        const mvBtn=(label,onClick,disabled)=>React.createElement('button',{onClick,disabled,style:{background:"transparent",border:"none",cursor:disabled?"default":"pointer",color:MUTED,opacity:disabled?0.25:0.8,fontSize:13,padding:"2px 5px",lineHeight:1}},label);
+                const showEditor=!displayRanked[0]&&(!displayFirst||dorManualEdit);
         const manualEditor=showEditor&&React.createElement('div',{style:{maxWidth:460,margin:"0 auto 14px",background:"#fafaf9",border:"1px solid rgba(201,165,83,0.3)",borderRadius:14,padding:"14px 16px"}}
           ,React.createElement('div',{style:{fontSize:12,fontWeight:700,color:"#5a6b5c",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:4,textAlign:"center"}},"Enter Manually")
-          ,React.createElement('div',{style:{fontSize:11,color:MUTED,textAlign:"center",marginBottom:12}},"Add students in order: 1st place first.")
-          ,React.createElement('div',{style:{display:"flex",gap:8,marginBottom:manualList.length?12:0}}
-            ,React.createElement('select',{value:dorManualPick,onChange:e=>setDorManualPick(e.target.value),style:{...inputStyle,flex:1,fontSize:13}}
-              ,React.createElement('option',{value:""},"Select student…")
-              ,available.map(n=>React.createElement('option',{key:n,value:n},n))
-            )
-            ,React.createElement('button',{onClick:()=>{if(!dorManualPick)return;saveDorManual(mKey,[...manualList,dorManualPick]);setDorManualPick("");},disabled:!dorManualPick,style:{background:dorManualPick?"#c9a553":"#d8d4c6",color:"#fff",border:"none",borderRadius:10,padding:"0 16px",cursor:dorManualPick?"pointer":"default",fontWeight:700,fontSize:13}},"Add")
+          ,React.createElement('div',{style:{fontSize:11,color:MUTED,textAlign:"center",marginBottom:12}},"Choose the "+(clsName==="HIFZ CLASS A"?"Hifz Class A":"Hifz Class B")+" winner.")
+          ,React.createElement('select',{value:manualList[0]||"",onChange:e=>{saveDorManual(mKey,e.target.value?[e.target.value]:[]);if(e.target.value)setDorManualEdit(false);},style:{...inputStyle,width:"100%",fontSize:13}}
+            ,React.createElement('option',{value:""},"Select student…")
+            ,classNames.map(n=>React.createElement('option',{key:n,value:n},n))
           )
-          ,manualList.map((n,i)=>React.createElement('div',{key:n,style:{display:"flex",alignItems:"center",padding:"6px 0",borderTop:"1px solid rgba(107,114,128,0.08)"}}
-            ,React.createElement('div',{style:{minWidth:30,fontSize:12,color:MUTED,textAlign:"center"}},"#"+(i+1))
-            ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT}},n)
-            ,mvBtn("▲",()=>{const l=[...manualList];[l[i-1],l[i]]=[l[i],l[i-1]];saveDorManual(mKey,l);},i===0)
-            ,mvBtn("▼",()=>{const l=[...manualList];[l[i+1],l[i]]=[l[i],l[i+1]];saveDorManual(mKey,l);},i===manualList.length-1)
-            ,mvBtn("✕",()=>saveDorManual(mKey,manualList.filter(x=>x!==n)))
-          ))
-          ,manualList.length>0&&React.createElement('div',{style:{textAlign:"center",marginTop:10}}
-            ,React.createElement('button',{onClick:()=>setDorManualEdit(false),style:{background:"#c9a553",color:"#fff",border:"none",borderRadius:10,padding:"8px 22px",cursor:"pointer",fontWeight:700,fontSize:13}},"Done"))
         );
         return React.createElement('div',null
           /* Controls */
@@ -5682,11 +5668,11 @@ function App(){
           )
           ,manualEditor
           ,!displayFirst?(
-            React.createElement('div',{style:{textAlign:"center",color:MUTED,padding:"20px 0 40px",fontSize:13}},"No Dor data for this period — enter the award manually above.")
+            React.createElement('div',{style:{textAlign:"center",color:MUTED,padding:"20px 0 40px",fontSize:13}},"No Dor data for this period — enter the winner manually above.")
           ):(
             React.createElement('div',{style:{maxWidth:460,margin:"0 auto"}}
               ,useManual&&!showEditor&&React.createElement('div',{style:{textAlign:"center",marginBottom:12}}
-                ,React.createElement('button',{onClick:()=>setDorManualEdit(true),style:{background:"none",border:"1px solid rgba(201,165,83,0.5)",borderRadius:8,padding:"4px 14px",cursor:"pointer",fontSize:11,color:"#92400E",fontWeight:600}},"✏️ Edit manual entry"))
+                ,React.createElement('button',{onClick:()=>setDorManualEdit(true),style:{background:"none",border:"1px solid rgba(201,165,83,0.5)",borderRadius:8,padding:"4px 14px",cursor:"pointer",fontSize:11,color:"#92400E",fontWeight:600}},"✏️ Change winner"))
               ,!useManual&&React.createElement('div',{style:{fontSize:11,color:"#9aaa9b",textAlign:"center",marginBottom:16,lineHeight:1.6}}
                 ,"Qualifying: at least "
                 ,React.createElement('span',{style:{color:GOLD,fontWeight:600}},qualifyingQ)
@@ -5722,12 +5708,12 @@ function App(){
                 )
               )
               /* Column-header strip */
-              ,React.createElement('div',{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:10,padding:"8px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}
+              ,!useManual&&React.createElement('div',{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:10,padding:"8px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}
                 ,React.createElement('div',{style:{minWidth:36,flexShrink:0}})
                 ,React.createElement('div',{style:{fontSize:11,letterSpacing:"0.08em",color:"#5a6b5c",fontWeight:600,flex:1}},"Rankings")
               )
               /* Runner up */
-              ,displaySecond&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.13)",borderRadius:12,padding:"12px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
+              ,!useManual&&displaySecond&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.13)",borderRadius:12,padding:"12px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
                 ,React.createElement('div',{style:{minWidth:36,flexShrink:0,fontSize:22,lineHeight:1,textAlign:"center"}},"🥈")
                 ,React.createElement('div',{style:{flex:1,minWidth:0}}
                   ,React.createElement('div',{style:{fontSize:9,letterSpacing:"0.22em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:1}},"Runner Up")
@@ -5735,7 +5721,7 @@ function App(){
                 )
               )
               /* 3rd+ list */
-              ,shownRanked.length>2&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
+              ,!useManual&&shownRanked.length>2&&React.createElement('div',{style:{background:"#ffffff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}
                 ,shownRanked.slice(2).map((s,i,arr)=>React.createElement('div',{key:s.name,style:{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:i<arr.length-1?"1px solid rgba(107,114,128,0.06)":"none"}}
                   ,React.createElement('div',{style:{minWidth:36,fontSize:11,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",textAlign:"center"}},"#"+(i+3))
                   ,React.createElement('div',{style:{flex:1,fontSize:13,color:TEXT,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},s.name)
