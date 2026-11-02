@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261102-160000 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
+<!-- hifz-20261102-170000 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -158,7 +158,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261102-160000';
+const APP_VERSION='hifz-20261102-170000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -5630,7 +5630,7 @@ function App(){
         const manualKey=(dorChampClass||"HIFZ CLASS A")+"__"+selKey;
         const manualWinner=dorChampManualWinner[manualKey]||null;
         // If manual winner set among tied group, put them first; keep rest alphabetical
-        const displayRanked=React.useMemo(()=>{
+        const displayRanked=(()=>{
           if(!allRanked)return[];
           if(isTied&&manualWinner&&tiedGroup.find(s=>s.name===manualWinner)){
             const winner=allRanked.find(s=>s.name===manualWinner);
@@ -5638,7 +5638,7 @@ function App(){
             return winner?[winner,...rest]:allRanked;
           }
           return allRanked;
-        },[allRanked,isTied,manualWinner]);
+        })();
         const clsName=dorChampClass||"HIFZ CLASS A";
         const mKey=(selPeriod?selPeriod.dateFrom.substring(0,7):"")+"|"+clsName;
         const manualList=(dorManual[mKey]||[]).slice(0,1);
