@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-170500 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-172500 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -162,7 +162,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-170500';
+const APP_VERSION='hifz-20261103-172500';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -8912,7 +8912,7 @@ function SalaahAward(c){
   const colStrip=function(){return h("div",{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:10,padding:"8px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}},
     h("div",{style:{minWidth:40,flexShrink:0}}),
     h("div",{style:{fontSize:11,letterSpacing:"0.12em",color:"#5a6b5c",fontWeight:700,textTransform:"uppercase",flex:1}},"Rankings"),
-    h("div",{style:{width:84,textAlign:"center",fontSize:9,letterSpacing:"0.07em",color:"#5a6b5c",fontWeight:600,textTransform:"uppercase"}},"Points"));};
+    h("div",{style:{width:84,textAlign:"center",fontSize:9,letterSpacing:"0.07em",color:"#5a6b5c",fontWeight:600,textTransform:"uppercase"}},"Points / "+fullMarks));};
   const block=function(g){
     var rows=c.students.filter(function(s){return s.cls===g.cls;}).map(function(s){var t=c.totalFor(s.id,dates);return{id:s.id,name:s.name,total:t.total,count:t.count};});
     var ranked=slRankRows(rows);
@@ -8944,7 +8944,7 @@ function SalaahAward(c){
         rest.map(function(r,i){return h("div",{key:r.id,style:{display:"flex",alignItems:"center",padding:"10px 16px",borderBottom:i<rest.length-1?"1px solid rgba(107,114,128,0.06)":"none"}},
           h("div",{style:{minWidth:40,fontSize:12,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",fontWeight:600}},slOrdRank(r.rank)),
           h("div",{style:{flex:1,fontSize:14,color:TEXT,lineHeight:1.25,overflowWrap:"anywhere"}},r.name),
-          h("div",{style:{width:84,textAlign:"center",fontSize:13,color:MUTED,fontVariantNumeric:"tabular-nums",fontWeight:600}},r.total+" / "+fullMarks));})));
+          h("div",{style:{width:84,textAlign:"center",fontSize:13,color:MUTED,fontVariantNumeric:"tabular-nums",fontWeight:600}},r.total));})));
   };
   return h("div",null,
     c.pageTitle("Best Salaah Record Award","Ranked by total points for the month"),
