@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-160500 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-162500 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -162,7 +162,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-160500';
+const APP_VERSION='hifz-20261103-162500';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -8925,7 +8925,9 @@ function SalaahAward(c){
           h("div",{style:{padding:"22px 24px",textAlign:"center"}},
             h("div",{style:{fontSize:16,letterSpacing:"0.2em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:4}},"Best Salaah Record Award"),
             head,
-            winners.map(function(w){return h("div",{key:w.id,style:{fontSize:joint?28:34,fontWeight:700,color:"#1b241d",lineHeight:1.25,marginBottom:joint?2:6,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}},w.name);}),
+            winners.map(function(w,i){return h(React.Fragment,{key:w.id},
+              i>0&&h("div",{style:{fontSize:20,fontWeight:700,color:"#c9a553",lineHeight:1.1,fontFamily:"Georgia,'Times New Roman',serif"}},"&"),
+              h("div",{style:{fontSize:joint?28:34,fontWeight:700,color:"#1b241d",lineHeight:1.25,marginBottom:joint?2:6,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}},w.name));}),
             h("div",{style:{fontSize:12,fontWeight:600,color:MUTED,letterSpacing:"0.22em",textTransform:"uppercase",margin:"6px 0 14px"}},joint?"Joint 1st":"1st"),
             h("div",{style:{display:"inline-block",background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 28px"}},
               h("div",{style:{fontSize:24,fontWeight:700,color:"#c9a553",fontVariantNumeric:"tabular-nums"}},winners[0].total),
