@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-114800 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-123000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -52,7 +52,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
 (function(){
   if(new URLSearchParams(window.location.search).get('report'))return;
   var _auth;try{_auth=localStorage.getItem('hifz_auth');}catch(e){_auth=null;}
-  if(_auth==='admin'||_auth==='teacher'){window._HIFZ_ROLE=_auth;return;}
+  var _authV;try{_authV=localStorage.getItem('hifz_auth_v');}catch(e){_authV=null;}
+  // Single login (Admin, PIN 7202). Older sessions (previous PINs / teacher role) lack hifz_auth_v and must sign in again.
+  if(_auth==='admin'&&_authV==='7202'){window._HIFZ_ROLE='admin';return;}
   // Inject styles
   var _css=document.createElement('style');
   _css.textContent=[
@@ -93,7 +95,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
     +'</div></div>';
   document.body.insertBefore(_lock,document.getElementById('root'));
   var _entered='';
-  var _PINS={'4041':'admin','7861':'teacher'};
+  var _PINS={'7202':'admin'};
   function _dots(){document.querySelectorAll('.pdot').forEach(function(d,i){d.classList.toggle('on',i<_entered.length);});}
   function _press(d){if(_entered.length>=4)return;_entered+=d;_dots();if(_entered.length===4)_verify();}
   function _del(){if(!_entered.length)return;_entered=_entered.slice(0,-1);_dots();}
@@ -102,8 +104,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
     if(role){
       window._HIFZ_ROLE=role;
       localStorage.setItem('hifz_auth',role);
+      localStorage.setItem('hifz_auth_v','7202');
       _lock.style.animation='pinOut .3s ease forwards';
-      setTimeout(function(){_lock.remove();},320);
+      // Reload once so the whole app renders with the signed-in role.
+      setTimeout(function(){_lock.remove();window.location.reload();},320);
     }else{
       var w=document.getElementById('pin-wrap');
       w.classList.remove('shake');void w.offsetWidth;w.classList.add('shake');
@@ -158,7 +162,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-114800';
+const APP_VERSION='hifz-20261103-123000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -3570,6 +3574,26 @@ function App(){
     scheduleSync();
   }
 
+  // Salaah Tracker: make sure every student has a unique_id (STU-xxxxxx). Derived from the name, so every
+  // device generates the same ID. Children never see or type it - they pick by name.
+  function ensureStudentIds(names){
+    function hashId(str){var x=5381;for(var i=0;i<str.length;i++)x=((x*33)^str.charCodeAt(i))>>>0;return "STU-"+x.toString(36).toUpperCase().padStart(6,"0").slice(-6);}
+    setRecords(function(prev){
+      var used=new Set();prev.forEach(function(r){if(r.uniqueId&&String(r.uniqueId).trim())used.add(String(r.uniqueId).trim());});
+      var idFor={};
+      names.forEach(function(n){var base=String(n).trim().toUpperCase(),id=hashId(base),k=0;while(used.has(id)){k++;id=hashId(base+"#"+k);}used.add(id);idFor[n]=id;});
+      var changed=false;
+      var hasProfile={};prev.forEach(function(r){if(r.isStudentProfile)hasProfile[r.name]=true;});
+      var next=prev.map(function(r){
+        if(!idFor[r.name]||(r.uniqueId&&String(r.uniqueId).trim()))return r;
+        if(hasProfile[r.name]&&!r.isStudentProfile)return r;
+        changed=true;return Object.assign({},r,{uniqueId:idFor[r.name]});
+      });
+      if(!changed)return prev;
+      lsSave(next);return next;
+    });
+  }
+
   function openEdit(id){
     const raw=records.find(r=>r.id===id);
     if(!raw){showToast("Record not found — it may have been deleted.","error");return;}
@@ -5707,7 +5731,7 @@ function App(){
     )
     )
     /* SALAAH TRACKER (admin only) */
-    , (view==="salaahEntry"||view==="salaahTracker"||view==="salaahAward")&&window._HIFZ_ROLE==="admin"&&React.createElement(SalaahModule,{view:view,records:records,leftStudents:leftStudents})
+    , (view==="salaahEntry"||view==="salaahTracker"||view==="salaahAward")&&window._HIFZ_ROLE==="admin"&&React.createElement(SalaahModule,{view:view,records:records,leftStudents:leftStudents,ensureIds:ensureStudentIds})
     /* CHAMPION */
     , view==="poster"&&(
     React.createElement('div', { style: {padding:24},}
@@ -8389,6 +8413,11 @@ function SalaahModule(props){
       .sort(function(a,b){return a.name.localeCompare(b.name);});
   },[records,leftStudents]);
 
+  // Give every student a real ID (the picker still shows names only).
+  React.useEffect(function(){
+    var miss=students.filter(function(s){return s.id.indexOf("N:")===0;}).map(function(s){return s.name;});
+    if(miss.length&&props.ensureIds)props.ensureIds(miss);
+  },[students]);
   const persistData=function(m){slSaveJSON("salaahData",Object.keys(m).map(function(k){return m[k];}));};
   const persistPending=function(){slSaveJSON("salaahPending",pendingRef.current);};
   const persistSettings=function(s){slSaveJSON("salaahSettings",s);};
