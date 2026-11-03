@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261102-220000 | Reports page: Quick Edit pencil (top-right + per-student, replacing WhatsApp), stacked select buttons; fixed sticky name column showing through on scroll -->
+<!-- hifz-20261103-114800 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -158,7 +158,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261102-220000';
+const APP_VERSION='hifz-20261103-114800';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -3679,6 +3679,11 @@ function App(){
     {icon:"📄",label:"Reports",view:"reports"},
     {icon:"🏆",label:"Most Sabaq",view:"poster"},
     {icon:"🔖",label:"Best Dor",view:"dorchamp"},
+    ...(window._HIFZ_ROLE==="admin"?[
+      {icon:"🕌",label:"Salaah Entry",view:"salaahEntry"},
+      {icon:"🗓️",label:"Salaah Tracker",view:"salaahTracker"},
+      {icon:"🌙",label:"Best Salaah Award",view:"salaahAward"},
+    ]:[]),
     {icon:"🚪",label:"Left Students",view:"leftStudents"},
     {icon:"🎓",label:"Head Admin Portal",view:"headteacher",danger:true},
   ];
@@ -3879,6 +3884,11 @@ function App(){
           {icon:"🏆",label:"Most Sabaq Award",sub:"Class sabaq rankings",view:"poster",accent:"#D97706"},
           {icon:"🔖",label:"Best Dor Award",sub:"Dor award winners",view:"dorchamp",accent:"#4F46E5"},
         ]},
+        ...(window._HIFZ_ROLE==="admin"?[{label:"Salaah",items:[
+          {icon:"🕌",label:"Salaah Entry",sub:"Daily salaah scores",view:"salaahEntry",accent:"#16a34a"},
+          {icon:"🗓️",label:"Salaah Tracker",sub:"Monthly table · print PDF",view:"salaahTracker",accent:"#0EA5E9"},
+          {icon:"🌙",label:"Best Salaah Award",sub:"Monthly points ranking",view:"salaahAward",accent:"#D97706"},
+        ]}]:[]),
         {label:"Admin",items:[
           {icon:"🚪",label:"Left Students",sub:Object.keys(leftStudents).length>0?Object.keys(leftStudents).length+" archived":"Archived records",view:"leftStudents",accent:"#6B7280"},
           {icon:"🎓",label:"Head Admin Portal",sub:"Data, exports & settings",view:"headteacher",accent:"#DC2626",danger:true},
@@ -5696,6 +5706,8 @@ function App(){
       })()
     )
     )
+    /* SALAAH TRACKER (admin only) */
+    , (view==="salaahEntry"||view==="salaahTracker"||view==="salaahAward")&&window._HIFZ_ROLE==="admin"&&React.createElement(SalaahModule,{view:view,records:records,leftStudents:leftStudents})
     /* CHAMPION */
     , view==="poster"&&(
     React.createElement('div', { style: {padding:24},}
@@ -8273,6 +8285,625 @@ function LineChart({data,color}){
   );
 }
 
+
+// ══════════════════════════════════════════════════════════════
+// SALAAH TRACKER MODULE (self-contained; added as a new feature)
+// Own tables: salaah_records, salaah_settings
+// Own localStorage keys: salaahData, salaahSettings, salaahPending
+// ══════════════════════════════════════════════════════════════
+// NOTE: the settings PIN below is only a front-end gate to stop accidental changes.
+// It is NOT real security — anyone who can read this source can see it.
+const SL_SETTINGS_PIN="7202";
+const SL_SALAAHS=[
+  {key:"fajr",label:"Fajr",letter:"F"},
+  {key:"dhuhr",label:"Dhuhr",letter:"D"},
+  {key:"asr",label:"Asr",letter:"A"},
+  {key:"maghrib",label:"Maghrib",letter:"M"},
+  {key:"esha",label:"Esha",letter:"I"}
+];
+const SL_DEFAULT_SETTINGS={enabled:{fajr:true,dhuhr:false,asr:false,maghrib:false,esha:true},locked:[]};
+const SL_CLASSES=[{cls:"HIFZ CLASS A",label:"Hifz A"},{cls:"HIFZ CLASS B",label:"Hifz B"}];
+const SL_COLORS=["#ef4444","#f97316","#f59e0b","#eab308","#84cc16","#16a34a"];
+const SL_TINTS=["rgba(239,68,68,0.28)","rgba(249,115,22,0.24)","rgba(245,158,11,0.22)","rgba(234,179,8,0.18)","rgba(132,204,22,0.2)","rgba(22,163,74,0.24)"];
+const SL_GREYS=["#c4c4c4","#d6d6d6","#e4e4e4","#eeeeee","#f7f7f7","#ffffff"];
+const SL_KEY=[
+  "Jammat + Takbeer-e-oola + Sunnah Muakkadah",
+  "Jamaat + did not miss a rakaat + Sunnah Muakkadah",
+  "Jamaat but missed rakat(s) / Sunnah Muakkadah",
+  "Prayed at home Fardh + Sunnah Muakkadah",
+  "Prayed at home only Fardh",
+  "Missed Salaah"
+];
+const SL_MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const SL_WD=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+function slPad(n){return n<10?"0"+n:""+n;}
+function slYmd(d){return d.getFullYear()+"-"+slPad(d.getMonth()+1)+"-"+slPad(d.getDate());}
+function slToday(){return slYmd(new Date());}
+function slParse(s){var p=String(s).split("-");return new Date(+p[0],+p[1]-1,+p[2]);}
+function slAdd(s,n){var d=slParse(s);d.setDate(d.getDate()+n);return slYmd(d);}
+function slOrd(n){var j=n%10,k=n%100;return n+(j===1&&k!==11?"st":j===2&&k!==12?"nd":j===3&&k!==13?"rd":"th");}
+function slDaysIn(y,m){return new Date(y,m,0).getDate();}
+function slDayLabel(s){var d=slParse(s);return SL_WD[d.getDay()].charAt(0)+" "+slOrd(d.getDate());}
+function slIsWeekend(s){var w=slParse(s).getDay();return w===0||w===6;}
+function slMonthOf(s){return String(s).substring(0,7);}
+function slMonthDates(y,m){var out=[],n=slDaysIn(y,m);for(var i=1;i<=n;i++)out.push(y+"-"+slPad(m)+"-"+slPad(i));return out;}
+function slLongDate(s){var d=slParse(s);return{wd:SL_WD[d.getDay()],big:slOrd(d.getDate())+" "+SL_MONTHS[d.getMonth()]+" "+d.getFullYear()};}
+function slRowKey(sid,date,sal){return sid+"|"+date+"|"+sal;}
+function slLoadJSON(k,fb){try{var v=JSON.parse(localStorage.getItem(k));return v==null?fb:v;}catch(e){return fb;}}
+function slSaveJSON(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function slValidScore(v){return v===null||v===""||v===undefined||(Number.isInteger(+v)&&+v>=0&&+v<=5);}
+function slEsc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+// Wrapper over the app's sbFetch: a 401 means the session/key is no longer accepted, so tell the app (same event name other code listens for).
+async function slFetch(path,method,body){
+  try{return await sbFetch(path,method,body);}
+  catch(e){
+    // A write that succeeded but returned an empty body (return=minimal) is not a failure.
+    if(method&&method!=="GET"&&e&&/^Invalid JSON/.test(String(e.message||"")))return [];
+    if(e&&/^401/.test(String(e.message||"")))try{window.dispatchEvent(new CustomEvent("hifz-auth-expired"));}catch(x){}
+    throw e;
+  }
+}
+async function slFetchAllRecords(){
+  try{return await sbFetchAll("salaah_records?select=*&order=date.asc");}
+  catch(e){if(e&&/^401/.test(String(e.message||"")))try{window.dispatchEvent(new CustomEvent("hifz-auth-expired"));}catch(x){}throw e;}
+}
+function slApplyOp(map,op){
+  if(op.k==="up"){map[slRowKey(op.row.student_id,op.row.date,op.row.salaah)]=op.row;}
+  else if(op.k==="del"){delete map[slRowKey(op.row.student_id,op.row.date,op.row.salaah)];}
+}
+function slRankRows(rows){ // rows: [{total,...}] -> sorted with competition ranking (1,1,3)
+  var s=rows.slice().sort(function(a,b){return b.total-a.total||String(a.name).localeCompare(String(b.name));});
+  return s.map(function(r){var better=s.filter(function(x){return x.total>r.total;}).length;return Object.assign({},r,{rank:better+1});});
+}
+function slOrdRank(n){return slOrd(n);}
+
+function SalaahModule(props){
+  const h=React.createElement;
+  const view=props.view;
+  const records=props.records||[];
+  const leftStudents=props.leftStudents||{};
+  const [data,setData]=React.useState(()=>{var m={};slLoadJSON("salaahData",[]).forEach(function(r){m[slRowKey(r.student_id,r.date,r.salaah)]=r;});return m;});
+  const [settings,setSettings]=React.useState(()=>{var s=slLoadJSON("salaahSettings",null);return s&&s.enabled?{enabled:Object.assign({},SL_DEFAULT_SETTINGS.enabled,s.enabled),locked:Array.isArray(s.locked)?s.locked:[]}:SL_DEFAULT_SETTINGS;});
+  const [online,setOnline]=React.useState(true);
+  const [showPin,setShowPin]=React.useState(false);
+  const [showSettings,setShowSettings]=React.useState(false);
+  const pendingRef=React.useRef(slLoadJSON("salaahPending",[]));
+  const dataRef=React.useRef(data);dataRef.current=data;
+  const busy=React.useRef(false);
+
+  // ── students: same source/filters as the rest of the app (profiles + records, not "left") ──
+  const students=React.useMemo(function(){
+    var isReal=function(n){if(!n||n.startsWith("(")||n.startsWith("*"))return false;var l=n.toLowerCase();return !["instances","1-5","dd/mm"].some(function(w){return l.includes(w);});};
+    var byName={};
+    records.forEach(function(r){
+      if(!r||!isReal(r.name)||!r.class)return;
+      var e=byName[r.name]||(byName[r.name]={name:r.name,cls:r.class,uid:"",dt:"",cdt:""});
+      var d=r.dateFrom||"";
+      if(!r.isStudentProfile&&d>=e.dt){e.dt=d;e.cls=r.class;}
+      else if(!e.dt&&!e.cdt){e.cls=r.class;}
+      if(r.uniqueId&&String(r.uniqueId).trim()&&d>=e.cdt){e.uid=String(r.uniqueId).trim();e.cdt=d;}
+    });
+    return Object.keys(byName).filter(function(n){return !leftStudents[n];}).map(function(n){var e=byName[n];return{id:e.uid||("N:"+n),name:n,cls:e.cls};})
+      .filter(function(s){return s.cls==="HIFZ CLASS A"||s.cls==="HIFZ CLASS B";})
+      .sort(function(a,b){return a.name.localeCompare(b.name);});
+  },[records,leftStudents]);
+
+  const persistData=function(m){slSaveJSON("salaahData",Object.keys(m).map(function(k){return m[k];}));};
+  const persistPending=function(){slSaveJSON("salaahPending",pendingRef.current);};
+  const persistSettings=function(s){slSaveJSON("salaahSettings",s);};
+
+  // Push queued writes. Safe to repeat: upserts are idempotent and deletes are filters.
+  const flushPending=React.useCallback(async function(){
+    var q=pendingRef.current.slice();
+    for(var i=0;i<q.length;i++){
+      var op=q[i];
+      try{
+        if(op.k==="up")await slFetch("salaah_records?on_conflict=student_id,date,salaah","POST",[Object.assign({},op.row,{updated_at:new Date().toISOString()})]);
+        else if(op.k==="del")await slFetch("salaah_records?student_id=eq."+encodeURIComponent(op.row.student_id)+"&date=eq."+op.row.date+"&salaah=eq."+op.row.salaah,"DELETE");
+        else if(op.k==="enabled")await slFetch("salaah_settings?on_conflict=key","POST",[{key:"enabled",value:JSON.stringify(op.value),updated_at:new Date().toISOString()}]);
+        else if(op.k==="lock"){
+          var cur=await slFetch("salaah_settings?select=*&key=eq.locked","GET");
+          var list=[];try{list=JSON.parse((cur[0]||{}).value||"[]");}catch(e){}
+          list=list.filter(function(m){return m!==op.month;});
+          if(op.on)list.push(op.month);
+          await slFetch("salaah_settings?on_conflict=key","POST",[{key:"locked",value:JSON.stringify(list.sort()),updated_at:new Date().toISOString()}]);
+        }
+        pendingRef.current=pendingRef.current.filter(function(x){return x!==op;});
+        persistPending();
+      }catch(e){setOnline(false);return false;}
+    }
+    return true;
+  },[]);
+
+  const loadAll=React.useCallback(async function(){
+    if(busy.current)return;busy.current=true;
+    try{
+      var ok=await flushPending();
+      var res=await Promise.all([slFetchAllRecords(),slFetch("salaah_settings?select=*","GET")]);
+      var rows=res[0],srows=res[1];
+      var m={};
+      rows.forEach(function(r){m[slRowKey(r.student_id,r.date,r.salaah)]={student_id:r.student_id,student_name:r.student_name,class:r.class,date:r.date,salaah:r.salaah,score:r.score};});
+      pendingRef.current.forEach(function(op){if(op.k==="up"||op.k==="del")slApplyOp(m,op);});
+      setData(m);persistData(m);
+      var next={enabled:Object.assign({},SL_DEFAULT_SETTINGS.enabled),locked:[]};
+      var cur=slLoadJSON("salaahSettings",null);
+      if(cur&&cur.enabled)next={enabled:Object.assign({},next.enabled,cur.enabled),locked:cur.locked||[]};
+      var pe=pendingRef.current.filter(function(o){return o.k==="enabled";}).pop();
+      srows.forEach(function(r){
+        try{
+          if(r.key==="enabled"&&!pe)next.enabled=Object.assign({},SL_DEFAULT_SETTINGS.enabled,JSON.parse(r.value));
+          if(r.key==="locked")next.locked=JSON.parse(r.value);
+        }catch(e){}
+      });
+      pendingRef.current.filter(function(o){return o.k==="lock";}).forEach(function(o){next.locked=next.locked.filter(function(x){return x!==o.month;});if(o.on)next.locked.push(o.month);});
+      setSettings(next);persistSettings(next);
+      setOnline(ok!==false);
+    }catch(e){console.warn("salaah load",e&&e.message);setOnline(false);}
+    finally{busy.current=false;}
+  },[flushPending]);
+
+  React.useEffect(function(){
+    loadAll();
+    var iv=setInterval(loadAll,60000);
+    var onVis=function(){if(!document.hidden)loadAll();};
+    document.addEventListener("visibilitychange",onVis);
+    window.addEventListener("online",loadAll);
+    return function(){clearInterval(iv);document.removeEventListener("visibilitychange",onVis);window.removeEventListener("online",loadAll);};
+  },[loadAll]);
+
+  const enabledSalaahs=SL_SALAAHS.filter(function(s){return settings.enabled[s.key];});
+  const isLocked=function(date){return settings.locked.indexOf(slMonthOf(date))>=0;};
+
+  // Write a batch of changes: [{student,date,salaah,score|null}]. Last save wins (upsert / delete).
+  async function writeScores(changes){
+    var m=Object.assign({},dataRef.current);
+    var ops=[];
+    changes.forEach(function(c){
+      var row={student_id:c.student.id,student_name:c.student.name,class:c.student.cls,date:c.date,salaah:c.salaah,score:c.score};
+      var op={k:c.score===null?"del":"up",row:row};
+      slApplyOp(m,op);ops.push(op);
+    });
+    setData(m);dataRef.current=m;persistData(m);
+    pendingRef.current=pendingRef.current.concat(ops);persistPending();
+    var ok=await flushPending();
+    setOnline(ok);
+    return ok;
+  }
+  async function setEnabled(key,on){
+    var next=Object.assign({},settings,{enabled:Object.assign({},settings.enabled,{[key]:on})});
+    setSettings(next);persistSettings(next);
+    pendingRef.current=pendingRef.current.filter(function(o){return o.k!=="enabled";}).concat([{k:"enabled",value:next.enabled}]);persistPending();
+    setOnline(await flushPending());
+  }
+  async function setLock(month,on){
+    var l=settings.locked.filter(function(x){return x!==month;});if(on)l.push(month);l.sort();
+    var next=Object.assign({},settings,{locked:l});
+    setSettings(next);persistSettings(next);
+    pendingRef.current=pendingRef.current.concat([{k:"lock",month:month,on:on}]);persistPending();
+    setOnline(await flushPending());
+  }
+
+  const totalFor=function(sid,dates){
+    var t=0,n=0;
+    dates.forEach(function(d){enabledSalaahs.forEach(function(s){var r=data[slRowKey(sid,d,s.key)];if(r&&r.score!=null){t+=r.score;n++;}});});
+    return{total:t,count:n};
+  };
+
+  // ── shared bits ──
+  const card={background:"#fff",border:"1px solid "+BORDER,borderRadius:14,boxShadow:"0 2px 10px rgba(0,0,0,0.05)"};
+  const pageTitle=function(t,sub){
+    return h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:14,flexWrap:"wrap"}},
+      h("div",null,
+        h("div",{style:{fontSize:22,fontWeight:700,color:TEXT,fontFamily:"Marcellus,Georgia,serif"}},t),
+        sub&&h("div",{style:{fontSize:12,color:MUTED,marginTop:2}},sub)),
+      h("div",{style:{display:"flex",alignItems:"center",gap:8}},
+        !online&&h("span",{style:{fontSize:11,fontWeight:700,color:"#b45309",background:"#fef3c7",borderRadius:20,padding:"4px 10px"}},"Offline – saved on this device"),
+        h("button",{onClick:function(){setShowPin(true);},title:"Salaah settings","aria-label":"Salaah settings",style:{width:42,height:42,borderRadius:12,border:"1px solid "+BORDER,background:"#fff",cursor:"pointer",fontSize:20}},"⚙️")));
+  };
+  const keyBlock=function(compact){
+    return h("div",{style:{background:"#fffdf6",border:"2px solid "+GOLD,borderRadius:12,padding:compact?"8px 10px":"12px 14px"}},
+      h("div",{style:{fontSize:11,fontWeight:800,letterSpacing:"0.14em",textTransform:"uppercase",color:"#8a6d1f",marginBottom:5}},"Key"),
+      h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:"3px 14px"}},
+        SL_KEY.map(function(t,i){var sc=5-i;return h("div",{key:sc,style:{display:"flex",alignItems:"center",gap:8,fontSize:compact?12.5:14,lineHeight:1.3,color:TEXT}},
+          h("span",{style:{flexShrink:0,width:24,height:24,borderRadius:7,background:SL_COLORS[sc],color:"#fff",fontWeight:800,textAlign:"center",lineHeight:"24px",fontSize:14}},sc),
+          h("span",null,t));})));
+  };
+  const modalWrap=function(children,onClose){
+    return h("div",{onClick:onClose,style:{position:"fixed",inset:0,background:"rgba(7,21,14,0.55)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:14}},
+      h("div",{onClick:function(e){e.stopPropagation();},style:{background:"#fff",borderRadius:16,maxWidth:520,width:"100%",maxHeight:"92vh",overflowY:"auto",padding:20,boxShadow:"0 20px 60px rgba(0,0,0,0.35)"}},children));
+  };
+
+  // ── settings / pin overlays ──
+  const overlays=[
+    showPin&&h(SalaahPin,{key:"pin",onOk:function(){setShowPin(false);setShowSettings(true);},onClose:function(){setShowPin(false);},modalWrap:modalWrap}),
+    showSettings&&h(SalaahSettings,{key:"set",settings:settings,setEnabled:setEnabled,setLock:setLock,onClose:function(){setShowSettings(false);},modalWrap:modalWrap})
+  ];
+
+  const ctx={h:h,students:students,data:data,settings:settings,enabledSalaahs:enabledSalaahs,isLocked:isLocked,writeScores:writeScores,totalFor:totalFor,card:card,pageTitle:pageTitle,keyBlock:keyBlock,modalWrap:modalWrap};
+  var body=null;
+  if(view==="salaahEntry")body=h(SalaahEntry,ctx);
+  else if(view==="salaahTracker")body=h(SalaahTracker,ctx);
+  else if(view==="salaahAward")body=h(SalaahAward,ctx);
+  return h("div",{style:{padding:"16px 14px 40px",maxWidth:view==="salaahEntry"?980:1500,margin:"0 auto"}},body,overlays);
+}
+
+// ── PIN prompt ──
+function SalaahPin(props){
+  const h=React.createElement;
+  const [pin,setPin]=React.useState("");
+  const [bad,setBad]=React.useState(false);
+  function press(d){
+    if(pin.length>=4)return;
+    var n=pin+d;setPin(n);setBad(false);
+    if(n.length===4){
+      if(n===SL_SETTINGS_PIN){props.onOk();}
+      else{setBad(true);setTimeout(function(){setPin("");},350);}
+    }
+  }
+  var keys=["1","2","3","4","5","6","7","8","9","","0","⌫"];
+  return props.modalWrap(h("div",{style:{textAlign:"center"}},
+    h("div",{style:{fontSize:18,fontWeight:700,color:TEXT,marginBottom:4}},"Salaah Settings"),
+    h("div",{style:{fontSize:12,color:MUTED,marginBottom:14}},"Enter PIN"),
+    h("div",{style:{display:"flex",justifyContent:"center",gap:12,marginBottom:14}},
+      [0,1,2,3].map(function(i){return h("div",{key:i,style:{width:16,height:16,borderRadius:"50%",border:"2px solid "+(bad?RED:GOLD),background:i<pin.length?(bad?RED:GOLD):"transparent"}});})),
+    bad&&h("div",{style:{color:RED,fontSize:12,fontWeight:600,marginBottom:8}},"Wrong PIN"),
+    h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,76px)",gap:10,justifyContent:"center"}},
+      keys.map(function(k,i){return k===""?h("div",{key:i}):h("button",{key:i,onClick:function(){if(k==="⌫")setPin(pin.slice(0,-1));else press(k);},style:{height:58,borderRadius:14,border:"1px solid "+BORDER,background:"#faf8f1",fontSize:22,fontWeight:600,cursor:"pointer",color:TEXT}},k);})),
+    h("button",{onClick:props.onClose,style:{marginTop:16,background:"transparent",border:"none",color:MUTED,cursor:"pointer",fontSize:13}},"Cancel")
+  ),props.onClose);
+}
+
+// ── Settings (toggles + month locks). Closing unmounts it, so it re-locks. ──
+function SalaahSettings(props){
+  const h=React.createElement;
+  const settings=props.settings;
+  const now=new Date();
+  const [y,setY]=React.useState(now.getFullYear());
+  const [m,setM]=React.useState(now.getMonth()+1);
+  const month=y+"-"+slPad(m);
+  const locked=settings.locked.indexOf(month)>=0;
+  const sel={border:"1px solid "+BORDER,borderRadius:10,padding:"10px 12px",fontSize:15,background:"#fff"};
+  return props.modalWrap(h("div",null,
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}},
+      h("div",{style:{fontSize:18,fontWeight:700,color:TEXT}},"Salaah Settings"),
+      h("button",{onClick:props.onClose,style:{background:GOLD,color:"#1b1200",border:"none",borderRadius:10,padding:"9px 18px",fontWeight:800,cursor:"pointer"}},"Done")),
+    h("div",{style:{fontSize:11,fontWeight:800,letterSpacing:"0.14em",textTransform:"uppercase",color:MUTED,marginBottom:6}},"Tracked salaahs"),
+    SL_SALAAHS.map(function(s){var on=!!settings.enabled[s.key];
+      return h("button",{key:s.key,onClick:function(){props.setEnabled(s.key,!on);},style:{display:"flex",width:"100%",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",marginBottom:6,borderRadius:12,border:"1px solid "+BORDER,background:on?"#f0fdf4":"#fff",cursor:"pointer",fontSize:16,color:TEXT}},
+        h("span",{style:{fontWeight:600}},s.label),
+        h("span",{style:{width:48,height:26,borderRadius:13,background:on?GREEN:"#cbd5d1",position:"relative",display:"inline-block"}},
+          h("span",{style:{position:"absolute",top:3,left:on?25:3,width:20,height:20,borderRadius:"50%",background:"#fff",transition:"left .15s"}})));}),
+    h("div",{style:{fontSize:11,color:MUTED,margin:"4px 0 16px"}},"Switching a salaah off only hides it. Saved scores are never deleted."),
+    h("div",{style:{fontSize:11,fontWeight:800,letterSpacing:"0.14em",textTransform:"uppercase",color:MUTED,marginBottom:6}},"Month lock"),
+    h("div",{style:{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}},
+      h("select",{value:m,onChange:function(e){setM(+e.target.value);},style:sel},SL_MONTHS.map(function(n,i){return h("option",{key:i,value:i+1},n);})),
+      h("select",{value:y,onChange:function(e){setY(+e.target.value);},style:sel},[y-2,y-1,y,y+1,y+2].filter(function(v,i,a){return a.indexOf(v)===i;}).sort().map(function(v){return h("option",{key:v,value:v},v);})),
+      h("button",{onClick:function(){props.setLock(month,!locked);},style:{flex:1,minWidth:150,padding:"10px 14px",borderRadius:10,border:"none",fontWeight:800,fontSize:15,cursor:"pointer",background:locked?GREEN:RED,color:"#fff"}},locked?"🔓 Unlock month":"🔒 Lock month")),
+    h("div",{style:{fontSize:13,color:TEXT,marginBottom:6}},SL_MONTHS[m-1]+" "+y+" is ",h("b",null,locked?"LOCKED":"open"),"."),
+    settings.locked.length>0&&h("div",{style:{fontSize:12,color:MUTED}},"Locked months: "+settings.locked.map(function(x){var p=x.split("-");return SL_MONTHS[+p[1]-1].substring(0,3)+" "+p[0];}).join(", "))
+  ),props.onClose);
+}
+
+// ── ENTRY PAGE ──
+function SalaahEntry(c){
+  const h=c.h;
+  const [date,setDate]=React.useState(slToday());
+  const [sel,setSel]=React.useState(null);
+  const [scores,setScores]=React.useState({});
+  const [search,setSearch]=React.useState("");
+  const [saving,setSaving]=React.useState(false);
+  const [done,setDone]=React.useState("");
+  const touch=React.useRef(null);
+  const today=slToday();
+  const locked=c.isLocked(date);
+  const ld=slLongDate(date);
+  const existingFor=function(stu,d){var out={},any=false;c.enabledSalaahs.forEach(function(s){var r=c.data[slRowKey(stu.id,d,s.key)];if(r&&r.score!=null){out[s.key]=r.score;any=true;}});return{vals:out,any:any};};
+  function pick(stu){setSel(stu);setScores(existingFor(stu,date).vals);setDone("");}
+  function changeDate(d){setDate(d);if(sel)setScores(existingFor(sel,d).vals);setDone("");}
+  const existing=sel?existingFor(sel,date):{any:false};
+  async function save(){
+    if(!sel||locked||saving)return;
+    var changes=[];
+    c.enabledSalaahs.forEach(function(s){
+      var v=scores[s.key],had=c.data[slRowKey(sel.id,date,s.key)];
+      var hadScore=had&&had.score!=null;
+      if(v===undefined||v===null){if(hadScore)changes.push({student:sel,date:date,salaah:s.key,score:null});}
+      else if(!hadScore||had.score!==v)changes.push({student:sel,date:date,salaah:s.key,score:v});
+    });
+    if(!changes.length&&!Object.keys(scores).length){showToast("Tap a number first.","error");return;}
+    setSaving(true);
+    var name=sel.name;
+    var ok=await c.writeScores(changes);
+    setSaving(false);
+    showToast(ok?("✅ Saved – "+name):("✅ Saved on this device – "+name+" (will sync when online)"),ok?"success":"info",2600);
+    setDone("✅ Saved – "+name);
+    setSel(null);setScores({});setSearch("");
+    setTimeout(function(){setDone("");},2600);
+  }
+  var dateBtn={width:56,height:56,borderRadius:14,border:"1px solid rgba(255,255,255,0.35)",background:"rgba(255,255,255,0.14)",color:"#fff",fontSize:26,cursor:"pointer",flexShrink:0};
+  var isToday=date===today;
+  var dateStrip=h("div",{
+    onTouchStart:function(e){var t=e.touches[0];touch.current={x:t.clientX,y:t.clientY};},
+    onTouchEnd:function(e){if(!touch.current)return;var t=e.changedTouches[0];var dx=t.clientX-touch.current.x,dy=t.clientY-touch.current.y;touch.current=null;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)changeDate(slAdd(date,dx<0?1:-1));},
+    style:{background:isToday?"linear-gradient(135deg,#0a1e12,#07150e)":"linear-gradient(135deg,#7c2d12,#9a3412)",borderRadius:16,padding:"12px 12px",marginBottom:12,color:"#fff",touchAction:"pan-y",border:"2px solid "+(isToday?"rgba(201,165,83,0.5)":"#fb923c")}},
+    h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+      h("button",{onClick:function(){changeDate(slAdd(date,-1));},"aria-label":"Previous day",style:dateBtn},"‹"),
+      h("div",{style:{flex:1,textAlign:"center",minWidth:0}},
+        h("div",{style:{fontSize:13,letterSpacing:"0.16em",textTransform:"uppercase",color:"#e8d9a8",fontWeight:700}},ld.wd+(isToday?" · TODAY":date<today?" · PAST DATE":" · FUTURE DATE")),
+        h("div",{style:{fontSize:28,fontWeight:800,lineHeight:1.2,fontFamily:"Marcellus,Georgia,serif"}},ld.big)),
+      h("button",{onClick:function(){changeDate(slAdd(date,1));},"aria-label":"Next day",style:dateBtn},"›")),
+    h("div",{style:{display:"flex",gap:8,marginTop:10,justifyContent:"center",flexWrap:"wrap"}},
+      h("div",{style:{position:"relative",height:44,minWidth:150}},
+        h("div",{style:{height:44,borderRadius:12,background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.35)",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"0 16px",fontWeight:700,fontSize:15}},"📅 Pick a date"),
+        h("input",{type:"date",value:date,onChange:function(e){if(e.target.value)changeDate(e.target.value);},"aria-label":"Choose date",style:{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0,cursor:"pointer"}})),
+      !isToday&&h("button",{onClick:function(){changeDate(today);},style:{height:44,padding:"0 20px",borderRadius:12,border:"none",background:GOLD,color:"#1b1200",fontWeight:800,fontSize:15,cursor:"pointer"}},"↩ Back to Today")));
+
+  var lockedBanner=locked&&h("div",{style:{background:"#fef2f2",border:"2px solid #fca5a5",color:"#991b1b",borderRadius:14,padding:"18px 14px",textAlign:"center",fontSize:20,fontWeight:800,marginBottom:12}},"🔒 This month is locked");
+
+  var q=search.trim().toLowerCase();
+  var picker=!sel&&!locked&&h("div",null,
+    h("input",{type:"search",value:search,onChange:function(e){setSearch(e.target.value);},placeholder:"🔍 Search name (optional)",style:{width:"100%",boxSizing:"border-box",padding:"13px 14px",fontSize:16,border:"1px solid "+BORDER,borderRadius:12,marginBottom:12,outline:"none"}}),
+    SL_CLASSES.map(function(g){
+      var list=c.students.filter(function(s){return s.cls===g.cls&&(!q||s.name.toLowerCase().includes(q));});
+      if(!list.length)return null;
+      return h("div",{key:g.cls,style:{marginBottom:14}},
+        h("div",{style:{fontSize:12,fontWeight:800,letterSpacing:"0.16em",textTransform:"uppercase",color:"#8a6d1f",marginBottom:6}},g.label),
+        h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:8}},
+          list.map(function(s){var has=existingFor(s,date).any;
+            return h("button",{key:s.id,onClick:function(){pick(s);},style:{minHeight:60,padding:"8px 10px",borderRadius:14,border:"2px solid "+(has?"#86efac":BORDER),background:has?"#f0fdf4":"#fff",fontSize:17,fontWeight:700,color:TEXT,cursor:"pointer",textAlign:"center",lineHeight:1.2,position:"relative"}},
+              s.name,has&&h("span",{style:{position:"absolute",top:4,right:7,fontSize:12,color:GREEN}},"✓"));})));
+    }),
+    c.students.length===0&&h("div",{style:{textAlign:"center",color:MUTED,padding:30}},"No students found."));
+
+  var scoreRows=sel&&!locked&&h("div",null,
+    h("div",{style:{background:"#fffdf6",border:"3px solid "+GOLD,borderRadius:16,padding:"12px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}},
+      h("div",{style:{minWidth:0}},
+        h("div",{style:{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#8a6d1f",fontWeight:800}},(SL_CLASSES.find(function(g){return g.cls===sel.cls;})||{}).label),
+        h("div",{style:{fontSize:26,fontWeight:800,color:TEXT,lineHeight:1.2,wordBreak:"break-word"}},sel.name),
+        existing.any&&h("div",{style:{display:"inline-block",marginTop:4,fontSize:12,fontWeight:800,color:"#92400e",background:"#fef3c7",borderRadius:20,padding:"3px 10px"}},"Updating existing entry")),
+      h("button",{onClick:function(){setSel(null);setScores({});},style:{flexShrink:0,padding:"10px 14px",borderRadius:12,border:"1px solid "+BORDER,background:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}},"Change")),
+    c.enabledSalaahs.length===0&&h("div",{style:{color:MUTED,padding:20,textAlign:"center"}},"No salaahs are switched on. Turn some on in settings."),
+    c.enabledSalaahs.map(function(s){
+      return h("div",{key:s.key,style:Object.assign({},c.card,{padding:"12px 12px 14px",marginBottom:10})},
+        h("div",{style:{fontSize:20,fontWeight:800,color:TEXT,marginBottom:8}},s.label),
+        h("div",{style:{display:"flex",gap:6}},
+          [0,1,2,3,4,5].map(function(n){var on=scores[s.key]===n;
+            return h("button",{key:n,onClick:function(){setScores(function(p){var x=Object.assign({},p);if(x[s.key]===n)delete x[s.key];else x[s.key]=n;return x;});},style:{flex:1,height:64,borderRadius:14,border:"3px solid "+(on?"#111":"transparent"),background:SL_COLORS[n],color:"#fff",fontSize:28,fontWeight:800,cursor:"pointer",opacity:on||scores[s.key]===undefined?1:0.45,transform:on?"scale(1.07)":"none",boxShadow:on?"0 4px 14px rgba(0,0,0,0.3)":"none",padding:0,transition:"all .08s"}},n);})));
+    }));
+
+  var footer=h("div",{style:{position:"sticky",bottom:0,zIndex:20,background:"rgba(247,244,236,0.97)",padding:"8px 0 6px",marginTop:10,backdropFilter:"blur(4px)"}},
+    sel&&!locked&&h("button",{onClick:save,disabled:saving,style:{width:"100%",height:62,borderRadius:16,border:"none",background:saving?"#9ca3af":GREEN,color:"#fff",fontSize:22,fontWeight:800,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.35)"}},saving?"Saving…":"Save Entry"),
+    c.keyBlock(true));
+
+  return h("div",null,
+    c.pageTitle("Salaah Entry","Tap a name, tap the scores, Save"),
+    dateStrip,
+    done&&h("div",{style:{background:"#dcfce7",border:"2px solid #86efac",color:"#166534",borderRadius:14,padding:"14px",textAlign:"center",fontSize:20,fontWeight:800,marginBottom:12}},done),
+    lockedBanner,picker,scoreRows,footer);
+}
+
+// ── TRACKER PAGE ──
+function SalaahMonthPicker(c,y,m,setY,setM){
+  const h=c.h;
+  var sel={border:"1px solid "+BORDER,borderRadius:10,padding:"9px 12px",fontSize:14,background:"#fff",color:TEXT};
+  var thisY=new Date().getFullYear();
+  var years=[];for(var v=thisY-3;v<=thisY+1;v++)years.push(v);
+  if(years.indexOf(y)<0)years.push(y);
+  years.sort();
+  return[
+    h("select",{key:"m",value:m,onChange:function(e){setM(+e.target.value);},style:sel},SL_MONTHS.map(function(n,i){return h("option",{key:i,value:i+1},n);})),
+    h("select",{key:"y",value:y,onChange:function(e){setY(+e.target.value);},style:sel},years.map(function(v){return h("option",{key:v,value:v},v);}))
+  ];
+}
+function SalaahTracker(c){
+  const h=c.h;
+  const now=new Date();
+  const [y,setY]=React.useState(now.getFullYear());
+  const [m,setM]=React.useState(now.getMonth()+1);
+  const [cf,setCf]=React.useState("ALL");
+  const [edit,setEdit]=React.useState(null);
+  const [showPrint,setShowPrint]=React.useState(false);
+  const dates=slMonthDates(y,m);
+  const month=y+"-"+slPad(m);
+  const locked=c.settings.locked.indexOf(month)>=0;
+  const list=c.students.filter(function(s){return cf==="ALL"||s.cls===cf;});
+  const sals=c.enabledSalaahs;
+  const cw=26;
+  const th={position:"sticky",background:"#f3efe2",borderBottom:"1px solid #d9d2bd",borderRight:"1px solid #e6e1d3",fontSize:11,fontWeight:700,color:TEXT,textAlign:"center",zIndex:3};
+  var head1=[h("th",{key:"n",rowSpan:2,style:Object.assign({},th,{left:0,top:0,zIndex:6,minWidth:150,textAlign:"left",padding:"4px 8px",borderRight:"2px solid #b8a25a"})},"Student")];
+  dates.forEach(function(d){var we=slIsWeekend(d);head1.push(h("th",{key:d,colSpan:sals.length,style:Object.assign({},th,{top:0,height:30,background:we?"#e7dcb8":"#f3efe2",borderLeft:"2px solid #cfc7ab",whiteSpace:"nowrap",padding:"0 4px"})},slDayLabel(d)));});
+  head1.push(h("th",{key:"t",rowSpan:2,style:Object.assign({},th,{right:0,top:0,zIndex:6,minWidth:56,borderLeft:"2px solid #b8a25a"})},"Total"));
+  var head2=[];
+  dates.forEach(function(d){var we=slIsWeekend(d);sals.forEach(function(s,i){head2.push(h("th",{key:d+s.key,style:Object.assign({},th,{top:30,minWidth:cw,background:we?"#e7dcb8":"#f3efe2",borderLeft:i===0?"2px solid #cfc7ab":undefined,fontWeight:600,color:MUTED})},s.letter));});});
+  var rows=list.map(function(s){
+    var tot=c.totalFor(s.id,dates).total;
+    var cells=[h("td",{key:"n",style:{position:"sticky",left:0,background:"#fff",zIndex:2,padding:"0 6px 0 4px",borderBottom:"1px solid #eee7d3",borderRight:"2px solid #b8a25a",whiteSpace:"nowrap",fontSize:13,fontWeight:600,color:TEXT}},
+      h("button",{onClick:function(){if(!locked)setEdit(s);},disabled:locked,title:locked?"Month is locked":"Edit "+s.name,style:{border:"none",background:"transparent",cursor:locked?"not-allowed":"pointer",fontSize:14,padding:"6px 6px",opacity:locked?0.4:1}},locked?"🔒":"✏️"),s.name)];
+    dates.forEach(function(d){var we=slIsWeekend(d);sals.forEach(function(sl,i){var r=c.data[slRowKey(s.id,d,sl.key)];var v=r&&r.score!=null?r.score:null;
+      cells.push(h("td",{key:d+sl.key,style:{textAlign:"center",fontSize:12.5,fontWeight:700,height:30,minWidth:cw,background:v!==null?SL_TINTS[v]:(we?"rgba(231,220,184,0.25)":"#fff"),borderBottom:"1px solid #eee7d3",borderRight:"1px solid #f0ebdb",borderLeft:i===0?"2px solid #e3dcc3":undefined,color:TEXT}},v===null?"":v));});});
+    cells.push(h("td",{key:"t",style:{position:"sticky",right:0,background:"#faf6e8",zIndex:2,textAlign:"center",fontWeight:800,fontSize:14,borderBottom:"1px solid #eee7d3",borderLeft:"2px solid #b8a25a",color:TEXT}},tot));
+    return h("tr",{key:s.id},cells);
+  });
+  var chipStyle=function(on){return{padding:"9px 16px",border:"none",background:on?GOLD:"transparent",color:on?"#fff":MUTED,fontWeight:on?700:500,cursor:"pointer",fontSize:13};};
+  return h("div",null,
+    c.pageTitle("Salaah Tracker",SL_MONTHS[m-1]+" "+y),
+    h("div",{style:{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",marginBottom:12}},
+      SalaahMonthPicker(c,y,m,setY,setM),
+      h("div",{style:{display:"flex",borderRadius:10,overflow:"hidden",border:"1px solid rgba(201,165,83,0.4)",background:"#fff"}},
+        [["ALL","All"],["HIFZ CLASS A","Hifz A"],["HIFZ CLASS B","Hifz B"]].map(function(t){return h("button",{key:t[0],onClick:function(){setCf(t[0]);},style:chipStyle(cf===t[0])},t[1]);})),
+      locked&&h("span",{style:{background:"#fee2e2",color:"#991b1b",fontWeight:800,fontSize:12,borderRadius:20,padding:"6px 12px"}},"🔒 Locked"),
+      h("div",{style:{flex:1}}),
+      h("button",{onClick:function(){setShowPrint(true);},style:{padding:"10px 16px",borderRadius:10,border:"none",background:"#07150e",color:"#f7f4ec",fontWeight:700,fontSize:14,cursor:"pointer"}},"🖨 Print / Save PDF")),
+    sals.length===0?h("div",{style:Object.assign({},c.card,{padding:30,textAlign:"center",color:MUTED})},"No salaahs are switched on. Turn some on in settings."):
+    h("div",{style:Object.assign({},c.card,{overflow:"auto",maxHeight:"calc(100vh - 230px)",WebkitOverflowScrolling:"touch"})},
+      h("table",{style:{borderCollapse:"separate",borderSpacing:0}},h("thead",null,h("tr",null,head1),h("tr",null,head2)),h("tbody",null,rows))),
+    h("div",{style:{marginTop:12}},c.keyBlock(true)),
+    edit&&h(SalaahEditModal,{c:c,stu:edit,dates:dates,onClose:function(){setEdit(null);}}),
+    showPrint&&h(SalaahPrintDialog,{c:c,y:y,m:m,cf:cf,onClose:function(){setShowPrint(false);}}));
+}
+
+function SalaahEditModal(p){
+  const c=p.c,h=c.h;
+  const [vals,setVals]=React.useState(function(){var o={};p.dates.forEach(function(d){c.enabledSalaahs.forEach(function(s){var r=c.data[slRowKey(p.stu.id,d,s.key)];o[d+"|"+s.key]=r&&r.score!=null?String(r.score):"";});});return o;});
+  const [err,setErr]=React.useState("");
+  const [saving,setSaving]=React.useState(false);
+  async function save(){
+    var changes=[];
+    for(var i=0;i<p.dates.length;i++){var d=p.dates[i];
+      for(var j=0;j<c.enabledSalaahs.length;j++){var s=c.enabledSalaahs[j];
+        var raw=vals[d+"|"+s.key];
+        if(raw!==""&&!/^[0-5]$/.test(raw)){setErr("Scores must be a whole number from 0 to 5 ("+slDayLabel(d)+" "+s.label+").");return;}
+        var had=c.data[slRowKey(p.stu.id,d,s.key)];var hadScore=had&&had.score!=null;
+        if(raw===""){if(hadScore)changes.push({student:p.stu,date:d,salaah:s.key,score:null});}
+        else if(!hadScore||had.score!==+raw)changes.push({student:p.stu,date:d,salaah:s.key,score:+raw});
+      }}
+    if(c.isLocked(p.dates[0])){setErr("This month is locked.");return;}
+    setSaving(true);
+    if(changes.length)await c.writeScores(changes);
+    setSaving(false);
+    showToast("✅ Saved – "+p.stu.name,"success",2200);
+    p.onClose();
+  }
+  return c.modalWrap(h("div",null,
+    h("div",{style:{fontSize:18,fontWeight:700,color:TEXT,marginBottom:2}},p.stu.name),
+    h("div",{style:{fontSize:12,color:MUTED,marginBottom:10}},"Edit scores (0–5). Leave blank for not entered."),
+    h("div",{style:{display:"grid",gridTemplateColumns:"1fr "+c.enabledSalaahs.map(function(){return "70px";}).join(" "),gap:"4px 8px",alignItems:"center"}},
+      h("div",null),c.enabledSalaahs.map(function(s){return h("div",{key:s.key,style:{fontSize:11,fontWeight:800,textAlign:"center",color:MUTED}},s.label);}),
+      p.dates.map(function(d){return[h("div",{key:d,style:{fontSize:13,fontWeight:600,color:slIsWeekend(d)?"#8a6d1f":TEXT}},slDayLabel(d))].concat(c.enabledSalaahs.map(function(s){var k=d+"|"+s.key;
+        return h("select",{key:k,value:vals[k],onChange:function(e){var v=e.target.value;setVals(function(o){return Object.assign({},o,{[k]:v});});},style:{padding:"7px 4px",fontSize:15,borderRadius:8,border:"1px solid "+BORDER,background:vals[k]!==""?SL_TINTS[+vals[k]]:"#fff"}},
+          h("option",{value:""},"–"),[0,1,2,3,4,5].map(function(n){return h("option",{key:n,value:String(n)},n);}));}));})),
+    err&&h("div",{style:{color:RED,fontSize:13,fontWeight:600,marginTop:10}},err),
+    h("div",{style:{display:"flex",gap:8,marginTop:14}},
+      h("button",{onClick:p.onClose,style:{flex:1,padding:"12px",borderRadius:12,border:"1px solid "+BORDER,background:"#fff",fontWeight:700,cursor:"pointer",fontSize:15}},"Cancel"),
+      h("button",{onClick:save,disabled:saving,style:{flex:2,padding:"12px",borderRadius:12,border:"none",background:GREEN,color:"#fff",fontWeight:800,cursor:"pointer",fontSize:15}},saving?"Saving…":"Save"))
+  ),p.onClose);
+}
+
+// ── PRINT (black & white, landscape A4) ──
+function SalaahPrintDialog(p){
+  const c=p.c,h=c.h;
+  const [mode,setMode]=React.useState("separate");
+  function go(){
+    var html=salaahPrintHtml(c,p.y,p.m,p.cf,mode);
+    var f=document.createElement("iframe");
+    f.style.cssText="position:fixed;left:-9999px;top:0;width:1123px;height:794px;border:none;";
+    document.body.appendChild(f);
+    var d=f.contentDocument;d.open();d.write(html);d.close();
+    setTimeout(function(){try{f.contentWindow.focus();f.contentWindow.print();}catch(e){showToast("Could not open print dialog.","error");}setTimeout(function(){try{document.body.removeChild(f);}catch(x){}},60000);},350);
+    p.onClose();
+  }
+  var opt=function(k,t,sub){return h("button",{onClick:function(){setMode(k);},style:{display:"block",width:"100%",textAlign:"left",padding:"12px 14px",marginBottom:8,borderRadius:12,border:"2px solid "+(mode===k?GOLD:BORDER),background:mode===k?"#fffdf6":"#fff",cursor:"pointer"}},h("div",{style:{fontWeight:700,fontSize:15,color:TEXT}},(mode===k?"◉ ":"○ ")+t),h("div",{style:{fontSize:12,color:MUTED,marginTop:2}},sub));};
+  return c.modalWrap(h("div",null,
+    h("div",{style:{fontSize:18,fontWeight:700,color:TEXT,marginBottom:4}},"Print / Save PDF"),
+    h("div",{style:{fontSize:12,color:MUTED,marginBottom:12}},SL_MONTHS[p.m-1]+" "+p.y+" · landscape A4 · black & white"),
+    opt("separate","Hifz A on one page, Hifz B on the back (recommended)","Largest and easiest to read."),
+    opt("single","Both classes on one sheet","Smaller print. Use only if still legible."),
+    p.cf!=="ALL"&&h("div",{style:{fontSize:12,color:MUTED,marginBottom:8}},"Only the selected class filter is printed."),
+    h("div",{style:{display:"flex",gap:8,marginTop:8}},
+      h("button",{onClick:p.onClose,style:{flex:1,padding:12,borderRadius:12,border:"1px solid "+BORDER,background:"#fff",fontWeight:700,cursor:"pointer"}},"Cancel"),
+      h("button",{onClick:go,style:{flex:2,padding:12,borderRadius:12,border:"none",background:"#07150e",color:"#f7f4ec",fontWeight:800,cursor:"pointer"}},"Print"))
+  ),p.onClose);
+}
+function salaahPrintHtml(c,y,m,cf,mode){
+  var dates=slMonthDates(y,m),sals=c.enabledSalaahs;
+  var classes=SL_CLASSES.filter(function(g){return cf==="ALL"||cf===g.cls;});
+  var single=mode==="single"&&classes.length>1;
+  var tableFor=function(g){
+    var list=c.students.filter(function(s){return s.cls===g.cls;});
+    var nCols=dates.length*sals.length;
+    var t='<table><colgroup><col style="width:'+(single?"26mm":"34mm")+'">';
+    for(var i=0;i<nCols;i++)t+="<col>";
+    t+='<col style="width:'+(single?"9mm":"13mm")+'"></colgroup><thead><tr><th rowspan="2" class="nm">Student</th>';
+    dates.forEach(function(d){var l=slDayLabel(d).split(" ");t+='<th colspan="'+sals.length+'" class="day'+(slIsWeekend(d)?" we":"")+'">'+slEsc(l[0])+"<br>"+slEsc(l[1])+"</th>";});
+    t+='<th rowspan="2" class="tot">Total</th></tr><tr>';
+    dates.forEach(function(d){sals.forEach(function(s,i){t+='<th class="sub'+(i===0?" f":"")+(slIsWeekend(d)?" we":"")+'">'+s.letter+"</th>";});});
+    t+="</tr></thead><tbody>";
+    list.forEach(function(s){
+      t+='<tr><td class="nm">'+slEsc(s.name)+"</td>";
+      dates.forEach(function(d){sals.forEach(function(sl,i){var r=c.data[slRowKey(s.id,d,sl.key)];var v=r&&r.score!=null?r.score:null;
+        t+='<td class="c'+(i===0?" f":"")+'"'+(v!==null?' style="background:'+SL_GREYS[v]+'"':"")+">"+(v===null?"":v)+"</td>";});});
+      t+='<td class="tot">'+c.totalFor(s.id,dates).total+"</td></tr>";
+    });
+    return t+"</tbody></table>";
+  };
+  var keyHtml='<div class="key"><b>Key:</b> '+SL_KEY.map(function(tx,i){return "<b>"+(5-i)+"</b> = "+slEsc(tx);}).join(" &nbsp;|&nbsp; ")+" &nbsp;|&nbsp; Blank = not entered</div>";
+  var head=function(g){return '<div class="mad">Madrasah Al-Ihsaan</div><div class="ttl">Salaah Tracker – '+SL_MONTHS[m-1]+" "+y+" – "+g.label+"</div>";};
+  var pages="";
+  if(single){
+    pages='<section class="pg single">'+classes.map(function(g){return '<div class="blk">'+head(g)+tableFor(g)+"</div>";}).join("")+keyHtml+"</section>";
+  }else{
+    pages=classes.map(function(g){return '<section class="pg">'+head(g)+tableFor(g)+keyHtml+"</section>";}).join("");
+  }
+  var fs=single?"5.6pt":(sals.length>2?"6pt":"7pt");
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Salaah Tracker</title><style>'
+  +'@page{size:A4 landscape;margin:6mm;}'
+  +'*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+  +'html,body{margin:0;padding:0;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;}'
+  +'.pg{page-break-after:always;break-after:page;width:285mm;}.pg:last-child{page-break-after:auto;break-after:auto;}'
+  +'.mad{font-size:8pt;letter-spacing:.12em;text-transform:uppercase;font-weight:700;}'
+  +'.ttl{font-size:'+(single?"10pt":"13pt")+';font-weight:800;margin:1mm 0 2mm;}'
+  +'.blk{margin-bottom:'+(single?"2mm":"0")+';}'
+  +'table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:'+fs+';border:2px solid #000;}'
+  +'th,td{border:.5px solid #555;padding:0;text-align:center;overflow:hidden;white-space:nowrap;line-height:'+(single?"3.7mm":"6mm")+';}'
+  +'th{background:#d9d9d9;font-weight:800;}th.we{background:#bdbdbd;}th.day{line-height:1.15;padding:.3mm 0;}'
+  +'th.sub{font-weight:700;}.f{border-left:1.6px solid #000;}'
+  +'td.nm,th.nm{text-align:left;padding-left:1mm;font-weight:700;border-right:2px solid #000;}'
+  +'td.c{font-weight:800;}td.tot,th.tot{border-left:2px solid #000;font-weight:800;background:#ececec;}'
+  +'.key{margin-top:2mm;font-size:'+(single?"6pt":"7.5pt")+';line-height:1.35;border:1.5px solid #000;padding:1.2mm 2mm;}'
+  +'</style></head><body>'+pages+'</body></html>';
+}
+
+// ── AWARD PAGE (layout modelled on "Most Sabaq Award") ──
+function SalaahAward(c){
+  const h=c.h;
+  const now=new Date();
+  const [y,setY]=React.useState(now.getFullYear());
+  const [m,setM]=React.useState(now.getMonth()+1);
+  const dates=slMonthDates(y,m);
+  const month=y+"-"+slPad(m);
+  const final=c.settings.locked.indexOf(month)>=0;
+  const colStrip=function(){return h("div",{style:{background:"#fafaf9",border:"1px solid rgba(107,114,128,0.1)",borderRadius:10,padding:"8px 16px",marginBottom:4,display:"flex",alignItems:"center",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}},
+    h("div",{style:{minWidth:40,flexShrink:0}}),
+    h("div",{style:{fontSize:11,letterSpacing:"0.12em",color:"#5a6b5c",fontWeight:700,textTransform:"uppercase",flex:1}},"Rankings"),
+    h("div",{style:{width:58,textAlign:"center",fontSize:9,letterSpacing:"0.07em",color:"#5a6b5c",fontWeight:600,textTransform:"uppercase"}},"Points"));};
+  const block=function(g){
+    var rows=c.students.filter(function(s){return s.cls===g.cls;}).map(function(s){var t=c.totalFor(s.id,dates);return{id:s.id,name:s.name,total:t.total,count:t.count};});
+    var ranked=slRankRows(rows);
+    var anyEntries=ranked.some(function(r){return r.count>0;});
+    var winners=anyEntries?ranked.filter(function(r){return r.rank===1;}):[];
+    var rest=ranked.filter(function(r){return winners.indexOf(r)<0;});
+    var head=h("div",{style:{textAlign:"center",fontSize:12,color:"#c9a553",letterSpacing:"0.05em",marginBottom:6}},g.label+" · "+SL_MONTHS[m-1]+" "+y);
+    if(!winners.length)return h("div",{key:g.cls,style:{flex:"1 1 400px",maxWidth:460,minWidth:0}},h("div",{style:Object.assign({},c.card,{padding:40,textAlign:"center",color:MUTED,fontSize:14})},g.label+": no salaah entries for this month yet."));
+    return h("div",{key:g.cls,style:{flex:"1 1 400px",maxWidth:460,minWidth:0}},
+      winners.map(function(w){
+        return h("div",{key:w.id,style:{background:"linear-gradient(165deg,#fffef9 0%,#f8f4e8 100%)",border:"1px solid rgba(201,165,83,0.2)",borderRadius:18,overflow:"hidden",marginBottom:8,boxShadow:"0 4px 28px rgba(0,0,0,0.07)"}},
+          h("div",{style:{height:2,background:"linear-gradient(90deg,transparent,#c9a553 20%,#c9a553 80%,transparent)"}}),
+          h("div",{style:{padding:"22px 24px",textAlign:"center"}},
+            h("div",{style:{fontSize:16,letterSpacing:"0.2em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:4}},"Best Salaah Record Award"),
+            head,
+            h("div",{style:{fontSize:34,fontWeight:700,color:"#1b241d",lineHeight:1.25,marginBottom:6,wordBreak:"break-word",fontFamily:"Georgia,'Times New Roman',serif",fontStyle:"italic"}},w.name),
+            h("div",{style:{fontSize:12,fontWeight:600,color:MUTED,letterSpacing:"0.22em",textTransform:"uppercase",marginBottom:14}},"1st"),
+            h("div",{style:{display:"inline-block",background:"rgba(201,165,83,0.07)",border:"1px solid rgba(201,165,83,0.18)",borderRadius:12,padding:"10px 28px"}},
+              h("div",{style:{fontSize:24,fontWeight:700,color:"#c9a553",fontVariantNumeric:"tabular-nums"}},w.total),
+              h("div",{style:{fontSize:8,letterSpacing:"0.1em",color:MUTED,textTransform:"uppercase",marginTop:4}},"Total Points")),
+            h("div",{style:{fontSize:12,color:"#8a9a8b",marginTop:12,lineHeight:1.8,direction:"rtl"}},"مَا شَاءَ اللَّهُ، اللَّهُمَّ زِدْ وَبَارِك")));
+      }),
+      rest.length>0&&colStrip(),
+      rest.length>0&&h("div",{style:{background:"#fff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}},
+        rest.map(function(r,i){return h("div",{key:r.id,style:{display:"flex",alignItems:"center",padding:"10px 16px",borderBottom:i<rest.length-1?"1px solid rgba(107,114,128,0.06)":"none"}},
+          h("div",{style:{minWidth:40,fontSize:12,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",fontWeight:600}},slOrdRank(r.rank)),
+          h("div",{style:{flex:1,fontSize:14,color:TEXT,lineHeight:1.25,overflowWrap:"anywhere"}},r.name),
+          h("div",{style:{width:58,textAlign:"center",fontSize:13,color:MUTED,fontVariantNumeric:"tabular-nums",fontWeight:600}},r.total));})));
+  };
+  return h("div",null,
+    c.pageTitle("Best Salaah Record Award","Ranked by total points for the month"),
+    h("div",{style:{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",justifyContent:"center",marginBottom:16}},
+      SalaahMonthPicker(c,y,m,setY,setM),
+      final&&h("span",{style:{background:"#fef3c7",color:"#92400e",fontWeight:800,fontSize:11,borderRadius:20,padding:"5px 12px",letterSpacing:"0.08em"}},"FINAL")),
+    c.enabledSalaahs.length===0?h("div",{style:Object.assign({},c.card,{padding:30,textAlign:"center",color:MUTED})},"No salaahs are switched on."):
+    h("div",{style:{display:"flex",gap:20,flexWrap:"wrap",justifyContent:"center",alignItems:"flex-start"}},SL_CLASSES.map(block)));
+}
 
 // ── Error Boundary ─────────────────────────────────────────────
 class ErrorBoundary extends React.Component{
