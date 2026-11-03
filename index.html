@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-141500 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-153000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -162,7 +162,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-141500';
+const APP_VERSION='hifz-20261103-153000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -8549,7 +8549,18 @@ function SalaahModule(props){
     showSettings&&h(SalaahSettings,{key:"set",settings:settings,setEnabled:setEnabled,setLock:setLock,onClose:function(){setShowSettings(false);},modalWrap:modalWrap})
   ];
 
-  const ctx={h:h,students:students,data:data,settings:settings,enabledSalaahs:enabledSalaahs,isLocked:isLocked,writeScores:writeScores,totalFor:totalFor,card:card,pageTitle:pageTitle,keyBlock:keyBlock,modalWrap:modalWrap};
+  // One light colour per student (pastel fill + deeper border), spread so every student looks different.
+  const colorMap=React.useMemo(function(){
+    var out={};
+    // Golden-angle spacing in id order: every student gets a clearly different hue.
+    students.slice().sort(function(a,b){return a.id<b.id?-1:1;}).forEach(function(s,i){
+      var hue=Math.round((i*137.508+20)%360);
+      out[s.id]={bg:"hsl("+hue+",80%,92%)",border:"hsl("+hue+",55%,54%)",text:"hsl("+hue+",50%,20%)"};
+    });
+    return out;
+  },[students]);
+  const colorOf=function(id){return colorMap[id]||{bg:"#f5f3ea",border:"#c9c2a8",text:TEXT};};
+  const ctx={colorOf:colorOf,h:h,students:students,data:data,settings:settings,enabledSalaahs:enabledSalaahs,isLocked:isLocked,writeScores:writeScores,totalFor:totalFor,card:card,pageTitle:pageTitle,keyBlock:keyBlock,modalWrap:modalWrap};
   var body=null;
   if(view==="salaahEntry")body=h(SalaahEntry,ctx);
   else if(view==="salaahTracker")body=h(SalaahTracker,ctx);
@@ -8680,14 +8691,14 @@ function SalaahEntry(c){
         h("div",{style:{fontSize:12,fontWeight:800,letterSpacing:"0.16em",textTransform:"uppercase",color:"#8a6d1f",marginBottom:6}},g.label),
         h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:8}},
           list.map(function(s){var has=existingFor(s,date).any;
-            return h("button",{key:s.id,onClick:function(){pick(s);},style:{minHeight:60,padding:"8px 10px",borderRadius:14,border:"2px solid "+(has?"#86efac":BORDER),background:has?"#f0fdf4":"#fff",fontSize:17,fontWeight:700,color:TEXT,cursor:"pointer",textAlign:"center",lineHeight:1.2,position:"relative"}},
+            return h("button",{key:s.id,onClick:function(){pick(s);},style:{minHeight:60,padding:"8px 10px",borderRadius:14,border:"2px solid "+c.colorOf(s.id).border,background:c.colorOf(s.id).bg,boxShadow:has?"inset 0 0 0 2px #fff":"none",fontSize:17,fontWeight:700,color:c.colorOf(s.id).text,cursor:"pointer",textAlign:"center",lineHeight:1.2,position:"relative"}},
               s.name,has&&h("span",{style:{position:"absolute",top:4,right:7,fontSize:12,color:GREEN}},"✓"));})));
     }),
     c.students.length===0&&h("div",{style:{textAlign:"center",color:MUTED,padding:30}},"No students found."));
 
   var many=c.enabledSalaahs.length>2;
   var scoreRows=sel&&!locked&&h("div",null,
-    h("div",{style:{background:"#fffdf6",border:"3px solid "+GOLD,borderRadius:16,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}},
+    h("div",{style:{background:c.colorOf(sel.id).bg,border:"3px solid "+c.colorOf(sel.id).border,borderRadius:16,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}},
       h("div",{style:{minWidth:0}},
         h("div",{style:{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#8a6d1f",fontWeight:800}},(SL_CLASSES.find(function(g){return g.cls===sel.cls;})||{}).label),
         h("div",{style:{fontSize:24,fontWeight:800,color:TEXT,lineHeight:1.2,wordBreak:"break-word"}},sel.name),
@@ -8741,19 +8752,19 @@ function SalaahTracker(c){
   const list=c.students.filter(function(s){return cf==="ALL"||s.cls===cf;});
   const sals=c.enabledSalaahs;
   const cw=26;
-  const th={position:"sticky",background:"#f3efe2",borderBottom:"1px solid #d9d2bd",borderRight:"1px solid #e6e1d3",fontSize:11,fontWeight:700,color:TEXT,textAlign:"center",zIndex:3};
-  var head1=[h("th",{key:"n",rowSpan:2,style:Object.assign({},th,{left:0,top:0,zIndex:6,minWidth:150,textAlign:"left",padding:"4px 8px",borderRight:"2px solid #b8a25a"})},"Student")];
-  dates.forEach(function(d){var we=slIsWeekend(d);head1.push(h("th",{key:d,colSpan:sals.length,style:Object.assign({},th,{top:0,height:30,background:we?"#e7dcb8":"#f3efe2",borderLeft:"2px solid #cfc7ab",whiteSpace:"nowrap",padding:"0 4px"})},slDayLabel(d)));});
-  head1.push(h("th",{key:"t",rowSpan:2,style:Object.assign({},th,{right:0,top:0,zIndex:6,minWidth:56,borderLeft:"2px solid #b8a25a"})},"Total"));
+  const th={position:"sticky",background:"#0d2a1b",borderBottom:"1px solid #1f4a33",borderRight:"1px solid #1f4a33",fontSize:11,fontWeight:700,color:"#f3ecd6",textAlign:"center",zIndex:3,letterSpacing:"0.03em"};
+  var head1=[h("th",{key:"n",rowSpan:2,style:Object.assign({},th,{left:0,top:0,zIndex:6,minWidth:160,textAlign:"left",padding:"4px 12px",fontSize:12,letterSpacing:"0.12em",textTransform:"uppercase",borderRight:"2px solid #c9a553"})},"Student")];
+  dates.forEach(function(d){var we=slIsWeekend(d);head1.push(h("th",{key:d,colSpan:sals.length,style:Object.assign({},th,{top:0,height:30,background:we?"#6e5a1e":"#0d2a1b",borderLeft:"2px solid #2c5e44",whiteSpace:"nowrap",padding:"0 4px"})},slDayLabel(d)));});
+  head1.push(h("th",{key:"t",rowSpan:2,style:Object.assign({},th,{right:0,top:0,zIndex:6,minWidth:60,background:"#c9a553",color:"#1b1200",fontSize:12,letterSpacing:"0.1em",textTransform:"uppercase",borderLeft:"2px solid #c9a553"})},"Total"));
   var head2=[];
-  dates.forEach(function(d){var we=slIsWeekend(d);sals.forEach(function(s,i){head2.push(h("th",{key:d+s.key,style:Object.assign({},th,{top:30,minWidth:cw,background:we?"#e7dcb8":"#f3efe2",borderLeft:i===0?"2px solid #cfc7ab":undefined,fontWeight:600,color:MUTED})},s.letter));});});
+  dates.forEach(function(d){var we=slIsWeekend(d);sals.forEach(function(s,i){head2.push(h("th",{key:d+s.key,style:Object.assign({},th,{top:30,minWidth:cw,background:we?"#85702a":"#173b28",borderLeft:i===0?"2px solid #2c5e44":undefined,fontWeight:600,color:"#cfe0d4"})},s.letter));});});
   var rows=list.map(function(s){
     var tot=c.totalFor(s.id,dates).total;
-    var cells=[h("td",{key:"n",style:{position:"sticky",left:0,background:"#fff",zIndex:2,padding:"0 6px 0 4px",borderBottom:"1px solid #eee7d3",borderRight:"2px solid #b8a25a",whiteSpace:"nowrap",fontSize:13,fontWeight:600,color:TEXT}},
+    var cells=[h("td",{key:"n",style:{position:"sticky",left:0,background:c.colorOf(s.id).bg,zIndex:2,padding:"0 10px 0 4px",borderBottom:"1px solid #fff",borderLeft:"5px solid "+c.colorOf(s.id).border,borderRight:"2px solid "+c.colorOf(s.id).border,whiteSpace:"nowrap",fontSize:13.5,fontWeight:700,color:c.colorOf(s.id).text}},
       h("button",{onClick:function(){if(!locked)setEdit(s);},disabled:locked,title:locked?"Month is locked":"Edit "+s.name,style:{border:"none",background:"transparent",cursor:locked?"not-allowed":"pointer",fontSize:14,padding:"6px 6px",opacity:locked?0.4:1}},locked?"🔒":"✏️"),s.name)];
     dates.forEach(function(d){var we=slIsWeekend(d);sals.forEach(function(sl,i){var r=c.data[slRowKey(s.id,d,sl.key)];var v=r&&r.score!=null?r.score:null;
-      cells.push(h("td",{key:d+sl.key,style:{textAlign:"center",fontSize:12.5,fontWeight:700,height:30,minWidth:cw,background:v!==null?SL_TINTS[v]:(we?"rgba(231,220,184,0.25)":"#fff"),borderBottom:"1px solid #eee7d3",borderRight:"1px solid #f0ebdb",borderLeft:i===0?"2px solid #e3dcc3":undefined,color:TEXT}},v===null?"":v));});});
-    cells.push(h("td",{key:"t",style:{position:"sticky",right:0,background:"#faf6e8",zIndex:2,textAlign:"center",fontWeight:800,fontSize:14,borderBottom:"1px solid #eee7d3",borderLeft:"2px solid #b8a25a",color:TEXT}},tot));
+      cells.push(h("td",{key:d+sl.key,style:{textAlign:"center",fontSize:12.5,fontWeight:700,height:32,minWidth:cw,background:v!==null?SL_TINTS[v]:(we?"#f7f1dc":"#fff"),borderBottom:"1px solid #ece6d2",borderRight:"1px solid #f1ecdc",borderLeft:i===0?"2px solid #d9d0b0":undefined,color:v!==null?SL_COLORS[v]:TEXT,filter:v!==null?"brightness(0.8)":"none"}},v===null?"":v));});});
+    cells.push(h("td",{key:"t",style:{position:"sticky",right:0,background:"#fbf3d6",zIndex:2,textAlign:"center",fontWeight:800,fontSize:15,borderBottom:"1px solid #fff",borderLeft:"2px solid #c9a553",color:"#6b520f"}},tot));
     return h("tr",{key:s.id},cells);
   });
   var chipStyle=function(on){return{padding:"9px 16px",border:"none",background:on?GOLD:"transparent",color:on?"#fff":MUTED,fontWeight:on?700:500,cursor:"pointer",fontSize:13};};
@@ -8767,7 +8778,7 @@ function SalaahTracker(c){
       h("div",{style:{flex:1}}),
       h("button",{onClick:function(){setShowPrint(true);},style:{padding:"10px 16px",borderRadius:10,border:"none",background:"#07150e",color:"#f7f4ec",fontWeight:700,fontSize:14,cursor:"pointer"}},"🖨 Print / Save PDF")),
     sals.length===0?h("div",{style:Object.assign({},c.card,{padding:30,textAlign:"center",color:MUTED})},"No salaahs are switched on. Turn some on in settings."):
-    h("div",{style:Object.assign({},c.card,{overflow:"auto",maxHeight:"calc(100vh - 230px)",WebkitOverflowScrolling:"touch"})},
+    h("div",{style:Object.assign({},c.card,{overflow:"auto",maxHeight:"calc(100vh - 230px)",WebkitOverflowScrolling:"touch",borderRadius:16,border:"1px solid #0d2a1b",boxShadow:"0 6px 24px rgba(7,21,14,0.14)"})},
       h("table",{style:{borderCollapse:"separate",borderSpacing:0}},h("thead",null,h("tr",null,head1),h("tr",null,head2)),h("tbody",null,rows))),
     h("div",{style:{marginTop:12}},c.keyBlock(true)),
     edit&&h(SalaahEditModal,{c:c,stu:edit,dates:dates,onClose:function(){setEdit(null);}}),
@@ -8908,8 +8919,8 @@ function SalaahAward(c){
     if(!winners.length)return h("div",{key:g.cls,style:{flex:"1 1 400px",maxWidth:460,minWidth:0}},h("div",{style:Object.assign({},c.card,{padding:40,textAlign:"center",color:MUTED,fontSize:14})},g.label+": no salaah entries for this month yet."));
     return h("div",{key:g.cls,style:{flex:"1 1 400px",maxWidth:460,minWidth:0}},
       winners.map(function(w){
-        return h("div",{key:w.id,style:{background:"linear-gradient(165deg,#fffef9 0%,#f8f4e8 100%)",border:"1px solid rgba(201,165,83,0.2)",borderRadius:18,overflow:"hidden",marginBottom:8,boxShadow:"0 4px 28px rgba(0,0,0,0.07)"}},
-          h("div",{style:{height:2,background:"linear-gradient(90deg,transparent,#c9a553 20%,#c9a553 80%,transparent)"}}),
+        return h("div",{key:w.id,style:{background:"linear-gradient(165deg,#fffef9 0%,"+c.colorOf(w.id).bg+" 100%)",border:"2px solid "+c.colorOf(w.id).border,borderRadius:18,overflow:"hidden",marginBottom:10,boxShadow:"0 8px 30px rgba(0,0,0,0.09)"}},
+          h("div",{style:{height:5,background:"linear-gradient(90deg,#c9a553,#e6cf8a,#c9a553)"}}),
           h("div",{style:{padding:"22px 24px",textAlign:"center"}},
             h("div",{style:{fontSize:16,letterSpacing:"0.2em",color:"#9aaa9b",textTransform:"uppercase",marginBottom:4}},"Best Salaah Record Award"),
             head,
@@ -8921,11 +8932,11 @@ function SalaahAward(c){
             h("div",{style:{fontSize:12,color:"#8a9a8b",marginTop:12,lineHeight:1.8,direction:"rtl"}},"مَا شَاءَ اللَّهُ، اللَّهُمَّ زِدْ وَبَارِك")));
       }),
       rest.length>0&&colStrip(),
-      rest.length>0&&h("div",{style:{background:"#fff",border:"1px solid rgba(107,114,128,0.1)",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}},
-        rest.map(function(r,i){return h("div",{key:r.id,style:{display:"flex",alignItems:"center",padding:"10px 16px",borderBottom:i<rest.length-1?"1px solid rgba(107,114,128,0.06)":"none"}},
-          h("div",{style:{minWidth:40,fontSize:12,color:MUTED,flexShrink:0,fontVariantNumeric:"tabular-nums",fontWeight:600}},slOrdRank(r.rank)),
-          h("div",{style:{flex:1,fontSize:14,color:TEXT,lineHeight:1.25,overflowWrap:"anywhere"}},r.name),
-          h("div",{style:{width:58,textAlign:"center",fontSize:13,color:MUTED,fontVariantNumeric:"tabular-nums",fontWeight:600}},r.total));})));
+      rest.length>0&&h("div",{style:{background:"#fff",border:"1px solid rgba(107,114,128,0.15)",borderRadius:14,overflow:"hidden",padding:"2px 0",boxShadow:"0 3px 12px rgba(0,0,0,0.06)"}},
+        rest.map(function(r,i){var col=c.colorOf(r.id);return h("div",{key:r.id,style:{display:"flex",alignItems:"center",gap:8,padding:"10px 16px 10px 12px",margin:"6px 6px",borderRadius:10,background:col.bg,border:"1.5px solid "+col.border,borderLeft:"6px solid "+col.border}},
+          h("div",{style:{minWidth:42,fontSize:12,color:col.text,flexShrink:0,fontVariantNumeric:"tabular-nums",fontWeight:800}},slOrdRank(r.rank)),
+          h("div",{style:{flex:1,fontSize:14.5,fontWeight:700,color:col.text,lineHeight:1.25,overflowWrap:"anywhere"}},r.name),
+          h("div",{style:{minWidth:46,textAlign:"center",fontSize:14,color:col.text,fontVariantNumeric:"tabular-nums",fontWeight:800,background:"#fff",borderRadius:20,padding:"3px 10px"}},r.total));})));
   };
   return h("div",null,
     c.pageTitle("Best Salaah Record Award","Ranked by total points for the month"),
