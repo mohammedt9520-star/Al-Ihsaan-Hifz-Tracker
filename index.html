@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-162122 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-162910 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -162,7 +162,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-162122';
+const APP_VERSION='hifz-20261103-162910';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -8661,7 +8661,12 @@ function SalaahSettings(props){
       h("select",{value:y,onChange:function(e){setY(+e.target.value);},style:sel},[y-2,y-1,y,y+1,y+2].filter(function(v,i,a){return a.indexOf(v)===i;}).sort().map(function(v){return h("option",{key:v,value:v},v);})),
       h("button",{onClick:function(){props.setLock(month,!locked);},style:{flex:1,minWidth:150,padding:"10px 14px",borderRadius:10,border:"none",fontWeight:800,fontSize:15,cursor:"pointer",background:locked?GREEN:RED,color:"#fff"}},locked?"🔓 Unlock month":"🔒 Lock month")),
     h("div",{style:{fontSize:13,color:TEXT,marginBottom:6}},SL_MONTHS[m-1]+" "+y+" is ",h("b",null,locked?"LOCKED":"open"),"."),
-    settings.locked.length>0&&h("div",{style:{fontSize:12,color:MUTED}},"Locked months: "+settings.locked.map(function(x){var p=x.split("-");return SL_MONTHS[+p[1]-1].substring(0,3)+" "+p[0];}).join(", "))
+    settings.locked.length>0&&h("div",{style:{fontSize:12,color:MUTED}},"Locked months: "+settings.locked.map(function(x){var p=x.split("-");return SL_MONTHS[+p[1]-1].substring(0,3)+" "+p[0];}).join(", ")),
+    h("div",{style:{fontSize:11,fontWeight:800,letterSpacing:"0.14em",textTransform:"uppercase",color:MUTED,margin:"18px 0 6px"}},"Student entry page"),
+    h("div",{style:{fontSize:12,color:MUTED,marginBottom:6,lineHeight:1.4}},"Open this link on the student tablet, then choose Install app / Add to Home screen. It only contains salaah entry for today."),
+    h("div",{style:{display:"flex",gap:8}},
+      h("input",{readOnly:true,value:location.origin+"/salaah/",onFocus:function(e){e.target.select();},style:{flex:1,minWidth:0,border:"1px solid "+BORDER,borderRadius:10,padding:"9px 10px",fontSize:13,background:"#faf8f1",color:TEXT}}),
+      h("button",{onClick:function(){var u=location.origin+"/salaah/";try{navigator.clipboard.writeText(u).then(function(){showToast("Link copied","success");},function(){showToast(u,"info",6000);});}catch(e){showToast(u,"info",6000);}},style:{padding:"9px 16px",borderRadius:10,border:"none",background:"#07150e",color:"#f7f4ec",fontWeight:700,fontSize:13,cursor:"pointer"}},"Copy"))
   ),props.onClose);
 }
 

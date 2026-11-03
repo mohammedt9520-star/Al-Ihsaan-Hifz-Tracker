@@ -21,6 +21,8 @@ index.html     ← entire app (React + CSS + JS, ~7700 lines)
 sw.js          ← service worker (separate file — see Cache Versioning below)
 manifest.json  ← PWA manifest
 report.html    ← standalone report viewer (served by an Edge Function link)
+salaah/        ← separate installable STUDENT Salaah Entry page (index.html, sw.js, manifest.json).
+                 Own service worker/cache: bump CACHE in salaah/sw.js (and KIOSK_VERSION in salaah/index.html) whenever salaah/index.html changes.
 icon-192.png, icon-512.png ← PWA icons
 CLAUDE.md      ← this file
 ```
