@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-175000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-183000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -162,7 +162,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-175000';
+const APP_VERSION='hifz-20261103-183000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -195,6 +195,12 @@ async function sbFetch(path,method,body){
       throw new Error(r.status+": "+e.substring(0,100));
     }
     if(r.status===204)return [];
+    // Writes sent with Prefer: return=minimal come back as an EMPTY 200/201 - that is a success, not bad JSON.
+    if(typeof r.text==="function"){
+      var _txt=await r.text();
+      if(!_txt)return [];
+      try{return JSON.parse(_txt);}catch(e){throw new Error("Invalid JSON response from server");}
+    }
     try{return await r.json();}catch(e){throw new Error("Invalid JSON response from server");}
   }
 }
@@ -208,6 +214,22 @@ function sbInVal(v){
 async function sbUpsert(table,rows,conflictCol="id"){
   if(!rows||rows.length===0)return;
   for(let i=0;i<rows.length;i+=500){await sbFetch(table+"?on_conflict="+conflictCol,"POST",rows.slice(i,i+500));}
+}
+// Push only rows whose content changed since the last successful push (or cloud read), so a small edit
+// sends a few rows instead of re-uploading whole tables. updated_at is ignored when comparing.
+const _sbSeen={};
+function _sbSig(r){var o={};Object.keys(r).sort().forEach(function(k){if(k!=="updated_at")o[k]=r[k];});return JSON.stringify(o);}
+function sbSeedSeen(table,rows,conflictCol){
+  var m={};(rows||[]).forEach(function(r){m[String(r[conflictCol||"id"])]=_sbSig(r);});_sbSeen[table]=m;
+}
+async function sbUpsertChanged(table,rows,conflictCol){
+  conflictCol=conflictCol||"id";
+  if(!rows||!rows.length)return;
+  var seen=_sbSeen[table]||(_sbSeen[table]={}),changed=[],sigs=[];
+  rows.forEach(function(r){var k=String(r[conflictCol]),sg=_sbSig(r);if(seen[k]!==sg){changed.push(r);sigs.push([k,sg]);}});
+  if(!changed.length)return;
+  await sbUpsert(table,changed,conflictCol);
+  sigs.forEach(function(p){seen[p[0]]=p[1];});
 }
 async function sbFetchAll(q){
   // Max 100 pages (100k rows) — sufficient for 5+ years of register data
@@ -2352,6 +2374,8 @@ function App(){
   React.useEffect(()=>{
     function onOnline(){
       loadCloud().catch(function(){});
+      syncRetryRef.current.n=0;
+      if(scheduleSyncRef.current)scheduleSyncRef.current();
     }
     window.addEventListener("online",onOnline);
     return ()=>window.removeEventListener("online",onOnline);
@@ -2387,6 +2411,7 @@ function App(){
   // Debounced auto-sync: fires 2s after user-driven data change
   // isFirstLoad prevents syncing stale localStorage data on mount
   const syncTimer=React.useRef(null);
+  const syncRetryRef=React.useRef({n:0,t:null});
   const [syncMsg,setSyncMsg]=React.useState("");
   const syncMsgTimer=React.useRef(null);
   const isFirstLoad=React.useRef(true);
@@ -3620,10 +3645,10 @@ function App(){
     try{
       const planRows=yearPlan.map(p=>({id:p.id||(p.class+"_"+p.session),class:p.class,session:p.session,dates:p.dates,updated_at:new Date().toISOString()}));
       const results=await Promise.allSettled([
-        sbUpsert("sabaq_records",allRecords.map(sbMapSabaqOut)),
-        sbUpsert("dor_records",allDorRecords.map(sbMapDorOut)),
-        sbUpsert("daily_sabaq",allDailySabaqEntries.map(sbMapDailyOut)),
-        sbUpsert("register_data",allRegisterData.map(sbMapRegisterOut)),
+        sbUpsertChanged("sabaq_records",allRecords.map(sbMapSabaqOut)),
+        sbUpsertChanged("dor_records",allDorRecords.map(sbMapDorOut)),
+        sbUpsertChanged("daily_sabaq",allDailySabaqEntries.map(sbMapDailyOut)),
+        sbUpsertChanged("register_data",allRegisterData.map(sbMapRegisterOut)),
         sbUpsert("year_plan",planRows),
         sbUpsert("app_settings",[
           {key:"adminPassword",value:getAdminPassword(),updated_at:new Date().toISOString()},
@@ -3636,11 +3661,18 @@ function App(){
       const failures=results.filter(r=>r.status==="rejected");
       if(failures.length>0){console.warn("syncNow partial failures:",failures.map(f=>f.reason?.message||f.reason));}
       const anyOk=results.some(r=>r.status==="fulfilled");
-      if(anyOk){setSyncStatus("live");realtimeIgnoreUntil.current=Math.max(realtimeIgnoreUntil.current,Date.now()+5000);}
-      else{setSyncStatus("offline");}
+      if(failures.length===0){syncRetryRef.current.n=0;setSyncStatus("live");realtimeIgnoreUntil.current=Math.max(realtimeIgnoreUntil.current,Date.now()+5000);}
+      else{
+        // Something did not save: keep the dot honest and retry on its own (unchanged rows are skipped, failed ones go again).
+        setSyncStatus(anyOk?"saving":"offline");
+        var _rt=syncRetryRef.current;clearTimeout(_rt.t);
+        _rt.t=setTimeout(function(){scheduleSyncRef.current&&scheduleSyncRef.current();},Math.min(60000,4000*Math.pow(2,_rt.n++)));
+      }
     }catch(e){
       console.error("syncNow",e);
       setSyncStatus("offline");
+      var _rt2=syncRetryRef.current;clearTimeout(_rt2.t);
+      _rt2.t=setTimeout(function(){scheduleSyncRef.current&&scheduleSyncRef.current();},Math.min(60000,4000*Math.pow(2,_rt2.n++)));
     }finally{
       isSyncing.current=false;
       if(pendingSync.current){pendingSync.current=false;scheduleSync();}
@@ -3661,10 +3693,10 @@ function App(){
     // edit — so tell the records/dorRecords/... effect to skip its usual auto-sync for the
     // state changes below (see skipNextSyncEffect above for why that matters).
     skipNextSyncEffect.current=true;
-    if(sR.ok){try{const d=sR.data.map(sbMapSabaqIn).map(sanitiseRecord).filter(Boolean);setRecords(d);lsSave(d);}catch(e){console.warn("loadCloud set records:",e.message);}}
-    if(dR.ok){try{const d=dR.data.map(sbMapDorIn).map(sanitiseDor).filter(Boolean);setDorRecords(d);lsSaveDor(d);}catch(e){console.warn("loadCloud set dor:",e.message);}}
-    if(dlR.ok){try{const d=dlR.data.map(sbMapDailyIn).map(sanitiseDaily).filter(Boolean);setDailySabaqEntries(d);lsSaveDailySabaq(d);}catch(e){console.warn("loadCloud set daily:",e.message);}}
-    if(rR.ok){try{const d=rR.data.map(sbMapRegisterIn).map(sanitiseRegister).filter(Boolean);setRegisterData(d);lsSaveRegister(d);}catch(e){console.warn("loadCloud set register:",e.message);}}
+    if(sR.ok){try{const d=sR.data.map(sbMapSabaqIn).map(sanitiseRecord).filter(Boolean);setRecords(d);lsSave(d);sbSeedSeen("sabaq_records",d.map(sbMapSabaqOut));}catch(e){console.warn("loadCloud set records:",e.message);}}
+    if(dR.ok){try{const d=dR.data.map(sbMapDorIn).map(sanitiseDor).filter(Boolean);setDorRecords(d);lsSaveDor(d);sbSeedSeen("dor_records",d.map(sbMapDorOut));}catch(e){console.warn("loadCloud set dor:",e.message);}}
+    if(dlR.ok){try{const d=dlR.data.map(sbMapDailyIn).map(sanitiseDaily).filter(Boolean);setDailySabaqEntries(d);lsSaveDailySabaq(d);sbSeedSeen("daily_sabaq",d.map(sbMapDailyOut));}catch(e){console.warn("loadCloud set daily:",e.message);}}
+    if(rR.ok){try{const d=rR.data.map(sbMapRegisterIn).map(sanitiseRegister).filter(Boolean);setRegisterData(d);lsSaveRegister(d);sbSeedSeen("register_data",d.map(sbMapRegisterOut));}catch(e){console.warn("loadCloud set register:",e.message);}}
     if(pR.ok){try{setYearPlan(pR.data);lsSaveYearPlan(pR.data);}catch(e){console.warn("loadCloud set plan:",e.message);}}
     if(stR.ok){
       const pw=stR.data.find(r=>r.key==="adminPassword");
@@ -8479,7 +8511,7 @@ function SalaahModule(props){
 
   React.useEffect(function(){
     loadAll();
-    var iv=setInterval(loadAll,60000);
+    var iv=setInterval(loadAll,15000);
     var onVis=function(){if(!document.hidden)loadAll();};
     document.addEventListener("visibilitychange",onVis);
     window.addEventListener("online",loadAll);
