@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-162910 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-163028 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -53,8 +53,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
   if(new URLSearchParams(window.location.search).get('report'))return;
   var _auth;try{_auth=localStorage.getItem('hifz_auth');}catch(e){_auth=null;}
   var _authV;try{_authV=localStorage.getItem('hifz_auth_v');}catch(e){_authV=null;}
-  // Single login (Admin, PIN 7202). Older sessions (previous PINs / teacher role) lack hifz_auth_v and must sign in again.
-  if(_auth==='admin'&&_authV==='7202'){window._HIFZ_ROLE='admin';return;}
+  // Logins: Admin (7202) and Student (1111). Older sessions (previous PINs / teacher role) lack hifz_auth_v and must sign in again.
+  if((_auth==='admin'||_auth==='student')&&_authV==='7202'){window._HIFZ_ROLE=_auth;return;}
   // Inject styles
   var _css=document.createElement('style');
   _css.textContent=[
@@ -95,7 +95,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
     +'</div></div>';
   document.body.insertBefore(_lock,document.getElementById('root'));
   var _entered='';
-  var _PINS={'7202':'admin'};
+  // 7202 = Admin (whole app). 1111 = Student (Salaah Entry only; everything else locked). Front-end gate only - not real security.
+  var _PINS={'7202':'admin','1111':'student'};
   function _dots(){document.querySelectorAll('.pdot').forEach(function(d,i){d.classList.toggle('on',i<_entered.length);});}
   function _press(d){if(_entered.length>=4)return;_entered+=d;_dots();if(_entered.length===4)_verify();}
   function _del(){if(!_entered.length)return;_entered=_entered.slice(0,-1);_dots();}
@@ -162,7 +163,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-162910';
+const APP_VERSION='hifz-20261103-163028';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2155,9 +2156,12 @@ function App(){
   const [leftStudents,setLeftStudents]=React.useState(()=>lsGetJSON("hifzLeftStudents"));
   // "<periodKey>|<class>" -> [names]; students excluded from the Sabaq Champion ranking.
   const [champExcluded,setChampExcluded]=React.useState(()=>lsGetJSON("hifzChampExcluded"));
-  const [view,setViewRaw]=React.useState("menu");
+  const isStudent=window._HIFZ_ROLE==="student";
+  const [view,setViewRaw]=React.useState(isStudent?"salaahEntry":"menu");
   const viewHistory=React.useRef([]);
   function setView(v){
+    // Student login: only the home menu and Salaah Entry open; everything else stays locked.
+    if(isStudent&&v!=="menu"&&v!=="salaahEntry"){showToast("🔒 Locked – admin only","info");return;}
     if(v!==view){
       viewHistory.current.push(view);
       if(viewHistory.current.length>60)viewHistory.current.shift();
@@ -3747,7 +3751,7 @@ function App(){
     {icon:"📄",label:"Reports",view:"reports"},
     {icon:"🏆",label:"Most Sabaq",view:"poster"},
     {icon:"🔖",label:"Best Dor",view:"dorchamp"},
-    ...(window._HIFZ_ROLE==="admin"?[
+    ...(window._HIFZ_ROLE==="admin"||isStudent?[
       {icon:"🕌",label:"Salaah Entry",view:"salaahEntry"},
       {icon:"🗓️",label:"Salaah Tracker",view:"salaahTracker"},
       {icon:"🌙",label:"Best Salaah Award",view:"salaahAward"},
@@ -3839,9 +3843,11 @@ function App(){
           React.createElement('div',{style:{color:SIDEBAR_MUTED,fontSize:9,letterSpacing:"0.18em",textTransform:"uppercase",padding:"0 8px",marginBottom:12,fontWeight:"800",fontFamily:"Manrope,sans-serif"}},"Navigation"),
           NAV_ITEMS.map(item=>{
             const isActive=view===item.view||(item.view==="addEntry"&&view==="addEntry");
+            const lockedItem=isStudent&&item.view!=="salaahEntry";
             return React.createElement('button',{
               key:item.label,
               onClick:()=>{
+                if(lockedItem){showToast("🔒 Locked – admin only","info");return;}
                 if(item.view==="addEntry"){setForm(defaultEntry);setEditingId(null);}
                 if(item.session)setRegisterSession(item.session);
                 setView(item.view);
@@ -3861,11 +3867,14 @@ function App(){
                 textAlign:"left",
                 transition:"background 0.12s, color 0.12s",
                 position:"relative",
+                opacity:lockedItem?0.4:1,
+                filter:lockedItem?"grayscale(1)":"none",
               }
             },
             isActive&&React.createElement('span',{style:{position:"absolute",left:0,top:"20%",bottom:"20%",width:3,background:item.danger?RED:GOLD,borderRadius:"0 3px 3px 0"}}),
             React.createElement('span',{style:{fontSize:16,flexShrink:0,opacity:isActive?1:0.7}},item.icon),
-            React.createElement('span',{style:{lineHeight:1.4,letterSpacing:"0.1px"}},item.label)
+            React.createElement('span',{style:{lineHeight:1.4,letterSpacing:"0.1px",flex:1}},item.label),
+            lockedItem&&React.createElement('span',{style:{fontSize:13}},"🔒")
           );})
         )
       ),
@@ -3927,7 +3936,7 @@ function App(){
   /* ── MENU GROUPS ── */
   React.createElement('div',{style:{flex:1,overflowY:"auto",padding:"24px 16px 48px",background:DARK,borderRadius:"30px 30px 0 0",marginTop:"-2px",boxShadow:"0 -10px 40px rgba(0,0,0,0.35)"}},
 
-    React.createElement(HomeSearch,{studentNames:studentNames,onSelect:n=>{setProfileName(n);setView("profile");}}),
+    isStudent?null:React.createElement(HomeSearch,{studentNames:studentNames,onSelect:n=>{setProfileName(n);setView("profile");}}),
 
     (()=>{
       var _lm=getTodayStr().substring(0,7);
@@ -3957,7 +3966,7 @@ function App(){
           {icon:"🏆",label:"Most Sabaq Award",sub:"Class sabaq rankings",view:"poster",accent:"#D97706"},
           {icon:"🔖",label:"Best Dor Award",sub:"Dor award winners",view:"dorchamp",accent:"#4F46E5"},
         ]},
-        ...(window._HIFZ_ROLE==="admin"?[{label:"Salaah",items:[
+        ...(window._HIFZ_ROLE==="admin"||isStudent?[{label:"Salaah",items:[
           {icon:"🕌",label:"Salaah Entry",sub:"Daily salaah scores",view:"salaahEntry",accent:"#16a34a"},
           {icon:"🗓️",label:"Salaah Tracker",sub:"Monthly table · print PDF",view:"salaahTracker",accent:"#0EA5E9"},
           {icon:"🌙",label:"Best Salaah Award",sub:"Monthly points ranking",view:"salaahAward",accent:"#D97706"},
@@ -3992,15 +4001,17 @@ function App(){
           boxShadow:"0 1px 2px rgba(13,26,18,0.06), 0 8px 26px rgba(13,26,18,0.07)",
           overflow:"hidden"
         }},
-          group.items.map((item,i)=>React.createElement('div',{
+          group.items.map((item,i)=>{const lockedItem=isStudent&&item.view!=="salaahEntry";return React.createElement('div',{
             key:item.label,
-            onClick:()=>{if(item.view==="addEntry"){setForm(defaultEntry);setEditingId(null);}if(item.session){if(item.view==="viewRegister"){setViewRegSession(item.session);}else{setRegisterSession(item.session);}}setView(item.view);},
+            onClick:()=>{if(lockedItem){showToast("🔒 Locked – admin only","info");return;}if(item.view==="addEntry"){setForm(defaultEntry);setEditingId(null);}if(item.session){if(item.view==="viewRegister"){setViewRegSession(item.session);}else{setRegisterSession(item.session);}}setView(item.view);},
             style:{
               display:"flex",alignItems:"center",gap:14,
               padding:"16px 20px",
-              cursor:"pointer",
+              cursor:lockedItem?"not-allowed":"pointer",
               borderBottom:i<group.items.length-1?"1px solid "+BORDER:"none",
-              background:item.danger?"rgba(220,38,38,0.02)":"#fff",
+              background:lockedItem?"#f4f2ec":(item.danger?"rgba(220,38,38,0.02)":"#fff"),
+              opacity:lockedItem?0.55:1,
+              filter:lockedItem?"grayscale(1)":"none",
               position:"relative"
             }
           },
@@ -4029,12 +4040,12 @@ function App(){
                 color:MUTED,fontSize:12,lineHeight:1.3
               }},item.sub)
             ),
-            /* Chevron */
+            /* Chevron (padlock when locked for the student login) */
             React.createElement('div',{style:{
-              color:"rgba(0,0,0,0.2)",fontSize:16,fontWeight:"300",
+              color:lockedItem?"rgba(0,0,0,0.45)":"rgba(0,0,0,0.2)",fontSize:lockedItem?16:16,fontWeight:"300",
               flexShrink:0
-            }},"›")
-          ))
+            }},lockedItem?"🔒":"›")
+          );})
         )
       )),vTag];
     })()
@@ -5780,7 +5791,7 @@ function App(){
     )
     )
     /* SALAAH TRACKER (admin only) */
-    , (view==="salaahEntry"||view==="salaahTracker"||view==="salaahAward")&&window._HIFZ_ROLE==="admin"&&React.createElement(SalaahModule,{view:view,records:records,leftStudents:leftStudents,ensureIds:ensureStudentIds})
+    , (view==="salaahEntry"||view==="salaahTracker"||view==="salaahAward")&&(window._HIFZ_ROLE==="admin"||(isStudent&&view==="salaahEntry"))&&React.createElement(SalaahModule,{role:window._HIFZ_ROLE,view:view,records:records,leftStudents:leftStudents,ensureIds:ensureStudentIds})
     /* CHAMPION */
     , view==="poster"&&(
     React.createElement('div', { style: {padding:24},}
@@ -8390,6 +8401,8 @@ const SL_KEY=[
 const SL_MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const SL_WD=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
+// Same ID the app assigns to students without a unique_id, so every device and the student page agree.
+function slHashId(str){var x=5381;for(var i=0;i<str.length;i++)x=((x*33)^str.charCodeAt(i))>>>0;return "STU-"+x.toString(36).toUpperCase().padStart(6,"0").slice(-6);}
 function slPad(n){return n<10?"0"+n:""+n;}
 function slYmd(d){return d.getFullYear()+"-"+slPad(d.getMonth()+1)+"-"+slPad(d.getDate());}
 function slToday(){return slYmd(new Date());}
@@ -8458,14 +8471,15 @@ function SalaahModule(props){
       else if(!e.dt&&!e.cdt){e.cls=r.class;}
       if(r.uniqueId&&String(r.uniqueId).trim()&&d>=e.cdt){e.uid=String(r.uniqueId).trim();e.cdt=d;}
     });
-    return Object.keys(byName).filter(function(n){return !leftStudents[n];}).map(function(n){var e=byName[n];return{id:e.uid||("N:"+n),name:n,cls:e.cls};})
+    return Object.keys(byName).filter(function(n){return !leftStudents[n];}).map(function(n){var e=byName[n];return{id:e.uid||slHashId(n.trim().toUpperCase()),hasUid:!!e.uid,name:n,cls:e.cls};})
       .filter(function(s){return s.cls==="HIFZ CLASS A"||s.cls==="HIFZ CLASS B";})
       .sort(function(a,b){return a.name.localeCompare(b.name);});
   },[records,leftStudents]);
 
   // Give every student a real ID (the picker still shows names only).
   React.useEffect(function(){
-    var miss=students.filter(function(s){return s.id.indexOf("N:")===0;}).map(function(s){return s.name;});
+    if(props.role==="student")return; // only the admin login writes student profiles
+    var miss=students.filter(function(s){return !s.hasUid;}).map(function(s){return s.name;});
     if(miss.length&&props.ensureIds)props.ensureIds(miss);
   },[students]);
   const persistData=function(m){slSaveJSON("salaahData",Object.keys(m).map(function(k){return m[k];}));};
@@ -8578,7 +8592,7 @@ function SalaahModule(props){
         sub&&h("div",{style:{fontSize:11,color:MUTED,marginTop:1}},sub)),
       h("div",{style:{display:"flex",alignItems:"center",gap:8}},
         !online&&h("span",{style:{fontSize:11,fontWeight:700,color:"#b45309",background:"#fef3c7",borderRadius:20,padding:"4px 10px"}},"Offline – saved on this device"),
-        h("button",{onClick:function(){setShowPin(true);},title:"Salaah settings","aria-label":"Salaah settings",style:{width:36,height:36,borderRadius:10,border:"1px solid "+BORDER,background:"#fff",cursor:"pointer",fontSize:17,padding:0}},"⚙️")));
+        props.role!=="student"&&h("button",{onClick:function(){setShowPin(true);},title:"Salaah settings","aria-label":"Salaah settings",style:{width:36,height:36,borderRadius:10,border:"1px solid "+BORDER,background:"#fff",cursor:"pointer",fontSize:17,padding:0}},"⚙️")));
   };
   const keyBlock=function(compact){
     return h("div",{style:{background:"#fffdf6",border:"2px solid "+GOLD,borderRadius:12,padding:compact?"6px 10px":"12px 14px"}},
@@ -8600,7 +8614,7 @@ function SalaahModule(props){
   ];
 
   const colorOf=function(id){return {bg:"#ffffff",border:"#d9d2bd",text:TEXT};};
-  const ctx={colorOf:colorOf,h:h,students:students,data:data,settings:settings,enabledSalaahs:enabledSalaahs,isLocked:isLocked,writeScores:writeScores,totalFor:totalFor,card:card,pageTitle:pageTitle,keyBlock:keyBlock,modalWrap:modalWrap};
+  const ctx={role:props.role,colorOf:colorOf,h:h,students:students,data:data,settings:settings,enabledSalaahs:enabledSalaahs,isLocked:isLocked,writeScores:writeScores,totalFor:totalFor,card:card,pageTitle:pageTitle,keyBlock:keyBlock,modalWrap:modalWrap};
   var body=null;
   if(view==="salaahEntry")body=h(SalaahEntry,ctx);
   else if(view==="salaahTracker")body=h(SalaahTracker,ctx);
@@ -8673,7 +8687,8 @@ function SalaahSettings(props){
 // ── ENTRY PAGE ──
 function SalaahEntry(c){
   const h=c.h;
-  const [date,setDate]=React.useState(slToday());
+  const [dateS,setDate]=React.useState(slToday());
+  const isStu=c.role==="student";
   const [sel,setSel]=React.useState(null);
   const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [scores,setScores]=React.useState({});
@@ -8682,6 +8697,7 @@ function SalaahEntry(c){
   const [done,setDone]=React.useState("");
   const touch=React.useRef(null);
   const today=slToday();
+  const date=isStu?today:dateS; // students can only enter today
   const locked=c.isLocked(date);
   const ld=slLongDate(date);
   const existingFor=function(stu,d){var out={},any=false;c.enabledSalaahs.forEach(function(s){var r=c.data[slRowKey(stu.id,d,s.key)];if(r&&r.score!=null){out[s.key]=r.score;any=true;}});return{vals:out,any:any};};
@@ -8718,18 +8734,18 @@ function SalaahEntry(c){
   var hij=slHijri(date);
   var dateStrip=h("div",{
     onTouchStart:function(e){var t=e.touches[0];touch.current={x:t.clientX,y:t.clientY};},
-    onTouchEnd:function(e){if(!touch.current)return;var t=e.changedTouches[0];var dx=t.clientX-touch.current.x,dy=t.clientY-touch.current.y;touch.current=null;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)changeDate(slAdd(date,dx<0?1:-1));},
+    onTouchEnd:function(e){if(isStu||!touch.current)return;var t=e.changedTouches[0];var dx=t.clientX-touch.current.x,dy=t.clientY-touch.current.y;touch.current=null;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5)changeDate(slAdd(date,dx<0?1:-1));},
     style:{background:isToday?"#fffdf7":"#fff4e6",borderRadius:14,padding:"7px 8px",marginBottom:10,touchAction:"pan-y",border:"1px solid "+(isToday?"#e3d6a8":"#f1b779")}},
     h("div",{style:{display:"flex",alignItems:"center",gap:6}},
-      h("button",{onClick:function(){changeDate(slAdd(date,-1));},"aria-label":"Previous day",style:dateBtn},"‹"),
+      !isStu&&h("button",{onClick:function(){changeDate(slAdd(date,-1));},"aria-label":"Previous day",style:dateBtn},"‹"),
       h("div",{style:{flex:1,textAlign:"center",minWidth:0}},
         h("div",{style:{fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:isToday?"#8a6d1f":"#b45309",fontWeight:700}},ld.wd+(isToday?" · Today":date<today?" · Past date":" · Future date")),
         h("div",{style:{fontSize:"clamp(15px,4.6vw,18px)",fontWeight:700,lineHeight:1.25,color:TEXT,fontFamily:"Marcellus,Georgia,serif",whiteSpace:"nowrap"}},ld.big),
         hij&&h("div",{style:{fontSize:11,color:MUTED,lineHeight:1.2,whiteSpace:"nowrap"}},hij)),
-      h("div",{style:{position:"relative",height:34,width:34,flexShrink:0},title:"Choose a date"},
+      !isStu&&h("div",{style:{position:"relative",height:34,width:34,flexShrink:0},title:"Choose a date"},
         h("div",{style:{height:34,width:34,borderRadius:10,background:"#fff",border:"1px solid "+BORDER,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}},"📅"),
         h("input",{type:"date",value:date,onChange:function(e){if(e.target.value)changeDate(e.target.value);},"aria-label":"Choose date",style:{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0,cursor:"pointer"}})),
-      h("button",{onClick:function(){changeDate(slAdd(date,1));},"aria-label":"Next day",style:dateBtn},"›")),
+      !isStu&&h("button",{onClick:function(){changeDate(slAdd(date,1));},"aria-label":"Next day",style:dateBtn},"›")),
     !isToday&&h("div",{style:{display:"flex",justifyContent:"center",marginTop:5}},
       h("button",{onClick:function(){changeDate(today);},style:{height:26,padding:"0 14px",borderRadius:13,border:"none",background:GOLD,color:"#1b1200",fontWeight:700,fontSize:12,cursor:"pointer"}},"↩ Back to Today")));
 

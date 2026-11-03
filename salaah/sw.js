@@ -1,6 +1,6 @@
 // Service worker for the student Salaah Entry page only (scope /salaah/).
 // Bump CACHE whenever salaah/index.html changes so tablets pick up the new version.
-const CACHE='salaah-kiosk-20261103-170000';
+const CACHE='salaah-kiosk-20261103-171500';
 const CDN=['https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js','https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js'];
 self.addEventListener('install',e=>{
   self.skipWaiting();

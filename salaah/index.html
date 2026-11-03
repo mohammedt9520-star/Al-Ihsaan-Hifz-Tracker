@@ -32,12 +32,11 @@ input[type=search]{user-select:text;-webkit-user-select:text;}
 //   salaah_records (write today's scores), sabaq_records (student names/classes),
 //   app_settings (left students), salaah_settings (tracked salaahs, locked months).
 // Own localStorage keys: salaahKioskStudents, salaahKioskSettings, salaahKioskData, salaahKioskPending
-// NOTE: the teacher PIN below is only a front-end gate, not real security.
+// Students can re-save a salaah they already entered today (last save wins). Today only.
 // ══════════════════════════════════════════════════════════════
-const KIOSK_VERSION="salaah-kiosk-20261103-170000";
+const KIOSK_VERSION="salaah-kiosk-20261103-171500";
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
-const TEACHER_PIN="7202";
 const IDLE_MS=120000;
 const GOLD="#c9a553",TEXT="#1b241d",MUTED="#6d7a6e",BORDER="#e6e1d3",GREEN="#16a34a",RED="#dc2626";
 const SALAAHS=[{key:"fajr",label:"Fajr"},{key:"dhuhr",label:"Dhuhr"},{key:"asr",label:"Asr"},{key:"maghrib",label:"Maghrib"},{key:"esha",label:"Esha"}];
@@ -90,12 +89,10 @@ function App(){
   const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [sel,setSel]=React.useState(null);
   const [scores,setScores]=React.useState({});
-  const [unlocked,setUnlocked]=React.useState(false);
   const [search,setSearch]=React.useState("");
   const [saving,setSaving]=React.useState(false);
   const [done,setDone]=React.useState("");
   const [pending,setPending]=React.useState(null);
-  const [pin,setPin]=React.useState(null);
   const lastAct=React.useRef(Date.now());
   const pendRef=React.useRef(lsGet("salaahKioskPending",[]));
   const today=ymd(now);
@@ -120,7 +117,7 @@ function App(){
       res[2].forEach(function(r){try{if(r.key==="enabled")next.enabled=Object.assign({},DEFAULT_ENABLED,JSON.parse(r.value));if(r.key==="locked")next.locked=JSON.parse(r.value);}catch(e){}});
       setSettings(next);lsSet("salaahKioskSettings",next);
       var m={};res[3].forEach(function(r){if(r.score!=null)m[r.student_id+"|"+r.salaah]=r.score;});
-      pendRef.current.forEach(function(o){m[o.row.student_id+"|"+o.row.salaah]=o.row.score;});
+      pendRef.current.forEach(function(o){var k=o.row.student_id+"|"+o.row.salaah;if(o.k==="del")delete m[k];else m[k]=o.row.score;});
       setSaved(m);lsSet("salaahKioskData",{date:day,rows:m});
       setOnline(true);
     }catch(e){setOnline(false);}
@@ -128,7 +125,9 @@ function App(){
   async function flush(){
     var q=pendRef.current.slice();
     for(var i=0;i<q.length;i++){
-      try{await api("salaah_records?on_conflict=student_id,date,salaah","POST",[Object.assign({},q[i].row,{updated_at:new Date().toISOString()})]);
+      try{
+        if(q[i].k==="del")await api("salaah_records?student_id=eq."+encodeURIComponent(q[i].row.student_id)+"&date=eq."+q[i].row.date+"&salaah=eq."+q[i].row.salaah,"DELETE");
+        else await api("salaah_records?on_conflict=student_id,date,salaah","POST",[Object.assign({},q[i].row,{updated_at:new Date().toISOString()})]);
         pendRef.current=pendRef.current.filter(function(x){return x!==q[i];});lsSet("salaahKioskPending",pendRef.current);}
       catch(e){return false;}
     }
@@ -144,7 +143,7 @@ function App(){
   },[load]);
   // Back to the name list when nobody has touched the screen for a while, so the next child starts fresh.
   React.useEffect(function(){
-    var iv=setInterval(function(){if(sel&&Date.now()-lastAct.current>IDLE_MS){setSel(null);setScores({});setUnlocked(false);setPending(null);setPin(null);}},5000);
+    var iv=setInterval(function(){if(sel&&Date.now()-lastAct.current>IDLE_MS){setSel(null);setScores({});setPending(null);}},5000);
     return function(){clearInterval(iv);};
   },[sel]);
   React.useEffect(function(){window.__kioskBusy=!!sel;if(!sel&&window.__kioskReload){location.reload();}},[sel]);
@@ -153,27 +152,26 @@ function App(){
   const savedFor=function(stu,key){var v=saved[stu.id+"|"+key];return v===undefined?null:v;};
   const doneToday=function(stu){return sals.length>0&&sals.every(function(s){return savedFor(stu,s.key)!==null;});};
   const anyToday=function(stu){return sals.some(function(s){return savedFor(stu,s.key)!==null;});};
-  function pick(stu){touch();setSel(stu);setUnlocked(false);setScores({});setDone("");}
-  function editable(s){return unlocked||savedFor(sel,s.key)===null;}
-  // baseline = what is already saved (undefined if nothing); cur = what the child has chosen (or the saved value when a teacher unlocked it)
+  function pick(stu){touch();setSel(stu);setScores(function(){var o={};sals.forEach(function(s){var v=saved[stu.id+"|"+s.key];if(v!==undefined)o[s.key]=v;});return o;});setDone("");}
+  // scores[key]: a number = chosen, null = cleared, missing = untouched
   function baseline(s){var v=savedFor(sel,s.key);return v===null?undefined:v;}
-  function cur(s){var v=scores[s.key];if(v===null)return undefined;if(v!==undefined)return v;return unlocked?baseline(s):undefined;}
-  var dirty=!!sel&&sals.some(function(s){return editable(s)&&cur(s)!==baseline(s);});
+  function cur(s){var v=scores[s.key];return v===null?undefined:v;}
+  var dirty=!!sel&&sals.some(function(s){return cur(s)!==baseline(s);});
   function guard(a){touch();if(dirty)setPending({run:a});else a();}
-  function reset(){setSel(null);setScores({});setUnlocked(false);setSearch("");}
+  function reset(){setSel(null);setScores({});setSearch("");}
   async function save(after){
     if(!sel||locked||saving)return;
-    var rows=[];
+    var ops=[];
     sals.forEach(function(s){
-      if(!editable(s))return;
-      var v=cur(s);
-      if(v===undefined||v===baseline(s))return;
-      rows.push({student_id:sel.id,student_name:sel.name,class:sel.cls,date:today,salaah:s.key,score:v});
+      var v=cur(s),b=baseline(s);
+      if(v===b)return;
+      var row={student_id:sel.id,student_name:sel.name,class:sel.cls,date:today,salaah:s.key,score:v===undefined?null:v};
+      ops.push({k:v===undefined?"del":"up",row:row});
     });
-    if(!rows.length){showToast("Tap a number first");return;}
+    if(!ops.length){showToast("Tap a number first");return;}
     setSaving(true);
     var m=Object.assign({},saved);
-    rows.forEach(function(r){m[r.student_id+"|"+r.salaah]=r.score;pendRef.current=pendRef.current.concat([{row:r}]);});
+    ops.forEach(function(o){var k=o.row.student_id+"|"+o.row.salaah;if(o.k==="del")delete m[k];else m[k]=o.row.score;pendRef.current=pendRef.current.concat([o]);});
     setSaved(m);lsSet("salaahKioskData",{date:today,rows:m});lsSet("salaahKioskPending",pendRef.current);
     var ok=await flush();setOnline(ok);
     setSaving(false);
@@ -219,30 +217,23 @@ function App(){
             s.name,(all||some)&&h("span",{style:{position:"absolute",top:3,right:7,fontSize:10,color:all?GREEN:"#b8a25a"}},all?"✓✓":"✓"));}));
     })());
 
-  const allSaved=sel&&sals.length>0&&sals.every(function(s){return savedFor(sel,s.key)!==null;});
-  const anySaved=sel&&sals.some(function(s){return savedFor(sel,s.key)!==null;});
   const many=sals.length>2;
+  const updating=sel&&sals.some(function(s){return savedFor(sel,s.key)!==null;});
   const entry=sel&&!locked&&h("div",null,
-    h("div",{style:{background:"#fff",border:"1px solid "+BORDER,borderRadius:14,padding:"8px 12px 10px",marginBottom:10,textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},
+    h("div",{style:{background:"#fff",border:"1px solid "+BORDER,borderRadius:14,padding:"8px 12px 10px",marginBottom:updating?6:10,textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},
       h("div",{style:{fontSize:10,letterSpacing:"0.16em",textTransform:"uppercase",color:"#8a6d1f",fontWeight:700}},(CLASSES.find(function(g){return g.cls===sel.cls;})||{}).label),
       h("div",{style:{fontSize:20,fontWeight:700,lineHeight:1.25}},sel.name),
       h("button",{onClick:function(){guard(reset);},style:{marginTop:5,padding:"5px 18px",borderRadius:14,border:"1px solid "+BORDER,background:"#faf8f1",color:"#5b6b5e",fontWeight:600,fontSize:12.5}},"Change")),
+    updating&&h("div",{style:{textAlign:"center",marginBottom:8}},h("span",{style:{display:"inline-block",fontSize:11.5,fontWeight:700,color:"#92400e",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:14,padding:"2px 12px"}},"Updating existing entry")),
     h("div",{style:{background:"#fff",border:"1px solid "+BORDER,borderRadius:14,padding:many?"2px 10px":"4px 12px",boxShadow:"0 1px 6px rgba(0,0,0,0.04)"}},
       sals.map(function(s,idx){
-        var sv=savedFor(sel,s.key),ed=editable(s);
         return h("div",{key:s.key,style:{display:"flex",alignItems:"center",gap:8,padding:many?"5px 0":"8px 0",borderTop:idx?"1px solid #eee7d3":"none"}},
           h("div",{style:{width:many?62:72,flexShrink:0,fontSize:many?13.5:15,fontWeight:700}},s.label),
-          ed?h("div",{style:{flex:1,display:"flex",gap:many?4:6}},
+          h("div",{style:{flex:1,display:"flex",gap:many?4:6}},
             [0,1,2,3,4,5].map(function(n){var v=cur(s),on=v===n;
-              return h("button",{key:n,onClick:function(){touch();setScores(function(p){var x=Object.assign({},p);if(cur(s)===n){if(baseline(s)!==undefined)return p;x[s.key]=null;}else x[s.key]=n;return x;});},"aria-label":s.label+" "+n,style:{flex:1,minWidth:0,height:many?42:48,borderRadius:10,border:"none",background:on?COLORS[n]:"#fff",color:on?"#fff":COLORS[n],fontSize:many?18:21,fontWeight:700,padding:0,boxShadow:on?"0 0 0 2px #fff, 0 0 0 3.5px "+COLORS[n]+", 0 3px 8px rgba(0,0,0,0.2)":"inset 0 0 0 1.5px "+COLORS[n]+"66",transform:on?"scale(1.05)":"none",opacity:v!==undefined&&!on?0.6:1}},n);}))
-          :h("div",{style:{flex:1,display:"flex",alignItems:"center",gap:8,color:MUTED,fontSize:13}},
-            h("span",{style:{width:30,height:30,borderRadius:8,background:COLORS[sv],color:"#fff",fontWeight:700,textAlign:"center",lineHeight:"30px",fontSize:16}},sv),
-            h("span",null,"✓ Already saved today")));
+              return h("button",{key:n,onClick:function(){touch();setScores(function(p){var x=Object.assign({},p);x[s.key]=(cur(s)===n)?null:n;return x;});},"aria-label":s.label+" "+n,style:{flex:1,minWidth:0,height:many?42:48,borderRadius:10,border:"none",background:on?COLORS[n]:"#fff",color:on?"#fff":COLORS[n],fontSize:many?18:21,fontWeight:700,padding:0,boxShadow:on?"0 0 0 2px #fff, 0 0 0 3.5px "+COLORS[n]+", 0 3px 8px rgba(0,0,0,0.2)":"inset 0 0 0 1.5px "+COLORS[n]+"66",transform:on?"scale(1.05)":"none",opacity:v!==undefined&&!on?0.6:1}},n);})));
       })),
-    allSaved&&!unlocked&&h("div",{style:{textAlign:"center",margin:"10px 0 0",fontSize:14,color:GREEN,fontWeight:700}},"All done for today ✓"),
-    anySaved&&!unlocked&&h("div",{style:{textAlign:"center",marginTop:8}},h("button",{onClick:function(){touch();setPin("");},style:{background:"transparent",border:"none",color:MUTED,fontSize:12,textDecoration:"underline"}},"Teacher: change a saved score")),
-    !allSaved||unlocked?h("button",{onClick:function(){touch();save();},disabled:saving,style:{width:"100%",height:48,borderRadius:12,border:"none",background:saving?"#9ca3af":GREEN,color:"#fff",fontSize:16,fontWeight:700,marginTop:10,boxShadow:"0 3px 10px rgba(22,163,74,0.3)"}},saving?"Saving…":"Save Entry"):
-      h("button",{onClick:function(){reset();},style:{width:"100%",height:46,borderRadius:12,border:"none",background:"#07150e",color:"#f7f4ec",fontSize:15,fontWeight:700,marginTop:10}},"Back to names"));
+    h("button",{onClick:function(){touch();save();},disabled:saving,style:{width:"100%",height:48,borderRadius:12,border:"none",background:saving?"#9ca3af":GREEN,color:"#fff",fontSize:16,fontWeight:700,marginTop:10,boxShadow:"0 3px 10px rgba(22,163,74,0.3)"}},saving?"Saving…":"Save Entry"));
 
   const modal=function(children,onClose){return h("div",{onClick:onClose,style:{position:"fixed",inset:0,background:"rgba(7,21,14,0.55)",zIndex:50,display:"flex",alignItems:"center",justifyContent:"center",padding:14}},h("div",{onClick:function(e){e.stopPropagation();},style:{background:"#fff",borderRadius:16,maxWidth:360,width:"100%",padding:18,boxShadow:"0 20px 60px rgba(0,0,0,0.35)"}},children));};
   const unsavedDlg=pending&&modal(h("div",{style:{textAlign:"center"}},
@@ -251,18 +242,6 @@ function App(){
     h("button",{onClick:function(){var run=pending.run;setPending(null);save(run);},style:{width:"100%",padding:11,borderRadius:11,border:"none",background:GREEN,color:"#fff",fontWeight:700,fontSize:15,marginBottom:8}},"Save"),
     h("button",{onClick:function(){var run=pending.run;setPending(null);run();},style:{width:"100%",padding:11,borderRadius:11,border:"1px solid #e5b3ae",background:"#fff5f4",color:"#b3423b",fontWeight:700,fontSize:15,marginBottom:8}},"Discard"),
     h("button",{onClick:function(){setPending(null);},style:{width:"100%",padding:9,border:"none",background:"transparent",color:MUTED,fontWeight:600,fontSize:14}},"Keep editing")),function(){setPending(null);});
-  function pressPin(d){
-    var n=pin+d;setPin(n);
-    if(n.length===4){if(n===TEACHER_PIN){setPin(null);setUnlocked(true);setScores({});}else{setTimeout(function(){setPin("");},300);}}
-  }
-  const pinDlg=pin!==null&&modal(h("div",{style:{textAlign:"center"}},
-    h("div",{style:{fontSize:16,fontWeight:700,marginBottom:2}},"Teacher PIN"),
-    h("div",{style:{fontSize:12,color:MUTED,marginBottom:10}},"Enter the PIN to change a saved score"),
-    h("div",{style:{display:"flex",justifyContent:"center",gap:12,marginBottom:12}},[0,1,2,3].map(function(i){return h("div",{key:i,style:{width:14,height:14,borderRadius:"50%",border:"2px solid "+GOLD,background:i<pin.length?GOLD:"transparent"}});})),
-    h("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,70px)",gap:8,justifyContent:"center"}},
-      ["1","2","3","4","5","6","7","8","9","","0","⌫"].map(function(k,i){return k===""?h("div",{key:i}):h("button",{key:i,onClick:function(){if(k==="⌫")setPin(pin.slice(0,-1));else if(pin.length<4)pressPin(k);},style:{height:52,borderRadius:12,border:"1px solid "+BORDER,background:"#faf8f1",fontSize:20,fontWeight:600}},k);})),
-    h("button",{onClick:function(){setPin(null);},style:{marginTop:12,background:"transparent",border:"none",color:MUTED,fontSize:13}},"Cancel")),function(){setPin(null);});
-
   return h("div",{onClick:touch,onTouchStart:touch,style:{minHeight:"100vh",display:"flex",flexDirection:"column"}},
     header,
     h("div",{style:{flex:1,width:"100%",maxWidth:760,margin:"0 auto",padding:"12px 12px 30px"}},
@@ -273,7 +252,7 @@ function App(){
       picker,entry,keyBlock,
       h("div",{style:{textAlign:"center",fontSize:9,color:"#b5bcb6",marginTop:14}},KIOSK_VERSION)),
     toast&&h("div",{style:{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"#07150e",color:"#fff",padding:"10px 18px",borderRadius:20,fontSize:14,zIndex:60}},toast),
-    unsavedDlg,pinDlg);
+    unsavedDlg);
 }
 // reload onto a new version when idle (never in the middle of a child's entry)
 if("serviceWorker"in navigator){

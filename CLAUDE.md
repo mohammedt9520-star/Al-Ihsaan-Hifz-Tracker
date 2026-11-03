@@ -5,6 +5,10 @@ Single-file progressive web app for Quranic memorization (Hifz) tracking.
 Stack: vanilla React (CDN), Supabase backend, PWA service worker.
 All app code lives in `index.html` — there is no separate build step.
 
+## Logins (front-end PIN gates only, not real security)
+- **7202** = Admin (whole app). **1111** = Student: opens straight into Salaah Entry (today only); every other page/menu item is greyed with a padlock and blocked in `setView`.
+- Role is stored in localStorage `hifz_auth` (+ `hifz_auth_v`); the PIN screen is the first inline script in index.html.
+
 ## Push & Deploy Flow
 1. Make edits to `index.html` in this Claude Code session
 2. Commit with a descriptive message
