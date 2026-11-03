@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-161425 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-162122 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -162,7 +162,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-161425';
+const APP_VERSION='hifz-20261103-162122';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -8681,9 +8681,14 @@ function SalaahEntry(c){
   const ld=slLongDate(date);
   const existingFor=function(stu,d){var out={},any=false;c.enabledSalaahs.forEach(function(s){var r=c.data[slRowKey(stu.id,d,s.key)];if(r&&r.score!=null){out[s.key]=r.score;any=true;}});return{vals:out,any:any};};
   function pick(stu){setSel(stu);setScores(existingFor(stu,date).vals);setDone("");}
-  function changeDate(d){setDate(d);if(sel)setScores(existingFor(sel,d).vals);setDone("");}
+  function doChangeDate(d){setDate(d);if(sel)setScores(existingFor(sel,d).vals);setDone("");}
   const existing=sel?existingFor(sel,date):{any:false};
-  async function save(){
+  // Unsaved-change guard: leaving the current student/date with edits asks Save / Discard / Keep editing.
+  const [pending,setPending]=React.useState(null);
+  var dirty=!!sel&&!locked&&c.enabledSalaahs.some(function(s){return scores[s.key]!==existing.vals[s.key];});
+  function guard(action){if(dirty)setPending({run:action});else action();}
+  function changeDate(d){guard(function(){doChangeDate(d);});}
+  async function save(after){
     if(!sel||locked||saving)return;
     var changes=[];
     c.enabledSalaahs.forEach(function(s){
@@ -8701,6 +8706,7 @@ function SalaahEntry(c){
     setDone("✅ Saved – "+name);
     setSel(null);setScores({});setSearch("");
     setTimeout(function(){setDone("");},2600);
+    if(typeof after==="function")after();
   }
   var dateBtn={width:34,height:34,borderRadius:10,border:"1px solid "+BORDER,background:"#fff",color:"#5b6b5e",fontSize:18,lineHeight:1,cursor:"pointer",flexShrink:0,padding:0};
   var isToday=date===today;
@@ -8727,7 +8733,7 @@ function SalaahEntry(c){
   var tabs=h("div",{style:{display:"flex",justifyContent:"center",marginBottom:10}},
     h("div",{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
       SL_CLASSES.map(function(g){var on=cls===g.cls,tot=c.students.filter(function(s){return s.cls===g.cls;}).length;
-        return h("button",{key:g.cls,onClick:function(){if(cls!==g.cls){setCls(g.cls);setSel(null);setScores({});setSearch("");}},style:{border:"none",borderRadius:17,padding:"7px 20px",fontSize:14,fontWeight:on?700:500,cursor:"pointer",background:on?"#fff":"transparent",color:on?TEXT:MUTED,boxShadow:on?"0 1px 4px rgba(0,0,0,0.12)":"none"}},
+        return h("button",{key:g.cls,onClick:function(){if(cls!==g.cls)guard(function(){setCls(g.cls);setSel(null);setScores({});setSearch("");});},style:{border:"none",borderRadius:17,padding:"7px 20px",fontSize:14,fontWeight:on?700:500,cursor:"pointer",background:on?"#fff":"transparent",color:on?TEXT:MUTED,boxShadow:on?"0 1px 4px rgba(0,0,0,0.12)":"none"}},
           g.label,h("span",{style:{marginLeft:6,fontSize:11,fontWeight:600,color:on?"#8a6d1f":"#9aa59c"}},doneCount(g.cls)+"/"+tot));})));
 
   var lockedBanner=locked&&h("div",{style:{background:"#fef2f2",border:"2px solid #fca5a5",color:"#991b1b",borderRadius:14,padding:"18px 14px",textAlign:"center",fontSize:20,fontWeight:800,marginBottom:12}},"🔒 This month is locked");
@@ -8749,7 +8755,7 @@ function SalaahEntry(c){
     h("div",{style:{background:"#fff",border:"1px solid "+BORDER,borderRadius:14,padding:"8px 12px 10px",marginBottom:existing.any?6:10,textAlign:"center",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},
       h("div",{style:{fontSize:10,letterSpacing:"0.16em",textTransform:"uppercase",color:"#8a6d1f",fontWeight:700}},(SL_CLASSES.find(function(g){return g.cls===sel.cls;})||{}).label),
       h("div",{style:{fontSize:19,fontWeight:700,color:TEXT,lineHeight:1.25,wordBreak:"break-word"}},sel.name),
-      h("button",{onClick:function(){setSel(null);setScores({});},style:{marginTop:5,padding:"4px 16px",borderRadius:14,border:"1px solid "+BORDER,background:"#faf8f1",color:"#5b6b5e",fontWeight:600,fontSize:12,cursor:"pointer"}},"Change")),
+      h("button",{onClick:function(){guard(function(){setSel(null);setScores({});});},style:{marginTop:5,padding:"4px 16px",borderRadius:14,border:"1px solid "+BORDER,background:"#faf8f1",color:"#5b6b5e",fontWeight:600,fontSize:12,cursor:"pointer"}},"Change")),
     existing.any&&h("div",{style:{textAlign:"center",marginBottom:8}},h("span",{style:{display:"inline-block",fontSize:11.5,fontWeight:700,color:"#92400e",background:"#fef3c7",border:"1px solid #fde68a",borderRadius:14,padding:"2px 12px"}},"Updating existing entry")),
     c.enabledSalaahs.length===0&&h("div",{style:{color:MUTED,padding:20,textAlign:"center"}},"No salaahs are switched on. Turn some on in settings."),
     h("div",{style:Object.assign({},c.card,{padding:many?"2px 10px":"4px 12px",borderRadius:14})},
@@ -8762,7 +8768,7 @@ function SalaahEntry(c){
       })));
 
   var footer=h("div",{style:{position:"sticky",bottom:0,zIndex:20,background:"rgba(247,244,236,0.97)",padding:"6px 0 4px",marginTop:8,backdropFilter:"blur(4px)"}},
-    sel&&!locked&&h("button",{onClick:save,disabled:saving,style:{width:"100%",height:46,borderRadius:12,border:"none",background:saving?"#9ca3af":GREEN,color:"#fff",fontSize:16,fontWeight:700,letterSpacing:"0.02em",cursor:"pointer",marginBottom:6,boxShadow:"0 3px 10px rgba(22,163,74,0.3)"}},saving?"Saving…":"Save Entry"),
+    sel&&!locked&&h("button",{onClick:function(){save();},disabled:saving,style:{width:"100%",height:46,borderRadius:12,border:"none",background:saving?"#9ca3af":GREEN,color:"#fff",fontSize:16,fontWeight:700,letterSpacing:"0.02em",cursor:"pointer",marginBottom:6,boxShadow:"0 3px 10px rgba(22,163,74,0.3)"}},saving?"Saving…":"Save Entry"),
     c.keyBlock(true));
 
   return h("div",null,
@@ -8770,7 +8776,14 @@ function SalaahEntry(c){
     tabs,
     dateStrip,
     done&&h("div",{style:{background:"#dcfce7",border:"2px solid #86efac",color:"#166534",borderRadius:14,padding:"14px",textAlign:"center",fontSize:20,fontWeight:800,marginBottom:12}},done),
-    lockedBanner,picker,scoreRows,footer);
+    lockedBanner,picker,scoreRows,footer,
+    pending&&c.modalWrap(h("div",{style:{textAlign:"center"}},
+      h("div",{style:{fontSize:17,fontWeight:700,color:TEXT,marginBottom:4}},"Unsaved changes"),
+      h("div",{style:{fontSize:13,color:MUTED,marginBottom:14,lineHeight:1.4}},"You changed "+(sel?sel.name+"'s":"this")+" scores but haven't saved them."),
+      h("button",{onClick:function(){var run=pending.run;setPending(null);save(run);},style:{width:"100%",padding:"11px",borderRadius:11,border:"none",background:GREEN,color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",marginBottom:8}},"Save"),
+      h("button",{onClick:function(){var run=pending.run;setPending(null);run();},style:{width:"100%",padding:"11px",borderRadius:11,border:"1px solid #e5b3ae",background:"#fff5f4",color:"#b3423b",fontWeight:700,fontSize:15,cursor:"pointer",marginBottom:8}},"Discard"),
+      h("button",{onClick:function(){setPending(null);},style:{width:"100%",padding:"9px",borderRadius:11,border:"none",background:"transparent",color:MUTED,fontWeight:600,fontSize:14,cursor:"pointer"}},"Keep editing")
+    ),function(){setPending(null);}));
 }
 
 // ── TRACKER PAGE ──
