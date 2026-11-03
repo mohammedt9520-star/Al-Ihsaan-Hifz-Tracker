@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-123000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-141500 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -162,7 +162,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-123000';
+const APP_VERSION='hifz-20261103-141500';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -8660,11 +8660,11 @@ function SalaahEntry(c){
       h("button",{onClick:function(){changeDate(slAdd(date,-1));},"aria-label":"Previous day",style:dateBtn},"‹"),
       h("div",{style:{flex:1,textAlign:"center",minWidth:0}},
         h("div",{style:{fontSize:13,letterSpacing:"0.16em",textTransform:"uppercase",color:"#e8d9a8",fontWeight:700}},ld.wd+(isToday?" · TODAY":date<today?" · PAST DATE":" · FUTURE DATE")),
-        h("div",{style:{fontSize:28,fontWeight:800,lineHeight:1.2,fontFamily:"Marcellus,Georgia,serif"}},ld.big)),
+        h("div",{style:{fontSize:"clamp(20px,6vw,28px)",fontWeight:800,lineHeight:1.2,fontFamily:"Marcellus,Georgia,serif",whiteSpace:"nowrap"}},ld.big)),
       h("button",{onClick:function(){changeDate(slAdd(date,1));},"aria-label":"Next day",style:dateBtn},"›")),
     h("div",{style:{display:"flex",gap:8,marginTop:10,justifyContent:"center",flexWrap:"wrap"}},
-      h("div",{style:{position:"relative",height:44,minWidth:150}},
-        h("div",{style:{height:44,borderRadius:12,background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.35)",display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"0 16px",fontWeight:700,fontSize:15}},"📅 Pick a date"),
+      h("div",{style:{position:"relative",height:44,width:56},title:"Choose a date"},
+        h("div",{style:{height:44,width:56,borderRadius:12,background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.35)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}},"📅"),
         h("input",{type:"date",value:date,onChange:function(e){if(e.target.value)changeDate(e.target.value);},"aria-label":"Choose date",style:{position:"absolute",inset:0,width:"100%",height:"100%",opacity:0,cursor:"pointer"}})),
       !isToday&&h("button",{onClick:function(){changeDate(today);},style:{height:44,padding:"0 20px",borderRadius:12,border:"none",background:GOLD,color:"#1b1200",fontWeight:800,fontSize:15,cursor:"pointer"}},"↩ Back to Today")));
 
@@ -8685,24 +8685,26 @@ function SalaahEntry(c){
     }),
     c.students.length===0&&h("div",{style:{textAlign:"center",color:MUTED,padding:30}},"No students found."));
 
+  var many=c.enabledSalaahs.length>2;
   var scoreRows=sel&&!locked&&h("div",null,
-    h("div",{style:{background:"#fffdf6",border:"3px solid "+GOLD,borderRadius:16,padding:"12px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}},
+    h("div",{style:{background:"#fffdf6",border:"3px solid "+GOLD,borderRadius:16,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}},
       h("div",{style:{minWidth:0}},
         h("div",{style:{fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:"#8a6d1f",fontWeight:800}},(SL_CLASSES.find(function(g){return g.cls===sel.cls;})||{}).label),
-        h("div",{style:{fontSize:26,fontWeight:800,color:TEXT,lineHeight:1.2,wordBreak:"break-word"}},sel.name),
+        h("div",{style:{fontSize:24,fontWeight:800,color:TEXT,lineHeight:1.2,wordBreak:"break-word"}},sel.name),
         existing.any&&h("div",{style:{display:"inline-block",marginTop:4,fontSize:12,fontWeight:800,color:"#92400e",background:"#fef3c7",borderRadius:20,padding:"3px 10px"}},"Updating existing entry")),
       h("button",{onClick:function(){setSel(null);setScores({});},style:{flexShrink:0,padding:"10px 14px",borderRadius:12,border:"1px solid "+BORDER,background:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}},"Change")),
     c.enabledSalaahs.length===0&&h("div",{style:{color:MUTED,padding:20,textAlign:"center"}},"No salaahs are switched on. Turn some on in settings."),
-    c.enabledSalaahs.map(function(s){
-      return h("div",{key:s.key,style:Object.assign({},c.card,{padding:"12px 12px 14px",marginBottom:10})},
-        h("div",{style:{fontSize:20,fontWeight:800,color:TEXT,marginBottom:8}},s.label),
-        h("div",{style:{display:"flex",gap:6}},
-          [0,1,2,3,4,5].map(function(n){var on=scores[s.key]===n;
-            return h("button",{key:n,onClick:function(){setScores(function(p){var x=Object.assign({},p);if(x[s.key]===n)delete x[s.key];else x[s.key]=n;return x;});},style:{flex:1,height:64,borderRadius:14,border:"3px solid "+(on?"#111":"transparent"),background:SL_COLORS[n],color:"#fff",fontSize:28,fontWeight:800,cursor:"pointer",opacity:on||scores[s.key]===undefined?1:0.45,transform:on?"scale(1.07)":"none",boxShadow:on?"0 4px 14px rgba(0,0,0,0.3)":"none",padding:0,transition:"all .08s"}},n);})));
-    }));
+    h("div",{style:Object.assign({},c.card,{padding:many?"4px 10px":"8px 12px",borderRadius:16})},
+      c.enabledSalaahs.map(function(s,idx){
+        return h("div",{key:s.key,style:{display:"flex",alignItems:"center",gap:10,padding:many?"6px 0":"9px 0",borderTop:idx?"1px solid #eee7d3":"none"}},
+          h("div",{style:{width:many?66:78,flexShrink:0,fontSize:many?15:17,fontWeight:700,color:TEXT,letterSpacing:"0.01em"}},s.label),
+          h("div",{style:{flex:1,display:"flex",gap:many?5:7}},
+            [0,1,2,3,4,5].map(function(n){var on=scores[s.key]===n,any=scores[s.key]!==undefined;
+              return h("button",{key:n,onClick:function(){setScores(function(p){var x=Object.assign({},p);if(x[s.key]===n)delete x[s.key];else x[s.key]=n;return x;});},"aria-label":s.label+" "+n,"aria-pressed":on,style:{flex:1,minWidth:0,height:many?50:58,borderRadius:12,border:"none",background:on?SL_COLORS[n]:"#fff",color:on?"#fff":SL_COLORS[n],fontSize:many?20:24,fontWeight:800,cursor:"pointer",padding:0,boxShadow:on?"0 0 0 3px #fff, 0 0 0 5px "+SL_COLORS[n]+", 0 4px 10px rgba(0,0,0,0.22)":"inset 0 0 0 2px "+SL_COLORS[n]+"66",transform:on?"scale(1.04)":"none",transition:"all .08s",opacity:any&&!on?0.6:1}},n);})));
+      })));
 
   var footer=h("div",{style:{position:"sticky",bottom:0,zIndex:20,background:"rgba(247,244,236,0.97)",padding:"8px 0 6px",marginTop:10,backdropFilter:"blur(4px)"}},
-    sel&&!locked&&h("button",{onClick:save,disabled:saving,style:{width:"100%",height:62,borderRadius:16,border:"none",background:saving?"#9ca3af":GREEN,color:"#fff",fontSize:22,fontWeight:800,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.35)"}},saving?"Saving…":"Save Entry"),
+    sel&&!locked&&h("button",{onClick:save,disabled:saving,style:{width:"100%",height:56,borderRadius:14,border:"none",background:saving?"#9ca3af":GREEN,color:"#fff",fontSize:20,fontWeight:800,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.35)"}},saving?"Saving…":"Save Entry"),
     c.keyBlock(true));
 
   return h("div",null,
