@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-163028 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-163729 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -49,12 +49,57 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
 </script>
 <script>
 // ── PIN Lock Screen ──────────────────────────────────────────────────────────
+// Real sign-in against Supabase Auth: the PIN is the password of a Supabase user (Admin 7202 / Student 1111).
+// The database only returns data to a valid signed-in session (Row Level Security), so this is server-enforced.
+(function(){
+  var SB_URL='https://yyfkoenhpotzcuwxpnsy.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g';
+  var EMAILS=['admin@alihsaanhifz.pages.dev','student@alihsaanhifz.pages.dev'];
+  var SKEY='hifz_sb_session';
+  function load(){try{return JSON.parse(localStorage.getItem(SKEY)||'null');}catch(e){return null;}}
+  function save(s){try{localStorage.setItem(SKEY,JSON.stringify(s));}catch(e){}}
+  function roleOf(t){try{var p=JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));return (p.app_metadata&&p.app_metadata.role)||'';}catch(e){return '';}}
+  function call(grant,body){
+    return fetch(SB_URL+'/auth/v1/token?grant_type='+grant,{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json().catch(function(){return {};}).then(function(j){return {ok:r.ok,status:r.status,json:j};});});
+  }
+  function adopt(j){var s={access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+(j.expires_in||3600)*1000};s.role=roleOf(s.access_token);save(s);return s;}
+  var refreshing=null;
+  window.HifzAuth={
+    session:load,
+    role:function(){var s=load();return s?roleOf(s.access_token):'';},
+    // returns 'ok' | 'bad' (wrong PIN) | 'error' (could not reach the server)
+    signIn:function(pin){
+      var i=0;
+      function next(){
+        if(i>=EMAILS.length)return Promise.resolve('bad');
+        return call('password',{email:EMAILS[i++],password:pin}).then(function(r){
+          if(r.ok&&r.json.access_token){adopt(r.json);return 'ok';}
+          if(r.status===400||r.status===401||r.status===422)return next();
+          return 'error';
+        });
+      }
+      return next().catch(function(){return 'error';});
+    },
+    // A valid access token, refreshed when it is about to expire. Offline: keeps using the old one.
+    token:function(){
+      var s=load();if(!s)return Promise.resolve(null);
+      if(s.expires_at-Date.now()>60000)return Promise.resolve(s.access_token);
+      if(!refreshing){
+        refreshing=call('refresh_token',{refresh_token:s.refresh_token}).then(function(r){
+          if(r.ok&&r.json.access_token){return adopt(r.json).access_token;}
+          if(r.status===400||r.status===401||r.status===422){window.HifzAuth.logout();window.location.reload();return null;}
+          return s.access_token;
+        }).catch(function(){return s.access_token;}).then(function(t){refreshing=null;return t;});
+      }
+      return refreshing;
+    },
+    logout:function(){try{localStorage.removeItem(SKEY);localStorage.removeItem('hifz_auth');localStorage.removeItem('hifz_auth_v');}catch(e){}window._HIFZ_ROLE=undefined;}
+  };
+})();
 (function(){
   if(new URLSearchParams(window.location.search).get('report'))return;
-  var _auth;try{_auth=localStorage.getItem('hifz_auth');}catch(e){_auth=null;}
-  var _authV;try{_authV=localStorage.getItem('hifz_auth_v');}catch(e){_authV=null;}
-  // Logins: Admin (7202) and Student (1111). Older sessions (previous PINs / teacher role) lack hifz_auth_v and must sign in again.
-  if((_auth==='admin'||_auth==='student')&&_authV==='7202'){window._HIFZ_ROLE=_auth;return;}
+  var _r=window.HifzAuth.role();
+  if(_r==='admin'||_r==='student'){window._HIFZ_ROLE=_r;return;}
   // Inject styles
   var _css=document.createElement('style');
   _css.textContent=[
@@ -95,27 +140,28 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
     +'</div></div>';
   document.body.insertBefore(_lock,document.getElementById('root'));
   var _entered='';
-  // 7202 = Admin (whole app). 1111 = Student (Salaah Entry only; everything else locked). Front-end gate only - not real security.
-  var _PINS={'7202':'admin','1111':'student'};
+  var _busy=false;
   function _dots(){document.querySelectorAll('.pdot').forEach(function(d,i){d.classList.toggle('on',i<_entered.length);});}
-  function _press(d){if(_entered.length>=4)return;_entered+=d;_dots();if(_entered.length===4)_verify();}
-  function _del(){if(!_entered.length)return;_entered=_entered.slice(0,-1);_dots();}
+  function _press(d){if(_busy||_entered.length>=4)return;_entered+=d;_dots();if(_entered.length===4)_verify();}
+  function _del(){if(_busy||!_entered.length)return;_entered=_entered.slice(0,-1);_dots();}
+  function _fail(msg){
+    var w=document.getElementById('pin-wrap');
+    w.classList.remove('shake');void w.offsetWidth;w.classList.add('shake');
+    var e=document.getElementById('pin-err');e.textContent=msg;e.style.opacity='1';
+    _entered='';_dots();_busy=false;
+    setTimeout(function(){e.style.opacity='0';},2200);
+  }
   function _verify(){
-    var role=_PINS[_entered];
-    if(role){
-      window._HIFZ_ROLE=role;
-      localStorage.setItem('hifz_auth',role);
-      localStorage.setItem('hifz_auth_v','7202');
-      _lock.style.animation='pinOut .3s ease forwards';
-      // Reload once so the whole app renders with the signed-in role.
-      setTimeout(function(){_lock.remove();window.location.reload();},320);
-    }else{
-      var w=document.getElementById('pin-wrap');
-      w.classList.remove('shake');void w.offsetWidth;w.classList.add('shake');
-      document.getElementById('pin-err').style.opacity='1';
-      _entered='';_dots();
-      setTimeout(function(){document.getElementById('pin-err').style.opacity='0';},1600);
-    }
+    _busy=true;
+    window.HifzAuth.signIn(_entered).then(function(res){
+      if(res==='ok'){
+        window._HIFZ_ROLE=window.HifzAuth.role();
+        _lock.style.animation='pinOut .3s ease forwards';
+        // Reload once so the whole app renders with the signed-in role.
+        setTimeout(function(){_lock.remove();window.location.reload();},320);
+      }else if(res==='bad'){_fail('Incorrect PIN');}
+      else{_fail('Cannot reach the server - check internet');}
+    });
   }
   document.querySelectorAll('.pk[data-d]').forEach(function(b){b.addEventListener('click',function(){_press(b.getAttribute('data-d'));});});
   document.getElementById('pin-del').addEventListener('click',_del);
@@ -163,7 +209,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-163028';
+const APP_VERSION='hifz-20261103-163729';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -246,7 +292,14 @@ async function sbFetchAll(q){
   return all;
 }
 
-async function sbGetToken(){return SUPABASE_KEY;}
+// The signed-in user's access token (Admin / Student). Falls back to the anon key only when nobody is signed in.
+async function sbGetToken(){var t=window.HifzAuth?await window.HifzAuth.token():null;return t||SUPABASE_KEY;}
+// Call a database function (RPC) as the signed-in user.
+async function sbRpc(fn,args){
+  const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/"+fn,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+(await sbGetToken()),"Content-Type":"application/json"},body:JSON.stringify(args||{})});
+  if(!r.ok)throw new Error(r.status+": "+(await r.text().catch(()=>"")).substring(0,100));
+  const txt=await r.text();return txt?JSON.parse(txt):null;
+}
 // School contact — update here if details change
 const SCHOOL_CONTACT_NAME="Ustaadh Tanweer";
 const SCHOOL_CONTACT_PHONE="07943 673 287";
@@ -2398,9 +2451,14 @@ function App(){
   },[]);
   // Supabase Realtime: live multi-device sync
   React.useEffect(function(){
+    if(isStudent||!window._HIFZ_ROLE)return function(){}; // Student login / signed-out: no realtime
     function setup(){
       if(!window.supabase)return function(){};
       var client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+      // Realtime must carry the signed-in user's token (RLS decides which changes it may receive).
+      var authTimer=null;
+      function applyAuth(){if(window.HifzAuth)window.HifzAuth.token().then(function(t){if(t)try{client.realtime.setAuth(t);}catch(e){}});}
+      applyAuth();authTimer=setInterval(applyAuth,45*60*1000);
       var channel=client.channel('hifz-realtime-v1');
       ['sabaq_records','dor_records','daily_sabaq','register_data'].forEach(function(tbl){
         channel.on('postgres_changes',{event:'*',schema:'public',table:tbl},function(){
@@ -2414,7 +2472,7 @@ function App(){
       channel.subscribe(function(status){
         setRealtimeConnected(status==='SUBSCRIBED');
       });
-      return function(){try{client.removeChannel(channel);}catch(e){}};
+      return function(){clearInterval(authTimer);try{client.removeChannel(channel);}catch(e){}};
     }
     if(window.supabase){return setup();}
     var s=document.createElement('script');
@@ -2451,6 +2509,7 @@ function App(){
   // what a self-sustaining sync loop looks like from the outside.
   const skipNextSyncEffect=React.useRef(false);
   function scheduleSync(){
+    if(isStudent||!window._HIFZ_ROLE)return; // the Student login never writes the main app tables
     if(isFirstLoad.current)return; // skip until loadCloud completes
     if(syncTimer.current)clearTimeout(syncTimer.current);
     syncTimer.current=setTimeout(function(){syncNowRef.current&&syncNowRef.current().catch(function(){});},2000);
@@ -2469,6 +2528,7 @@ function App(){
     loadCloud().then(function(){showSyncMsg("Loaded ✓");}).catch(function(e){showSyncMsg("Error ✗");console.warn("Load failed:",e.message);});
   }
   React.useEffect(()=>{
+    if(isStudent)return; // the Student login only holds a name list; never cache it over the real local data
     lsSave(allRecords);lsSaveDor(allDorRecords);lsSaveYearPlan(yearPlan);
     lsSaveRegister(allRegisterData);lsSaveDailySabaq(allDailySabaqEntries);
     if(skipNextSyncEffect.current){skipNextSyncEffect.current=false;return;} // just loaded from cloud — nothing new to push
@@ -3648,6 +3708,7 @@ function App(){
 
 
   async function syncNow(){
+    if(isStudent||!window._HIFZ_ROLE)return;
     if(isFirstLoad.current)return;
     if(isSyncing.current){pendingSync.current=true;return;} // queue if already syncing
     isSyncing.current=true;
@@ -3694,7 +3755,24 @@ function App(){
       if(pendingSync.current){pendingSync.current=false;scheduleSync();}
     }
   }
+  // Student login: the only data it can read is the roster (names / classes / ids) from a restricted database function.
+  async function loadStudentRoster(){
+    setSyncStatus("loading");
+    try{
+      var j=await sbRpc("salaah_roster",{});
+      if(j&&Array.isArray(j.students)){
+        var d=j.students.map(function(r,i){return{id:"roster_"+i,name:r.name,class:r.class,uniqueId:r.unique_id||"",isStudentProfile:!!r.is_student_profile,dateFrom:r.date_from||"",dateTo:r.date_from||""};});
+        skipNextSyncEffect.current=true;
+        setRecords(d);
+        var left={};try{var lv=typeof j.left==="string"?JSON.parse(j.left):j.left;if(lv&&typeof lv==="object"&&!Array.isArray(lv))left=lv;}catch(e){}
+        setLeftStudents(left);
+      }
+      isFirstLoad.current=false;setSyncStatus("live");
+    }catch(e){console.warn("roster",e.message);setSyncStatus("offline");}
+  }
   async function loadCloud(){
+    if(!window._HIFZ_ROLE)return; // nothing loads until someone has signed in
+    if(isStudent){return loadStudentRoster();}
     setSyncStatus("loading");
     async function tryLoad(fn){try{return {ok:true,data:await fn()};}catch(e){console.warn("loadCloud partial:",e.message);return {ok:false,data:[]};} }
     const [sR,dR,dlR,rR,pR,stR]=await Promise.all([
@@ -3811,7 +3889,7 @@ function App(){
           boxShadow:syncStatus==="live"?"0 0 5px #22c55e66":syncStatus==="saving"||syncStatus==="loading"?"0 0 5px #f59e0b66":"0 0 5px #ef444466"
         }}),
         React.createElement('button',{
-          onClick:function(){try{localStorage.removeItem('hifz_auth');localStorage.removeItem('hifz_auth_v');}catch(e){}window._HIFZ_ROLE=undefined;window.location.reload();},
+          onClick:function(){if(window.HifzAuth)window.HifzAuth.logout();window.location.reload();},
           title:"Lock / log out","aria-label":"Lock and log out",
           style:{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.14)",cursor:"pointer",color:"#c9a553",width:34,height:34,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,padding:0,lineHeight:1,marginLeft:8}
         },"🔒")
@@ -8675,12 +8753,7 @@ function SalaahSettings(props){
       h("select",{value:y,onChange:function(e){setY(+e.target.value);},style:sel},[y-2,y-1,y,y+1,y+2].filter(function(v,i,a){return a.indexOf(v)===i;}).sort().map(function(v){return h("option",{key:v,value:v},v);})),
       h("button",{onClick:function(){props.setLock(month,!locked);},style:{flex:1,minWidth:150,padding:"10px 14px",borderRadius:10,border:"none",fontWeight:800,fontSize:15,cursor:"pointer",background:locked?GREEN:RED,color:"#fff"}},locked?"🔓 Unlock month":"🔒 Lock month")),
     h("div",{style:{fontSize:13,color:TEXT,marginBottom:6}},SL_MONTHS[m-1]+" "+y+" is ",h("b",null,locked?"LOCKED":"open"),"."),
-    settings.locked.length>0&&h("div",{style:{fontSize:12,color:MUTED}},"Locked months: "+settings.locked.map(function(x){var p=x.split("-");return SL_MONTHS[+p[1]-1].substring(0,3)+" "+p[0];}).join(", ")),
-    h("div",{style:{fontSize:11,fontWeight:800,letterSpacing:"0.14em",textTransform:"uppercase",color:MUTED,margin:"18px 0 6px"}},"Student entry page"),
-    h("div",{style:{fontSize:12,color:MUTED,marginBottom:6,lineHeight:1.4}},"Open this link on the student tablet, then choose Install app / Add to Home screen. It only contains salaah entry for today."),
-    h("div",{style:{display:"flex",gap:8}},
-      h("input",{readOnly:true,value:location.origin+"/salaah/",onFocus:function(e){e.target.select();},style:{flex:1,minWidth:0,border:"1px solid "+BORDER,borderRadius:10,padding:"9px 10px",fontSize:13,background:"#faf8f1",color:TEXT}}),
-      h("button",{onClick:function(){var u=location.origin+"/salaah/";try{navigator.clipboard.writeText(u).then(function(){showToast("Link copied","success");},function(){showToast(u,"info",6000);});}catch(e){showToast(u,"info",6000);}},style:{padding:"9px 16px",borderRadius:10,border:"none",background:"#07150e",color:"#f7f4ec",fontWeight:700,fontSize:13,cursor:"pointer"}},"Copy"))
+    settings.locked.length>0&&h("div",{style:{fontSize:12,color:MUTED}},"Locked months: "+settings.locked.map(function(x){var p=x.split("-");return SL_MONTHS[+p[1]-1].substring(0,3)+" "+p[0];}).join(", "))
   ),props.onClose);
 }
 

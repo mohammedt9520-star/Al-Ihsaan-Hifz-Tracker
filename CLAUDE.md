@@ -5,9 +5,10 @@ Single-file progressive web app for Quranic memorization (Hifz) tracking.
 Stack: vanilla React (CDN), Supabase backend, PWA service worker.
 All app code lives in `index.html` — there is no separate build step.
 
-## Logins (front-end PIN gates only, not real security)
-- **7202** = Admin (whole app). **1111** = Student: opens straight into Salaah Entry (today only); every other page/menu item is greyed with a padlock and blocked in `setView`.
-- Role is stored in localStorage `hifz_auth` (+ `hifz_auth_v`); the PIN screen is the first inline script in index.html.
+## Logins (real Supabase Auth)
+- The PIN is the password of a Supabase Auth user: **7202** → `admin@alihsaanhifz.pages.dev` (app_metadata.role=admin), **1111** → `student@alihsaanhifz.pages.dev` (role=student). Sign-in code is the first inline script in index.html (`window.HifzAuth`); session in localStorage `hifz_sb_session`; `sbGetToken()` returns the user's JWT.
+- Admin: whole app. Student: Salaah Entry only (today only), everything else greyed with a padlock and blocked in `setView`; it reads names via the `salaah_roster()` database function and writes only `salaah_records`.
+- Access is enforced by Row Level Security using `hifz_role()` (reads the JWT's app_metadata.role). Never grant `anon` access to tables other than `report_store`.
 
 ## Push & Deploy Flow
 1. Make edits to `index.html` in this Claude Code session
@@ -25,8 +26,6 @@ index.html     ← entire app (React + CSS + JS, ~7700 lines)
 sw.js          ← service worker (separate file — see Cache Versioning below)
 manifest.json  ← PWA manifest
 report.html    ← standalone report viewer (served by an Edge Function link)
-salaah/        ← separate installable STUDENT Salaah Entry page (index.html, sw.js, manifest.json).
-                 Own service worker/cache: bump CACHE in salaah/sw.js (and KIOSK_VERSION in salaah/index.html) whenever salaah/index.html changes.
 icon-192.png, icon-512.png ← PWA icons
 CLAUDE.md      ← this file
 ```
