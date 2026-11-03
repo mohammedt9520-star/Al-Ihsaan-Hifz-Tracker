@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-155758 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261103-160315 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -162,7 +162,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-155758';
+const APP_VERSION='hifz-20261103-160315';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -2305,7 +2305,18 @@ function App(){
     }
     window.addEventListener('swupdateavailable',onSwUpdate);
     // Force SW update check so new versions are detected on every session
-    if('serviceWorker'in navigator){navigator.serviceWorker.ready.then(function(reg){reg.update().catch(function(){});});}
+    // Also catch an update that finished installing BEFORE this component mounted (the event would have been missed).
+    function checkWaiting(){
+      if(!('serviceWorker'in navigator))return;
+      if(window.__swWaiting){onSwUpdate();return;}
+      navigator.serviceWorker.getRegistration().then(function(reg){
+        if(reg&&reg.waiting&&navigator.serviceWorker.controller){swWaitingRef.current=reg.waiting;setSwUpdate(true);}
+      }).catch(function(){});
+    }
+    checkWaiting();
+    if('serviceWorker'in navigator){navigator.serviceWorker.ready.then(function(reg){reg.update().then(function(){setTimeout(checkWaiting,2500);}).catch(function(){});});}
+    function onVisCheck(){if(!document.hidden&&'serviceWorker'in navigator){navigator.serviceWorker.getRegistration().then(function(reg){if(reg){reg.update().then(function(){setTimeout(checkWaiting,2500);}).catch(function(){});}}).catch(function(){});}}
+    document.addEventListener('visibilitychange',onVisCheck);
     // Track real device connectivity so we can distinguish "Supabase blip" from "no internet"
     function onDeviceOnline(){
       setDeviceOnline(true);
@@ -2329,6 +2340,7 @@ function App(){
     },60000);
     return function(){
       window.removeEventListener('swupdateavailable',onSwUpdate);
+      document.removeEventListener('visibilitychange',onVisCheck);
       window.removeEventListener("online",onDeviceOnline);
       window.removeEventListener("offline",onDeviceOffline);
       clearInterval(heartbeatInterval);
