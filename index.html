@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261103-181256 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261106-042625 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -209,7 +209,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261103-181256';
+const APP_VERSION='hifz-20261106-042625';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -3246,11 +3246,11 @@ function App(){
       +links.map(function(lnk){return lnk.name+": "+(lnk.url||"(unavailable)");}).join("\n")
       +"\n\nJazākallāhu Khayran.\nHead of Hifz\nMadrasah Al-Ihsaan";
     showToast("📤 Sending to "+emailList.join(", ")+"…","info",5000);
-    fetch(SUPABASE_URL+"/functions/v1/send-report-email",{
+    sbGetToken().then(function(_t){return fetch(SUPABASE_URL+"/functions/v1/send-report-email",{
       method:"POST",
-      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},
+      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+_t},
       body:JSON.stringify({to:emailList,subject:subject,bodyText:bodyText,bodyHtml:bodyHtml})
-    })
+    })})
     .then(function(r){
       if(!r.ok){return r.text().then(function(t){throw new Error("Server error "+r.status+": "+t.slice(0,200));});}
       return r.json();
@@ -3266,11 +3266,11 @@ function App(){
     var students=links.map(function(l){return {name:l.name,appUrl:l.appUrl||l.url||null};}).filter(function(l){return l.appUrl;});
     if(!students.length){showToast("No report links available.","warning");return;}
     showToast("📲 Sending to Telegram…","info",5000);
-    fetch(SUPABASE_URL+"/functions/v1/send-report-telegram",{
+    sbGetToken().then(function(_t){return fetch(SUPABASE_URL+"/functions/v1/send-report-telegram",{
       method:"POST",
-      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},
+      headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+_t},
       body:JSON.stringify({students:students,month:firstMonth})
-    }).then(function(r){
+    })}).then(function(r){
       if(!r.ok){return r.text().then(function(t){throw new Error("Server error "+r.status+": "+t.slice(0,200));});}
       return r.json();
     }).then(function(data){
@@ -3331,11 +3331,11 @@ function App(){
         var pdfBase64=reader.result.split(",")[1];
         var subject="Al-Ihsaan Academy — Hifz Report: "+record.name+(monthStr?" ("+monthStr+")":"");
         var bodyText="Assalāmu 'Alaykum wa Rahmatullāhi wa Barakātuh\n\nDear Parent,\n\nPlease find attached the Monthly Hifz Report for "+record.name+".\n\n"+(monthStr?"Month: "+monthStr+"\n\n":"")+"We encourage all parents to review this report with their child, discuss their progress, and support them in working towards their targets.\n\nJazākallāhu Khayran.\n\nHead of Hifz\nMadrasah Al-Ihsaan";
-        fetch(SUPABASE_URL+"/functions/v1/send-report-email",{
+        sbGetToken().then(function(_t){return fetch(SUPABASE_URL+"/functions/v1/send-report-email",{
           method:"POST",
-          headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY},
+          headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+_t},
           body:JSON.stringify({to:emails,subject:subject,bodyText:bodyText,pdfBase64:pdfBase64,filename:filename})
-        })
+        })})
         .then(function(r){
           if(!r.ok){return r.text().then(function(t){throw new Error("Server error "+r.status+": "+t.slice(0,200));});}
           return r.json();
