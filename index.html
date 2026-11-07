@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-083508 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-083602 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-083508';
+const APP_VERSION='hifz-20261107-083602';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7787,10 +7787,9 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
 // "Reading first" rota: the two fixed readers (morning + evening) for each weekday (1=Mon ... 6=Sat; Sunday: none).
 // They are skipped by the random pick on their day. Names must match how the student is spelled in the app
 // (case/extra spaces don't matter). If a student is renamed in the app, update the spelling here too.
-// NOTE: "Yahya Asif" (Class B, Tuesday) is not in the app's student list, so he currently excludes nobody.
 const READING_ROTA={
   "HIFZ CLASS A":{1:["Ridwon Islam","Atif Sharif"],2:["Yahya Rapati","Musa Nadeem"],3:["Yousuf Ali Syed","Yahya Ahmed"],4:["Mohammad Vali","Amaan Mogra"],5:["Jazib Zaeem","Mohammed Danka"],6:["Abdul Rafai Qazaffi","Ibraheem Yusuf"]},
-  "HIFZ CLASS B":{1:["Zayn Malik","Umar Patel"],2:["Yahya Asif","Abdullah Ibn Nouman"],3:["Owais Wasim Hussain","Aaqib Sharif Mohammed"],4:["Abu Hurayrah","Yusuf Mohammed Patel"],5:["Zayd Malik","Muhammad Khalid Sarfraz"],6:["Zayn Malik","Haseebuddin Mohammed"]}
+  "HIFZ CLASS B":{1:["Zayn Malik","Umar Patel"],2:["Yahya Ismail","Abdullah Ibn Nouman"],3:["Owais Wasim Hussain","Aaqib Sharif Mohammed"],4:["Abu Hurayrah","Yusuf Mohammed Patel"],5:["Zayd Malik","Muhammad Khalid Sarfraz"],6:["Zayn Malik","Haseebuddin Mohammed"]}
 };
 // ── READING ORDER: admin presses Next, a random student (never that day's two fixed readers) is shown BIG on every Student-login device ──
 // The picked name lives in one row of salaah_settings (key "nextUp"): admin may write it, the Student login may only read it.
@@ -7868,8 +7867,7 @@ function NextUpPage({records}){
     const nl=list.slice(0,-1);
     push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,name:nl.length?nl[nl.length-1]:"",called:Object.assign({},s.called,{[cls]:nl}),at:new Date().toISOString()}));
   }
-  async function startOver(){
-    if(!await showConfirm("Start over for "+(cls==="HIFZ CLASS B"?"Hifz B":"Hifz A")+"? Everyone goes back in the pool.","Start over"))return;
+  function startOver(){   // no confirmation step: it happens straight away
     const s=fresh(stRef.current);
     push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,name:"",called:Object.assign({},s.called,{[cls]:[]}),absent:Object.assign({},s.absent,{[cls]:[]}),deferred:Object.assign({},s.deferred||{},{[cls]:[]}),at:new Date().toISOString()}));
   }
