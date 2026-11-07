@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-075650 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-080022 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-075650';
+const APP_VERSION='hifz-20261107-080022';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7829,7 +7829,7 @@ function MonthlyAbsencesPage({yearPlan,registerData}){
     rows.length===0?React.createElement('div',{style:{background:"#fff",border:"1px solid #E5E7EB",borderRadius:14,padding:"36px 16px",textAlign:"center",color:"#16a34a",fontWeight:600,fontSize:14}},"No absences this month ✓"):
     React.createElement('div',{style:{background:"#fff",border:"1px solid #E5E7EB",borderRadius:14,overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}},
       React.createElement('div',{style:Object.assign({},grid,{padding:"9px 12px",background:"#1e2d3d",color:"#fff",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"})},
-        React.createElement('div',null,"Student"),React.createElement('div',{style:{textAlign:"center"}},"☀️ Morning"),React.createElement('div',{style:{textAlign:"center"}},"🌙 Evening"),React.createElement('div',{style:{textAlign:"center"}},"Total")),
+        React.createElement('div',null,"Student"),React.createElement('div',{style:{textAlign:"center"}},"Morning"),React.createElement('div',{style:{textAlign:"center"}},"Evening"),React.createElement('div',{style:{textAlign:"center"}},"Total")),
       rows.map((r,i)=>React.createElement('div',{key:r.name,style:Object.assign({},grid,{padding:"10px 12px",borderTop:i?"1px solid #F0EEE6":"none",background:i%2?"#FCFBF7":"#fff"})},
         React.createElement('div',{style:{minWidth:0}},
           React.createElement('div',{style:{fontSize:14,fontWeight:600,color:"#1a1f2e",lineHeight:1.25,overflowWrap:"anywhere"}},r.name),
