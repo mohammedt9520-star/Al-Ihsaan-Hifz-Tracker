@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-082137 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-082739 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-082137';
+const APP_VERSION='hifz-20261107-082739';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -295,7 +295,7 @@ async function sbFetchAll(q){
 }
 
 // Pages the Student login may open (everything else stays locked). Salaah Entry + AM/PM registers.
-const STUDENT_VIEWS=["salaahEntry","takeRegister","viewRegister","monthlyAbsences","readingOrder"];
+const STUDENT_VIEWS=["salaahEntry","takeRegister","viewRegister","monthlyAbsences","readingOrder","nextUp"];
 // The signed-in user's access token (Admin / Student). Falls back to the anon key only when nobody is signed in.
 async function sbGetToken(){var t=window.HifzAuth?await window.HifzAuth.token():null;return t||SUPABASE_KEY;}
 // Call a database function (RPC) as the signed-in user.
@@ -3831,6 +3831,7 @@ function App(){
 
   const NAV_ITEMS=[
     {icon:"🔢",label:"Reading Order",view:"readingOrder"},
+    {icon:"📣",label:"Who's Next",view:"nextUp"},
     {icon:"\u2600\uFE0F",label:"Take Register (AM)",view:"takeRegister",session:"morning"},
     {icon:"📝",label:"Morning Record Entry",view:"sabaqEntry"},
     {icon:"\uD83C\uDF19",label:"Take Register (PM)",view:"takeRegister",session:"evening"},
@@ -4041,6 +4042,7 @@ function App(){
       const GROUPS=[
         {label:"Daily Entry",items:[
           {icon:"🔢",label:"Reading Order",sub:"Tap to draw your reading number",view:"readingOrder",accent:"#B8934A"},
+          {icon:"📣",label:"Who's Next",sub:"Pick the next student — shows on student screens",view:"nextUp",accent:"#16a34a"},
           {icon:"\u2600\uFE0F",label:"Take Register (AM)",sub:"Morning attendance",view:"takeRegister",session:"morning",accent:"#16a34a"},
           {icon:"📝",label:"Morning Record Entry",sub:"Sabaq Para \u00b7 Sabaq",view:"sabaqEntry",accent:"#B8934A"},
           {icon:"\uD83C\uDF19",label:"Take Register (PM)",sub:"Evening attendance",view:"takeRegister",session:"evening",accent:"#0EA5E9"},
@@ -4171,6 +4173,8 @@ function App(){
     , view==="viewRegister"&&React.createElement(ViewRegisterPage, {lockEdit:isStudent,initialSession:viewRegSession,yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
 
     /* ABSENCES */
+    , view==="nextUp"&&React.createElement(NextUpPage, {records:records,})
+
     , view==="readingOrder"&&React.createElement(ReadingOrderPage, {records:records,})
 
     , view==="monthlyAbsences"&&React.createElement(MonthlyAbsencesPage, {yearPlan:yearPlan,registerData:registerData,})
@@ -7784,6 +7788,107 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
 }
 
 // ─── ABSENCES PAGE ────────────────────────────────────────────
+// ── WHO'S NEXT: admin presses Next, a random student is picked and shown BIG on every device signed in as Student ──
+// The picked name lives in one row of salaah_settings (key "nextUp"): admin may write it, the Student login may only read it.
+// Student devices poll it every 0.7s, so the name appears under a second after the admin taps Next.
+function NextUpPage({records}){
+  const KEY="nextUp";
+  const isStu=window._HIFZ_ROLE==="student";
+  const [cls,setCls]=React.useState("HIFZ CLASS A");
+  const [st,setSt]=React.useState({seq:0,cls:"",name:"",called:{},absent:{},at:""});
+  const [ok,setOk]=React.useState(true);
+  const stRef=React.useRef(st);stRef.current=st;
+  const pushing=React.useRef(0);
+  const FONT="'Fredoka','Manrope','Segoe UI',system-ui,sans-serif";
+  const roster=React.useMemo(()=>{
+    const isReal=n=>{if(!n||n.startsWith("(")||n.startsWith("*"))return false;const l=n.toLowerCase();return !["instances","1-5","dd/mm"].some(w=>l.includes(w));};
+    const m={"HIFZ CLASS A":new Set(),"HIFZ CLASS B":new Set()};
+    (records||[]).forEach(r=>{if(r&&m[r.class]&&isReal(r.name))m[r.class].add(r.name);});
+    return{"HIFZ CLASS A":[...m["HIFZ CLASS A"]].sort(),"HIFZ CLASS B":[...m["HIFZ CLASS B"]].sort()};
+  },[records]);
+  function rnd(n){const a=new Uint32Array(1);const lim=Math.floor(4294967296/n)*n;do{crypto.getRandomValues(a);}while(a[0]>=lim);return a[0]%n;}
+  const load=React.useCallback(async function(){
+    try{
+      const rows=await sbFetch("salaah_settings?select=value&key=eq."+KEY,"GET");
+      if(rows&&rows[0]&&rows[0].value&&!pushing.current){
+        const v=JSON.parse(rows[0].value);
+        if(v&&typeof v==="object")setSt(prev=>(prev.seq===v.seq&&prev.name===v.name&&JSON.stringify(prev.absent)===JSON.stringify(v.absent))?prev:Object.assign({seq:0,called:{},absent:{}},v));
+      }
+      setOk(true);
+    }catch(e){setOk(false);}
+  },[]);
+  React.useEffect(()=>{
+    load();
+    const iv=setInterval(()=>{if(!document.hidden)load();},isStu?700:2500);
+    const vis=()=>{if(!document.hidden)load();};
+    document.addEventListener("visibilitychange",vis);
+    return()=>{clearInterval(iv);document.removeEventListener("visibilitychange",vis);};
+  },[load,isStu]);
+  async function push(next){
+    pushing.current++;setSt(next);
+    try{await sbFetch("salaah_settings?on_conflict=key","POST",[{key:KEY,value:JSON.stringify(next),updated_at:new Date().toISOString()}]);setOk(true);}
+    catch(e){setOk(false);showToast("Could not reach the server – try again","error");}
+    finally{pushing.current--;}
+  }
+  const poolOf=(c,s)=>roster[c].filter(n=>!(s.called[c]||[]).includes(n)&&!(s.absent[c]||[]).includes(n));
+  function next(){
+    const s=stRef.current,p=poolOf(cls,s);if(!p.length)return;
+    const name=p[rnd(p.length)];
+    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,name:name,called:Object.assign({},s.called,{[cls]:[...(s.called[cls]||[]),name]}),at:new Date().toISOString()}));
+  }
+  function undo(){
+    const s=stRef.current,list=s.called[cls]||[];if(!list.length)return;
+    const nl=list.slice(0,-1);
+    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,name:nl.length?nl[nl.length-1]:"",called:Object.assign({},s.called,{[cls]:nl}),at:new Date().toISOString()}));
+  }
+  async function startOver(){
+    if(!await showConfirm("Start over for "+(cls==="HIFZ CLASS B"?"Hifz B":"Hifz A")+"? Everyone goes back in the pool.","Start over"))return;
+    const s=stRef.current;
+    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,name:"",called:Object.assign({},s.called,{[cls]:[]}),absent:Object.assign({},s.absent,{[cls]:[]}),at:new Date().toISOString()}));
+  }
+  function toggleAbsent(n){
+    const s=stRef.current,a=s.absent[cls]||[];
+    push(Object.assign({},s,{absent:Object.assign({},s.absent,{[cls]:a.includes(n)?a.filter(x=>x!==n):[...a,n]})}));
+  }
+  const label=c=>c==="HIFZ CLASS B"?"Hifz B":"Hifz A";
+  const pill=on=>({border:"none",borderRadius:17,padding:"8px 22px",fontSize:14,fontWeight:on?700:500,cursor:"pointer",background:on?"#fff":"transparent",color:on?"#1a1f2e":"#6b7280",boxShadow:on?"0 1px 4px rgba(0,0,0,0.12)":"none"});
+  const css="@keyframes nextPop{0%{opacity:0;transform:scale(.88)}60%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}@keyframes nextPulse{0%,100%{opacity:.45}50%{opacity:1}}";
+  const dot=React.createElement('span',{title:ok?"Live":"Offline",style:{display:"inline-block",width:8,height:8,borderRadius:"50%",background:ok?"#22c55e":"#ef4444",marginLeft:8,verticalAlign:"middle"}});
+  const big=(h)=>st.name?React.createElement('div',{key:st.seq,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box"}},
+      React.createElement('div',{style:{fontSize:"clamp(14px,3.6vw,22px)",letterSpacing:"0.22em",textTransform:"uppercase",color:"#5b4310",fontWeight:700,marginBottom:10}},label(st.cls)+" · Next up"),
+      React.createElement('div',{style:{fontFamily:FONT,fontSize:"clamp(54px,"+h+"vw,170px)",lineHeight:1.05,fontWeight:700,color:"#1b1200",overflowWrap:"anywhere"}},st.name))
+    :React.createElement('div',{style:{textAlign:"center",color:"#c5d4c9",animation:"nextPulse 2.2s ease-in-out infinite"}},
+      React.createElement('div',{style:{fontFamily:FONT,fontSize:"clamp(28px,7vw,56px)",fontWeight:600}},isStu?"Waiting for the next name…":"Press Next"));
+  const card=(height)=>React.createElement('div',{style:{minHeight:220,height:height,borderRadius:28,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid "+(st.name?"#b8932f":"#c9a553"),background:st.name?"linear-gradient(160deg,#e6cf8a,#c9a553)":"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",boxShadow:st.name?"0 14px 40px rgba(184,147,47,0.35)":"0 14px 40px rgba(7,21,14,0.35)"}},big(isStu?16:11));
+  if(isStu){
+    return React.createElement('div',{style:{padding:"14px 12px 24px",maxWidth:1000,margin:"0 auto"}},
+      React.createElement('style',null,css),
+      React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginBottom:10}},"Who's next",dot),
+      card("calc(100vh - 150px)"));
+  }
+  const called=(st.called[cls]||[]),absent=(st.absent[cls]||[]);
+  const pool=poolOf(cls,st),total=roster[cls].length;
+  const shownHere=st.cls===cls;
+  return React.createElement('div',{style:{padding:"14px 12px 40px",maxWidth:820,margin:"0 auto"}},
+    React.createElement('style',null,css),
+    React.createElement('div',{style:{display:"flex",justifyContent:"center",marginBottom:6}},
+      React.createElement('div',{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
+        ["HIFZ CLASS A","HIFZ CLASS B"].map(c=>React.createElement('button',{key:c,onClick:()=>setCls(c),style:pill(cls===c)},label(c))))),
+    React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginBottom:10}},"Student screens update instantly",dot),
+    card(shownHere?"clamp(220px,34vh,380px)":"clamp(220px,34vh,380px)"),
+    React.createElement('button',{onClick:next,disabled:pool.length===0,style:{width:"100%",height:64,marginTop:12,borderRadius:18,border:"none",background:pool.length?"#16a34a":"#9ca3af",color:"#fff",fontFamily:FONT,fontSize:26,fontWeight:600,cursor:pool.length?"pointer":"default",boxShadow:pool.length?"0 6px 18px rgba(22,163,74,0.35)":"none"}},pool.length?"Next ▶":"Everyone has been called ✓"),
+    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10,fontSize:13,color:"#6b7280"}},
+      React.createElement('span',null,called.length+" of "+(total-absent.length)+" called · "+pool.length+" left"),
+      React.createElement('span',null,
+        React.createElement('button',{onClick:undo,disabled:!called.length,style:{background:"transparent",border:"none",color:called.length?"#374151":"#c4c9c5",fontSize:13,textDecoration:"underline",cursor:called.length?"pointer":"default",padding:"4px 8px"}},"Undo last"),
+        React.createElement('button',{onClick:startOver,style:{background:"transparent",border:"none",color:"#374151",fontSize:13,textDecoration:"underline",cursor:"pointer",padding:"4px 8px"}},"Start over"))),
+    React.createElement('div',{style:{marginTop:16,background:"#fff",border:"1px solid #E5E7EB",borderRadius:14,padding:12}},
+      React.createElement('div',{style:{fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"#6b7280",marginBottom:8}},"Students (tap to mark as not here)"),
+      React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:6}},
+        roster[cls].map(n=>{const c=called.includes(n),a=absent.includes(n);
+          return React.createElement('button',{key:n,onClick:()=>{if(!c)toggleAbsent(n);},style:{border:"1px solid "+(a?"#fca5a5":c?"#9fd3b0":"#E5E7EB"),background:a?"#fef2f2":c?"#f2faf5":"#fff",color:a?"#b91c1c":c?"#166534":"#374151",textDecoration:a?"line-through":"none",borderRadius:14,padding:"5px 11px",fontSize:13,fontWeight:500,cursor:c?"default":"pointer"}},(c?"✓ ":"")+n);}))));
+}
+
 // ── READING ORDER: each student taps the big card once to get a random reading number ──
 // The first two readers of every class are fixed, so numbers run from 3 to the number of students in the class.
 // The number stays on screen for 1.5 seconds (SHOW_MS). Nothing is saved: the numbers still to be drawn are held in memory only (so nobody gets the same number twice
