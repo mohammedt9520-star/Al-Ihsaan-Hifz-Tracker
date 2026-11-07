@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-083906 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-084222 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-083906';
+const APP_VERSION='hifz-20261107-084222';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7880,7 +7880,24 @@ function NextUpPage({records}){
   const css="@keyframes nextPop{0%{opacity:0;transform:scale(.88)}60%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}@keyframes nextPulse{0%,100%{opacity:.45}50%{opacity:1}}";
   const dot=React.createElement('span',{title:ok?"Live":"Offline",style:{display:"inline-block",width:8,height:8,borderRadius:"50%",background:ok?"#22c55e":"#ef4444",marginLeft:8,verticalAlign:"middle"}});
   const shown=st.day===todayStr?st.name:"";   // a name left over from another day is never shown
-  const big=(h,min)=>shown?React.createElement('div',{key:st.seq,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:"clamp("+(min||54)+"px,"+h+"vw,190px)",lineHeight:1.08,fontWeight:700,color:"#1b1200",overflowWrap:"anywhere"}},shown)
+  const nameRef=React.useRef(null);
+  const [fit,setFit]=React.useState(0);
+  const maxPx=isStu?190:56,minPx=isStu?30:22;
+  React.useLayoutEffect(()=>{
+    const el=nameRef.current;if(!shown||!el)return;
+    const calc=()=>{
+      const w=el.clientWidth-32;if(w<=0)return;
+      const cv=document.createElement("canvas").getContext("2d");cv.font="700 100px "+FONT;
+      let wide=0;shown.split(/\s+/).forEach(x=>{wide=Math.max(wide,cv.measureText(x).width);});
+      if(!wide)return;
+      setFit(Math.max(minPx,Math.min(maxPx,Math.floor(w/wide*100*0.97))));
+    };
+    calc();
+    if(document.fonts&&document.fonts.ready)document.fonts.ready.then(calc);
+    window.addEventListener("resize",calc);
+    return()=>window.removeEventListener("resize",calc);
+  },[shown,st.seq,isStu]);
+  const big=(h,min)=>shown?React.createElement('div',{key:st.seq,ref:nameRef,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:fit?fit+"px":"clamp("+(min||54)+"px,"+h+"vw,"+maxPx+"px)",lineHeight:1.08,fontWeight:700,color:"#1b1200",overflowWrap:"normal",wordBreak:"normal",hyphens:"none"}},shown)
     :null;
   const card=(height,minH)=>React.createElement('div',{style:{minHeight:minH||220,height:height,borderRadius:isStu?28:22,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid "+(shown?"#b8932f":"#c9a553"),background:shown?"linear-gradient(160deg,#e6cf8a,#c9a553)":"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",boxShadow:shown?"0 14px 40px rgba(184,147,47,0.35)":"0 14px 40px rgba(7,21,14,0.35)"}},big(isStu?16:7,isStu?54:30));
   if(isStu){
