@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-080022 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-081354 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-080022';
+const APP_VERSION='hifz-20261107-081354';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -295,7 +295,7 @@ async function sbFetchAll(q){
 }
 
 // Pages the Student login may open (everything else stays locked). Salaah Entry + AM/PM registers.
-const STUDENT_VIEWS=["salaahEntry","takeRegister","viewRegister","monthlyAbsences"];
+const STUDENT_VIEWS=["salaahEntry","takeRegister","viewRegister","monthlyAbsences","readingOrder"];
 // The signed-in user's access token (Admin / Student). Falls back to the anon key only when nobody is signed in.
 async function sbGetToken(){var t=window.HifzAuth?await window.HifzAuth.token():null;return t||SUPABASE_KEY;}
 // Call a database function (RPC) as the signed-in user.
@@ -3834,6 +3834,7 @@ function App(){
     {icon:"📝",label:"Morning Record Entry",view:"sabaqEntry"},
     {icon:"\uD83C\uDF19",label:"Take Register (PM)",view:"takeRegister",session:"evening"},
     {icon:"📖",label:"Evening Record Entry",view:"dor"},
+    {icon:"🔢",label:"Reading Order",view:"readingOrder"},
     {icon:"👤",label:"Profiles",view:"profile"},
     {icon:"📋",label:"View Register (AM)",view:"viewRegister",session:"morning"},
     {icon:"\uD83C\uDF19",label:"View Register (PM)",view:"viewRegister",session:"evening"},
@@ -4043,6 +4044,7 @@ function App(){
           {icon:"📝",label:"Morning Record Entry",sub:"Sabaq Para \u00b7 Sabaq",view:"sabaqEntry",accent:"#B8934A"},
           {icon:"\uD83C\uDF19",label:"Take Register (PM)",sub:"Evening attendance",view:"takeRegister",session:"evening",accent:"#0EA5E9"},
           {icon:"📖",label:"Evening Record Entry",sub:"Dor 1 \u00b7 Dor 2 \u00b7 Para Test",view:"dor",accent:"#4F46E5"},
+          {icon:"🔢",label:"Reading Order",sub:"Tap to draw your reading number",view:"readingOrder",accent:"#B8934A"},
         ]},
         {label:"Registers",items:[
           {icon:"📋",label:"View Register (AM)",sub:"Morning attendance history",view:"viewRegister",session:"morning",accent:"#0EA5E9"},
@@ -4169,6 +4171,8 @@ function App(){
     , view==="viewRegister"&&React.createElement(ViewRegisterPage, {lockEdit:isStudent,initialSession:viewRegSession,yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
 
     /* ABSENCES */
+    , view==="readingOrder"&&React.createElement(ReadingOrderPage, {records:records,})
+
     , view==="monthlyAbsences"&&React.createElement(MonthlyAbsencesPage, {yearPlan:yearPlan,registerData:registerData,})
 
     , view==="absences"&&React.createElement(AbsencesPage, {yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
@@ -7780,6 +7784,77 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
 }
 
 // ─── ABSENCES PAGE ────────────────────────────────────────────
+// ── READING ORDER: each student taps the big card once to get a random reading number ──
+// The first two readers of every class are fixed, so numbers run from 3 to the number of students in the class.
+// Nothing is saved: the numbers still to be drawn are held in memory only (so nobody gets the same number twice
+// while the app is open). Reloading the app, or "Start again", deals a fresh random set.
+const READING_LEFT={};
+function ReadingOrderPage({records}){
+  const SHOW_MS=window.__READING_SHOW_MS||5000;
+  const [cls,setCls]=React.useState("HIFZ CLASS A");
+  const [shown,setShown]=React.useState(null);   // {num,until} while a number is on screen
+  const [lock,setLock]=React.useState(false);    // brief guard against double taps
+  const [,setTick]=React.useState(0);
+  const sizes=React.useMemo(()=>{
+    const isReal=n=>{if(!n||n.startsWith("(")||n.startsWith("*"))return false;const l=n.toLowerCase();return !["instances","1-5","dd/mm"].some(w=>l.includes(w));};
+    const m={"HIFZ CLASS A":new Set(),"HIFZ CLASS B":new Set()};
+    (records||[]).forEach(r=>{if(r&&m[r.class]&&isReal(r.name))m[r.class].add(r.name);});
+    return{"HIFZ CLASS A":m["HIFZ CLASS A"].size,"HIFZ CLASS B":m["HIFZ CLASS B"].size};
+  },[records]);
+  function leftFor(c){
+    const n=sizes[c];const cur=READING_LEFT[c];
+    if(!cur||(cur.n!==n&&cur.given===0)){const arr=[];for(let i=3;i<=n;i++)arr.push(i);READING_LEFT[c]={n:n,left:arr,given:0};}
+    return READING_LEFT[c];
+  }
+  function rnd(n){const a=new Uint32Array(1);const lim=Math.floor(4294967296/n)*n;do{crypto.getRandomValues(a);}while(a[0]>=lim);return a[0]%n;}
+  const cur=leftFor(cls);
+  const total=Math.max(0,sizes[cls]-2),left=cur.left.length;
+  React.useEffect(()=>{
+    if(!shown)return;
+    const t=setTimeout(()=>{setShown(null);setLock(true);setTimeout(()=>setLock(false),500);},SHOW_MS);
+    return()=>clearTimeout(t);
+  },[shown]);
+  function reveal(){
+    if(shown||lock)return;
+    const d=leftFor(cls);if(!d.left.length)return;
+    const num=d.left.splice(rnd(d.left.length),1)[0];d.given++;
+    setShown({num:num,until:Date.now()+SHOW_MS});setTick(x=>x+1);
+  }
+  function startAgain(){delete READING_LEFT[cls];setShown(null);setTick(x=>x+1);}
+  const label=c=>c==="HIFZ CLASS B"?"Hifz B":"Hifz A";
+  const pill=on=>({border:"none",borderRadius:17,padding:"8px 22px",fontSize:14,fontWeight:on?700:500,cursor:"pointer",background:on?"#fff":"transparent",color:on?"#1a1f2e":"#6b7280",boxShadow:on?"0 1px 4px rgba(0,0,0,0.12)":"none"});
+  const cardH="calc(100vh - 230px)";
+  let card;
+  if(total<=0){
+    card=React.createElement('div',{style:{minHeight:300,height:cardH,borderRadius:28,background:"#fff",border:"1px solid #E5E7EB",display:"flex",alignItems:"center",justifyContent:"center",textAlign:"center",padding:24,color:"#6b7280",fontSize:16}},
+      "There are no numbers to draw for "+label(cls)+" (the first two readers are fixed).");
+  }else if(shown){
+    card=React.createElement('div',{style:{position:"relative",overflow:"hidden",minHeight:300,height:cardH,borderRadius:28,background:"linear-gradient(160deg,#e6cf8a,#c9a553)",border:"3px solid #b8932f",boxShadow:"0 14px 40px rgba(184,147,47,0.35)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",userSelect:"none"}},
+      React.createElement('div',{style:{fontSize:"clamp(16px,4vw,24px)",letterSpacing:"0.2em",textTransform:"uppercase",color:"#5b4310",fontWeight:700,marginBottom:6}},"Your reading number"),
+      React.createElement('div',{style:{fontSize:"clamp(140px,48vw,360px)",lineHeight:1,fontWeight:800,color:"#1b1200",fontFamily:"Marcellus,Georgia,serif",fontVariantNumeric:"tabular-nums"}},shown.num),
+      React.createElement('div',{style:{position:"absolute",left:0,bottom:0,height:10,background:"rgba(27,18,0,0.35)",width:"100%",transformOrigin:"left",animation:"readingShrink "+(SHOW_MS/1000)+"s linear forwards"}}));
+  }else if(left<=0){
+    card=React.createElement('div',{style:{minHeight:300,height:cardH,borderRadius:28,background:"#f2faf5",border:"2px solid #9fd3b0",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:24}},
+      React.createElement('div',{style:{fontSize:"clamp(60px,16vw,110px)",lineHeight:1}},"✅"),
+      React.createElement('div',{style:{fontSize:"clamp(22px,6vw,34px)",fontWeight:700,color:"#166534",marginTop:10}},"Everyone has their number"),
+      React.createElement('div',{style:{fontSize:14,color:"#6b7280",marginTop:6}},label(cls)+" · "+total+" numbers given out"));
+  }else{
+    card=React.createElement('button',{onClick:reveal,"aria-label":"Tap to reveal your reading number",style:{width:"100%",minHeight:300,height:cardH,borderRadius:28,border:"3px solid #c9a553",cursor:"pointer",background:"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",color:"#f7f4ec",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:24,boxShadow:"0 14px 40px rgba(7,21,14,0.35)",userSelect:"none"}},
+      React.createElement('div',{style:{fontSize:"clamp(90px,28vw,220px)",lineHeight:1,color:"#c9a553",fontFamily:"Marcellus,Georgia,serif",fontWeight:700}},"?"),
+      React.createElement('div',{style:{fontSize:"clamp(22px,6vw,38px)",fontWeight:700,marginTop:14,letterSpacing:"0.02em"}},"Tap to reveal your number"),
+      React.createElement('div',{style:{fontSize:"clamp(13px,3.2vw,18px)",color:"#c5d4c9",marginTop:10}},left+" number"+(left!==1?"s":"")+" left"));
+  }
+  return React.createElement('div',{style:{padding:"14px 12px 24px",maxWidth:900,margin:"0 auto"}},
+    React.createElement('style',null,"@keyframes readingShrink{from{transform:scaleX(1)}to{transform:scaleX(0)}}"),
+    React.createElement('div',{style:{display:"flex",justifyContent:"center",marginBottom:6}},
+      React.createElement('div',{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
+        ["HIFZ CLASS A","HIFZ CLASS B"].map(c=>React.createElement('button',{key:c,onClick:()=>{if(!shown)setCls(c);},style:pill(cls===c)},label(c))))),
+    React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginBottom:10}},"Reading Order · numbers 3 to "+(sizes[cls]||0)+" · first two readers are fixed"),
+    card,
+    React.createElement('div',{style:{display:"flex",justifyContent:"center",marginTop:10}},
+      React.createElement('button',{onClick:startAgain,style:{background:"transparent",border:"none",color:"#9CA3AF",fontSize:12,textDecoration:"underline",cursor:"pointer",padding:6}},"Start again")));
+}
+
 // ── MONTHLY ABSENCES: who was absent in a month (Morning / Evening), with the dates and the number of absences ──
 function MonthlyAbsencesPage({yearPlan,registerData}){
   const [month,setMonth]=React.useState(getTodayStr().substring(0,7));
