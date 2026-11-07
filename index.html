@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261106-042625 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-073706 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -93,6 +93,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#c9a553 !impor
       }
       return refreshing;
     },
+    // Checks the ADMIN PIN against Supabase Auth without changing who is signed in (used to unlock editing on a Student login).
+    verifyAdminPin:function(pin){return call('password',{email:EMAILS[0],password:String(pin)}).then(function(r){return !!(r.ok&&r.json&&r.json.access_token);}).catch(function(){return false;});},
     logout:function(){try{localStorage.removeItem(SKEY);localStorage.removeItem('hifz_auth');localStorage.removeItem('hifz_auth_v');}catch(e){}window._HIFZ_ROLE=undefined;}
   };
 })();
@@ -209,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261106-042625';
+const APP_VERSION='hifz-20261107-073706';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -292,6 +294,8 @@ async function sbFetchAll(q){
   return all;
 }
 
+// Pages the Student login may open (everything else stays locked). Salaah Entry + AM/PM registers.
+const STUDENT_VIEWS=["salaahEntry","takeRegister","viewRegister"];
 // The signed-in user's access token (Admin / Student). Falls back to the anon key only when nobody is signed in.
 async function sbGetToken(){var t=window.HifzAuth?await window.HifzAuth.token():null;return t||SUPABASE_KEY;}
 // Call a database function (RPC) as the signed-in user.
@@ -2214,7 +2218,7 @@ function App(){
   const viewHistory=React.useRef([]);
   function setView(v){
     // Student login: only the home menu and Salaah Entry open; everything else stays locked.
-    if(isStudent&&v!=="menu"&&v!=="salaahEntry"){showToast("🔒 Locked – admin only","info");return;}
+    if(isStudent&&v!=="menu"&&!STUDENT_VIEWS.includes(v)){showToast("🔒 Locked – admin only","info");return;}
     if(v!==view){
       viewHistory.current.push(view);
       if(viewHistory.current.length>60)viewHistory.current.shift();
@@ -2509,7 +2513,7 @@ function App(){
   // what a self-sustaining sync loop looks like from the outside.
   const skipNextSyncEffect=React.useRef(false);
   function scheduleSync(){
-    if(isStudent||!window._HIFZ_ROLE)return; // the Student login never writes the main app tables
+    if(!window._HIFZ_ROLE)return; // (the Student login only ever pushes register_data - see syncNow)
     if(isFirstLoad.current)return; // skip until loadCloud completes
     if(syncTimer.current)clearTimeout(syncTimer.current);
     syncTimer.current=setTimeout(function(){syncNowRef.current&&syncNowRef.current().catch(function(){});},2000);
@@ -2528,7 +2532,10 @@ function App(){
     loadCloud().then(function(){showSyncMsg("Loaded ✓");}).catch(function(e){showSyncMsg("Error ✗");console.warn("Load failed:",e.message);});
   }
   React.useEffect(()=>{
-    if(isStudent)return; // the Student login only holds a name list; never cache it over the real local data
+    if(isStudent){ // the Student login holds only a name list: never cache it over real data; just push register changes
+      if(skipNextSyncEffect.current){skipNextSyncEffect.current=false;return;}
+      scheduleSync();return;
+    }
     lsSave(allRecords);lsSaveDor(allDorRecords);lsSaveYearPlan(yearPlan);
     lsSaveRegister(allRegisterData);lsSaveDailySabaq(allDailySabaqEntries);
     if(skipNextSyncEffect.current){skipNextSyncEffect.current=false;return;} // just loaded from cloud — nothing new to push
@@ -3708,7 +3715,7 @@ function App(){
 
 
   async function syncNow(){
-    if(isStudent||!window._HIFZ_ROLE)return;
+    if(!window._HIFZ_ROLE)return;
     if(isFirstLoad.current)return;
     if(isSyncing.current){pendingSync.current=true;return;} // queue if already syncing
     isSyncing.current=true;
@@ -3721,7 +3728,8 @@ function App(){
     realtimeIgnoreUntil.current=Date.now()+20000;
     try{
       const planRows=yearPlan.map(p=>({id:p.id||(p.class+"_"+p.session),class:p.class,session:p.session,dates:p.dates,updated_at:new Date().toISOString()}));
-      const results=await Promise.allSettled([
+      // Student login: only the register rows it is allowed to write. Everything else is admin-only.
+      const results=await Promise.allSettled(isStudent?[sbUpsertChanged("register_data",allRegisterData.map(sbMapRegisterOut))]:[
         sbUpsertChanged("sabaq_records",allRecords.map(sbMapSabaqOut)),
         sbUpsertChanged("dor_records",allDorRecords.map(sbMapDorOut)),
         sbUpsertChanged("daily_sabaq",allDailySabaqEntries.map(sbMapDailyOut)),
@@ -3767,6 +3775,15 @@ function App(){
         var left={};try{var lv=typeof j.left==="string"?JSON.parse(j.left):j.left;if(lv&&typeof lv==="object"&&!Array.isArray(lv))left=lv;}catch(e){}
         setLeftStudents(left);
       }
+      // Registers + the year plan (the Student login may read/write register_data and read year_plan).
+      try{
+        var rgRows=await sbFetchAll("register_data?select=*&order=date.desc");
+        var ypRows=await sbFetchAll("year_plan?select=*");
+        var rd=rgRows.map(sbMapRegisterIn).map(sanitiseRegister).filter(Boolean);
+        skipNextSyncEffect.current=true;
+        setRegisterData(rd);lsSaveRegister(rd);sbSeedSeen("register_data",rd.map(sbMapRegisterOut));
+        setYearPlan(ypRows);lsSaveYearPlan(ypRows);
+      }catch(e){console.warn("student registers",e.message);}
       isFirstLoad.current=false;setSyncStatus("live");
     }catch(e){console.warn("roster",e.message);setSyncStatus("offline");}
   }
@@ -3921,7 +3938,7 @@ function App(){
           React.createElement('div',{style:{color:SIDEBAR_MUTED,fontSize:9,letterSpacing:"0.18em",textTransform:"uppercase",padding:"0 8px",marginBottom:12,fontWeight:"800",fontFamily:"Manrope,sans-serif"}},"Navigation"),
           NAV_ITEMS.map(item=>{
             const isActive=view===item.view||(item.view==="addEntry"&&view==="addEntry");
-            const lockedItem=isStudent&&item.view!=="salaahEntry";
+            const lockedItem=isStudent&&!STUDENT_VIEWS.includes(item.view);
             return React.createElement('button',{
               key:item.label,
               onClick:()=>{
@@ -4079,7 +4096,7 @@ function App(){
           boxShadow:"0 1px 2px rgba(13,26,18,0.06), 0 8px 26px rgba(13,26,18,0.07)",
           overflow:"hidden"
         }},
-          group.items.map((item,i)=>{const lockedItem=isStudent&&item.view!=="salaahEntry";return React.createElement('div',{
+          group.items.map((item,i)=>{const lockedItem=isStudent&&!STUDENT_VIEWS.includes(item.view);return React.createElement('div',{
             key:item.label,
             onClick:()=>{if(lockedItem){showToast("🔒 Locked – admin only","info");return;}if(item.view==="addEntry"){setForm(defaultEntry);setEditingId(null);}if(item.session){if(item.view==="viewRegister"){setViewRegSession(item.session);}else{setRegisterSession(item.session);}}setView(item.view);},
             style:{
@@ -4145,7 +4162,7 @@ function App(){
     , view==="takeRegister"&&React.createElement(TakeRegisterPage, {yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,registerClass:registerClass,setRegisterClass:setRegisterClass,registerSession:registerSession,setRegisterSession:setRegisterSession,registerDate:registerDate,setRegisterDate:setRegisterDate,syncNow:syncNow,})
 
     /* VIEW REGISTER */
-    , view==="viewRegister"&&React.createElement(ViewRegisterPage, {initialSession:viewRegSession,yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
+    , view==="viewRegister"&&React.createElement(ViewRegisterPage, {lockEdit:isStudent,initialSession:viewRegSession,yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
 
     /* ABSENCES */
     , view==="absences"&&React.createElement(AbsencesPage, {yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
@@ -7385,8 +7402,7 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
     });
     setUnsaved(false);
     showToast("Register saved","success");
-    scheduleSync();
-    syncNow().catch(()=>{});
+    syncNow().catch(()=>{}); // (the old scheduleSync() call here is not in scope in this component and threw)
   }
 
   const isPlannedDate=planDates.some(d=>(d.year+"-"+String(d.month).padStart(2,"0")+"-"+String(d.day).padStart(2,"0"))===registerDate);
@@ -7408,7 +7424,7 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
       !isPlannedDate&&!forceOpen&&React.createElement('div',{style:{display:"flex",alignItems:"center",gap:6,justifyContent:"center",marginBottom:14,flexWrap:"wrap"}},
         React.createElement('input',{type:"password",value:forcePwd,onChange:e=>setForcePwd(e.target.value),placeholder:"Admin password to force open",
           style:{border:"1px solid #FCD34D",borderRadius:8,padding:"7px 12px",fontSize:12,outline:"none",width:200}}),
-        React.createElement('button',{onClick:()=>{checkAdminPassword(forcePwd).then(function(ok){if(ok){setForceOpen(true);setForcePwdErr("");}else{setForcePwdErr("Incorrect password — use admin password");}});},
+        React.createElement('button',{onClick:()=>{(window._HIFZ_ROLE==="student"&&window.HifzAuth?window.HifzAuth.verifyAdminPin(forcePwd):checkAdminPassword(forcePwd)).then(function(ok){if(ok){setForceOpen(true);setForcePwdErr("");}else{setForcePwdErr("Incorrect password — use admin password");}});},
           style:{background:"#D97706",color:"#fff",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:12,fontWeight:"600"}},"Force Open"),
         forcePwdErr&&React.createElement('span',{style:{color:"#DC2626",fontSize:11}},forcePwdErr)
       ),
@@ -7490,7 +7506,23 @@ function TakeRegisterPage({yearPlan,registerData,setRegisterData,records,registe
 
 
 // ─── VIEW REGISTER PAGE ───────────────────────────────────────
-function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow,initialSession}){
+function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow,initialSession,lockEdit}){
+  // Student login: the register is VIEW ONLY until the admin PIN is entered (stays unlocked until they leave this page).
+  const [unlocked,setUnlocked]=React.useState(false);
+  const [pinOpen,setPinOpen]=React.useState(false);
+  const [pinVal,setPinVal]=React.useState("");
+  const [pinErr,setPinErr]=React.useState("");
+  const [pinBusy,setPinBusy]=React.useState(false);
+  const readOnly=!!lockEdit&&!unlocked;
+  function tryUnlock(){
+    if(pinBusy||!pinVal)return;
+    setPinBusy(true);setPinErr("");
+    window.HifzAuth.verifyAdminPin(pinVal).then(function(ok){
+      setPinBusy(false);
+      if(ok){setUnlocked(true);setPinOpen(false);setPinVal("");showToast("Editing unlocked","success");}
+      else{setPinErr("Incorrect PIN");setPinVal("");}
+    });
+  }
   const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [session,setSession]=React.useState(initialSession||"morning");
   const [filterMonth,setFilterMonth]=React.useState(getTodayStr().substring(0,7));
@@ -7537,6 +7569,7 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
   }
 
   function cycleStatus(name,date){
+    if(readOnly){setPinOpen(true);return;}
     const entry=getEntry(name,date);
     const cur=entry?entry.status:null;
     let next;
@@ -7564,6 +7597,7 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
   }
 
   function openReason(name,date){
+    if(readOnly){setPinOpen(true);return;}
     const entry=getEntry(name,date);
     setReasonText((entry&&entry.absenceReason)||"");
     setReasonModal({name,date});
@@ -7606,6 +7640,19 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
   const DOW_SHORT=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
   return React.createElement('div',{style:{padding:"16px 12px 60px"}},
+
+    /* Student login: view-only banner + admin PIN prompt */
+    readOnly&&React.createElement('div',{style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,background:"#fffbeb",border:"1px solid #fde68a",borderRadius:12,padding:"8px 12px",marginBottom:12}},
+      React.createElement('span',{style:{fontSize:13,color:"#92400e",fontWeight:600}},"🔒 View only"),
+      React.createElement('button',{onClick:function(){setPinOpen(true);},style:{background:"#07150e",color:"#f7f4ec",border:"none",borderRadius:10,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}},"Unlock editing")),
+    pinOpen&&React.createElement('div',{onClick:function(){setPinOpen(false);setPinVal("");setPinErr("");},style:{position:"fixed",inset:0,background:"rgba(7,21,14,0.55)",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:14}},
+      React.createElement('div',{onClick:function(e){e.stopPropagation();},style:{background:"#fff",borderRadius:16,maxWidth:340,width:"100%",padding:20,textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.35)"}},
+        React.createElement('div',{style:{fontSize:17,fontWeight:700,marginBottom:4}},"Unlock editing"),
+        React.createElement('div',{style:{fontSize:12,color:"#6d7a6e",marginBottom:12}},"Enter the admin PIN to change the register"),
+        React.createElement('input',{type:"password",inputMode:"numeric",autoFocus:true,value:pinVal,onChange:function(e){setPinVal(e.target.value);setPinErr("");},onKeyDown:function(e){if(e.key==="Enter")tryUnlock();},placeholder:"Admin PIN",style:{width:"100%",boxSizing:"border-box",padding:"11px 12px",fontSize:18,textAlign:"center",letterSpacing:"0.3em",border:"1px solid "+(pinErr?"#dc2626":"#e6e1d3"),borderRadius:10,outline:"none",marginBottom:8}}),
+        pinErr&&React.createElement('div',{style:{color:"#dc2626",fontSize:12,fontWeight:600,marginBottom:8}},pinErr),
+        React.createElement('button',{onClick:tryUnlock,disabled:pinBusy||!pinVal,style:{width:"100%",padding:11,borderRadius:11,border:"none",background:pinBusy||!pinVal?"#9ca3af":"#16a34a",color:"#fff",fontWeight:700,fontSize:15,cursor:"pointer",marginBottom:6}},pinBusy?"Checking…":"Unlock"),
+        React.createElement('button',{onClick:function(){setPinOpen(false);setPinVal("");setPinErr("");},style:{width:"100%",padding:8,border:"none",background:"transparent",color:"#6d7a6e",fontSize:13,cursor:"pointer"}},"Cancel"))),
 
     /* Header */
     React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}},

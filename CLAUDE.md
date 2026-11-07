@@ -7,7 +7,7 @@ All app code lives in `index.html` — there is no separate build step.
 
 ## Logins (real Supabase Auth)
 - The PIN is the password of a Supabase Auth user: **7202** → `admin@alihsaanhifz.pages.dev` (app_metadata.role=admin), **1111** → `student@alihsaanhifz.pages.dev` (role=student). Sign-in code is the first inline script in index.html (`window.HifzAuth`); session in localStorage `hifz_sb_session`; `sbGetToken()` returns the user's JWT.
-- Admin: whole app. Student: Salaah Entry only (today only), everything else greyed with a padlock and blocked in `setView`; it reads names via the `salaah_roster()` database function and writes only `salaah_records`.
+- Admin: whole app. Student: Salaah Entry (any past date, never future), Take Register AM/PM and View Register AM/PM (view-only until the admin PIN is entered via `HifzAuth.verifyAdminPin`); everything else is greyed with a padlock and blocked in `setView` (`STUDENT_VIEWS`). It reads names via the `salaah_roster()` database function, may read/write `salaah_records` and `register_data`, and read `year_plan` and `salaah_settings` (RLS policies `student_registers`, `student_read_plan`, ...). Its `syncNow` only pushes `register_data`.
 - Access is enforced by Row Level Security using `hifz_role()` (reads the JWT's app_metadata.role). Never grant `anon` access to tables other than `report_store`.
 
 ## Push & Deploy Flow
