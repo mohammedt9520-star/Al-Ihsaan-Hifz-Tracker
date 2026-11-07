@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-081926 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-082137 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-081926';
+const APP_VERSION='hifz-20261107-082137';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7786,11 +7786,11 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
 // ─── ABSENCES PAGE ────────────────────────────────────────────
 // ── READING ORDER: each student taps the big card once to get a random reading number ──
 // The first two readers of every class are fixed, so numbers run from 3 to the number of students in the class.
-// The number stays on screen for 3 seconds (SHOW_MS). Nothing is saved: the numbers still to be drawn are held in memory only (so nobody gets the same number twice
+// The number stays on screen for 1.5 seconds (SHOW_MS). Nothing is saved: the numbers still to be drawn are held in memory only (so nobody gets the same number twice
 // while the app is open). Reloading the app, or "Start again", deals a fresh random set.
 const READING_LEFT={};
 function ReadingOrderPage({records}){
-  const SHOW_MS=window.__READING_SHOW_MS||3000;
+  const SHOW_MS=window.__READING_SHOW_MS||1500;
   const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [shown,setShown]=React.useState(null);   // {num,until} while a number is on screen
   const [lock,setLock]=React.useState(false);    // brief guard against double taps
