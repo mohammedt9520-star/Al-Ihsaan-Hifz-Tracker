@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-085106 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-085749 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-085106';
+const APP_VERSION='hifz-20261107-085749';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7784,6 +7784,34 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
 }
 
 // ─── ABSENCES PAGE ────────────────────────────────────────────
+// Keeps the screen from sleeping while the component is on screen (Screen Wake Lock API). The browser releases the lock
+// whenever the page is hidden or the system decides to (e.g. battery saver), so it is re-requested when the page is visible
+// again, on the first tap, and every 15s if it was dropped. Returns true while the lock is held.
+function useKeepAwake(on){
+  const [awake,setAwake]=React.useState(false);
+  React.useEffect(()=>{
+    if(!on||!("wakeLock" in navigator))return;
+    let lock=null,dead=false;
+    const acquire=async()=>{
+      if(dead||lock||document.visibilityState!=="visible")return;
+      try{
+        const l=await navigator.wakeLock.request("screen");
+        if(dead){try{l.release();}catch(e){}return;}
+        lock=l;setAwake(true);
+        l.addEventListener("release",()=>{if(lock===l){lock=null;if(!dead)setAwake(false);}});
+      }catch(e){}
+    };
+    const onVis=()=>{if(document.visibilityState==="visible")acquire();};
+    document.addEventListener("visibilitychange",onVis);
+    window.addEventListener("pointerdown",acquire);
+    const iv=setInterval(acquire,15000);
+    acquire();
+    return()=>{dead=true;clearInterval(iv);document.removeEventListener("visibilitychange",onVis);window.removeEventListener("pointerdown",acquire);try{lock&&lock.release();}catch(e){}};
+  },[on]);
+  return awake;
+}
+
+
 // "Reading first" rota: the two fixed readers (morning + evening) for each weekday (1=Mon ... 6=Sat; Sunday: none).
 // They are skipped by the random pick on their day. Names must match how the student is spelled in the app
 // (case/extra spaces don't matter). If a student is renamed in the app, update the spelling here too.
@@ -7795,6 +7823,7 @@ const READING_ROTA={
 // The picked name lives in one row of salaah_settings (key "nextUp"): admin may write it, the Student login may only read it.
 // Student devices poll it every 0.7s, so the name appears under a second after the admin taps Next.
 function NextUpPage({records}){
+  const awake=useKeepAwake(true);   // screen stays on while Reading Order is open (admin + student devices)
   const KEY="nextUp";
   const isStu=window._HIFZ_ROLE==="student";
   const [cls,setCls]=React.useState("HIFZ CLASS A");
@@ -7918,7 +7947,7 @@ function NextUpPage({records}){
     React.createElement('div',{style:{display:"flex",justifyContent:"center",marginBottom:6}},
       React.createElement('div',{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
         ["HIFZ CLASS A","HIFZ CLASS B"].map(c=>React.createElement('button',{key:c,onClick:()=>setCls(c),style:pill(cls===c)},label(c))))),
-    React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginBottom:10}},"Student screens update instantly",dot),
+    React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginBottom:10}},"Student screens update instantly"+(awake?" · screen stays on":""),dot),
     card("clamp(70px,9vh,88px)",70),
     React.createElement('button',{onClick:next,disabled:pool.length===0,style:{width:"100%",height:"clamp(150px,24vh,250px)",marginTop:12,borderRadius:22,border:"none",background:pool.length?"linear-gradient(180deg,#22c55e,#15803d)":"#9ca3af",color:"#fff",fontFamily:FONT,fontSize:"clamp(46px,11vw,78px)",fontWeight:700,letterSpacing:"0.01em",cursor:pool.length?"pointer":"default",boxShadow:pool.length?"0 10px 26px rgba(22,163,74,0.4)":"none"}},pool.length?"Next ▶":"Everyone has been called ✓"),
     React.createElement('button',{onClick:notReady,disabled:!canNotReady,style:{width:"100%",height:"clamp(84px,11vh,112px)",marginTop:12,borderRadius:22,border:"none",background:canNotReady?"linear-gradient(180deg,#ef4444,#b91c1c)":"#e5e7eb",color:canNotReady?"#fff":"#9ca3af",fontFamily:FONT,fontSize:"clamp(30px,7vw,44px)",fontWeight:700,cursor:canNotReady?"pointer":"default",boxShadow:canNotReady?"0 8px 20px rgba(185,28,28,0.35)":"none"}},"Not Ready ⏭"),
