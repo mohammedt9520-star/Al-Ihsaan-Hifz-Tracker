@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-083830 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-083906 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-083830';
+const APP_VERSION='hifz-20261107-083906';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7882,7 +7882,7 @@ function NextUpPage({records}){
   const shown=st.day===todayStr?st.name:"";   // a name left over from another day is never shown
   const big=(h,min)=>shown?React.createElement('div',{key:st.seq,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:"clamp("+(min||54)+"px,"+h+"vw,190px)",lineHeight:1.08,fontWeight:700,color:"#1b1200",overflowWrap:"anywhere"}},shown)
     :null;
-  const card=(height,minH)=>React.createElement('div',{style:{minHeight:minH||220,height:height,borderRadius:28,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid "+(shown?"#b8932f":"#c9a553"),background:shown?"linear-gradient(160deg,#e6cf8a,#c9a553)":"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",boxShadow:shown?"0 14px 40px rgba(184,147,47,0.35)":"0 14px 40px rgba(7,21,14,0.35)"}},big(isStu?16:7,isStu?54:30));
+  const card=(height,minH)=>React.createElement('div',{style:{minHeight:minH||220,height:height,borderRadius:isStu?28:22,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid "+(shown?"#b8932f":"#c9a553"),background:shown?"linear-gradient(160deg,#e6cf8a,#c9a553)":"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",boxShadow:shown?"0 14px 40px rgba(184,147,47,0.35)":"0 14px 40px rgba(7,21,14,0.35)"}},big(isStu?16:7,isStu?54:30));
   if(isStu){
     // Student screen: just the name, nothing else.
     return React.createElement('div',{style:{padding:"14px 12px 24px",maxWidth:1000,margin:"0 auto"}},
@@ -7894,23 +7894,23 @@ function NextUpPage({records}){
   const pool=poolOf(cls,st),total=eligible.length;
   const waiting=queueOf(cls,st);                       // pushed to the end, in order
   const canNotReady=!!shown&&st.cls===cls;
-  return React.createElement('div',{style:{padding:"14px 12px 40px",maxWidth:820,margin:"0 auto"}},
+  return React.createElement('div',{style:{padding:"14px 14px 40px",maxWidth:760,margin:"0 auto"}},
     React.createElement('style',null,css),
     React.createElement('div',{style:{display:"flex",justifyContent:"center",marginBottom:6}},
       React.createElement('div',{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
         ["HIFZ CLASS A","HIFZ CLASS B"].map(c=>React.createElement('button',{key:c,onClick:()=>setCls(c),style:pill(cls===c)},label(c))))),
     React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginBottom:10}},"Student screens update instantly",dot),
-    card("clamp(84px,12vh,120px)",84),
-    React.createElement('button',{onClick:next,disabled:pool.length===0,style:{width:"100%",height:"clamp(110px,18vh,190px)",marginTop:12,borderRadius:26,border:"none",background:pool.length?"linear-gradient(180deg,#22c55e,#15803d)":"#9ca3af",color:"#fff",fontFamily:FONT,fontSize:"clamp(34px,8vw,56px)",fontWeight:700,letterSpacing:"0.01em",cursor:pool.length?"pointer":"default",boxShadow:pool.length?"0 10px 26px rgba(22,163,74,0.4)":"none"}},pool.length?"Next ▶":"Everyone has been called ✓"),
-    React.createElement('button',{onClick:notReady,disabled:!canNotReady,style:{width:"100%",height:70,marginTop:10,borderRadius:20,border:"none",background:canNotReady?"linear-gradient(180deg,#ef4444,#b91c1c)":"#e5e7eb",color:canNotReady?"#fff":"#9ca3af",fontFamily:FONT,fontSize:26,fontWeight:700,cursor:canNotReady?"pointer":"default",boxShadow:canNotReady?"0 8px 20px rgba(185,28,28,0.35)":"none"}},"Not Ready ⏭"),
-    waiting.length>0&&React.createElement('div',{style:{textAlign:"center",fontSize:13,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:12,padding:"7px 10px",marginTop:10}},"At the end, in order: "+waiting.join(" → ")),
-    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10,fontSize:13,color:"#6b7280"}},
+    card("clamp(96px,13vh,130px)",96),
+    React.createElement('button',{onClick:next,disabled:pool.length===0,style:{width:"100%",height:"clamp(150px,24vh,250px)",marginTop:12,borderRadius:22,border:"none",background:pool.length?"linear-gradient(180deg,#22c55e,#15803d)":"#9ca3af",color:"#fff",fontFamily:FONT,fontSize:"clamp(46px,11vw,78px)",fontWeight:700,letterSpacing:"0.01em",cursor:pool.length?"pointer":"default",boxShadow:pool.length?"0 10px 26px rgba(22,163,74,0.4)":"none"}},pool.length?"Next ▶":"Everyone has been called ✓"),
+    React.createElement('button',{onClick:notReady,disabled:!canNotReady,style:{width:"100%",height:"clamp(84px,11vh,112px)",marginTop:12,borderRadius:22,border:"none",background:canNotReady?"linear-gradient(180deg,#ef4444,#b91c1c)":"#e5e7eb",color:canNotReady?"#fff":"#9ca3af",fontFamily:FONT,fontSize:"clamp(30px,7vw,44px)",fontWeight:700,cursor:canNotReady?"pointer":"default",boxShadow:canNotReady?"0 8px 20px rgba(185,28,28,0.35)":"none"}},"Not Ready ⏭"),
+    waiting.length>0&&React.createElement('div',{style:{textAlign:"center",fontSize:13,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:14,padding:"9px 12px",marginTop:12}},"At the end, in order: "+waiting.join(" → ")),
+    React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14,padding:"0 4px",fontSize:14,color:"#4b5563",fontWeight:500}},
       React.createElement('span',null,called.length+" of "+(total-absent.length)+" called · "+pool.length+" left"),
       React.createElement('span',null,
         React.createElement('button',{onClick:undo,disabled:!called.length,style:{background:"transparent",border:"none",color:called.length?"#374151":"#c4c9c5",fontSize:13,textDecoration:"underline",cursor:called.length?"pointer":"default",padding:"4px 8px"}},"Undo last"),
         React.createElement('button',{onClick:startOver,style:{background:"transparent",border:"none",color:"#374151",fontSize:13,textDecoration:"underline",cursor:"pointer",padding:"4px 8px"}},"Start over"))),
-    fixedToday.length>0&&React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginTop:10}},"Fixed today (not picked): "+fixedToday.join(" · ")),
-    React.createElement('div',{style:{marginTop:16,background:"#fff",border:"1px solid #E5E7EB",borderRadius:14,padding:12}},
+    fixedToday.length>0&&React.createElement('div',{style:{textAlign:"center",fontSize:13,color:"#6b7280",marginTop:8}},"Fixed today (not picked): "+fixedToday.join(" · ")),
+    React.createElement('div',{style:{marginTop:14,background:"#fff",border:"1px solid #E5E7EB",borderRadius:22,padding:16,boxShadow:"0 1px 6px rgba(0,0,0,0.04)"}},
       React.createElement('div',{style:{fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"#6b7280",marginBottom:8}},"Students (tap to mark as not here)"),
       React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:6}},
         eligible.map(n=>{const c=called.includes(n),a=absent.includes(n),w=waiting.includes(n);
