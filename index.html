@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-084222 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-085106 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-084222';
+const APP_VERSION='hifz-20261107-085106';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7882,13 +7882,15 @@ function NextUpPage({records}){
   const shown=st.day===todayStr?st.name:"";   // a name left over from another day is never shown
   const nameRef=React.useRef(null);
   const [fit,setFit]=React.useState(0);
-  const maxPx=isStu?190:56,minPx=isStu?30:22;
+  const maxPx=isStu?190:30,minPx=isStu?30:15;
   React.useLayoutEffect(()=>{
     const el=nameRef.current;if(!shown||!el)return;
     const calc=()=>{
       const w=el.clientWidth-32;if(w<=0)return;
-      const cv=document.createElement("canvas").getContext("2d");cv.font="700 100px "+FONT;
-      let wide=0;shown.split(/\s+/).forEach(x=>{wide=Math.max(wide,cv.measureText(x).width);});
+      const cv=document.createElement("canvas").getContext("2d");cv.font=(isStu?700:500)+" 100px "+FONT;
+      let wide=0;
+      if(isStu)shown.split(/\s+/).forEach(x=>{wide=Math.max(wide,cv.measureText(x).width);});   // student: longest word must fit
+      else wide=cv.measureText(shown).width;                                                   // admin: whole name on ONE line
       if(!wide)return;
       setFit(Math.max(minPx,Math.min(maxPx,Math.floor(w/wide*100*0.97))));
     };
@@ -7897,7 +7899,7 @@ function NextUpPage({records}){
     window.addEventListener("resize",calc);
     return()=>window.removeEventListener("resize",calc);
   },[shown,st.seq,isStu]);
-  const big=(h,min)=>shown?React.createElement('div',{key:st.seq,ref:nameRef,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:fit?fit+"px":"clamp("+(min||54)+"px,"+h+"vw,"+maxPx+"px)",lineHeight:1.08,fontWeight:700,color:"#1b1200",overflowWrap:"normal",wordBreak:"normal",hyphens:"none"}},shown)
+  const big=(h,min)=>shown?React.createElement('div',{key:st.seq,ref:nameRef,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:fit?fit+"px":"clamp("+(min||54)+"px,"+h+"vw,"+maxPx+"px)",lineHeight:1.15,fontWeight:isStu?700:500,letterSpacing:isStu?"0":"0.01em",whiteSpace:isStu?"normal":"nowrap",color:isStu?"#1b1200":"#3a2c08",overflowWrap:"normal",wordBreak:"normal",hyphens:"none"}},shown)
     :null;
   const card=(height,minH)=>React.createElement('div',{style:{minHeight:minH||220,height:height,borderRadius:isStu?28:22,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid "+(shown?"#b8932f":"#c9a553"),background:shown?"linear-gradient(160deg,#e6cf8a,#c9a553)":"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",boxShadow:shown?"0 14px 40px rgba(184,147,47,0.35)":"0 14px 40px rgba(7,21,14,0.35)"}},big(isStu?16:7,isStu?54:30));
   if(isStu){
@@ -7917,7 +7919,7 @@ function NextUpPage({records}){
       React.createElement('div',{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
         ["HIFZ CLASS A","HIFZ CLASS B"].map(c=>React.createElement('button',{key:c,onClick:()=>setCls(c),style:pill(cls===c)},label(c))))),
     React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginBottom:10}},"Student screens update instantly",dot),
-    card("clamp(96px,13vh,130px)",96),
+    card("clamp(70px,9vh,88px)",70),
     React.createElement('button',{onClick:next,disabled:pool.length===0,style:{width:"100%",height:"clamp(150px,24vh,250px)",marginTop:12,borderRadius:22,border:"none",background:pool.length?"linear-gradient(180deg,#22c55e,#15803d)":"#9ca3af",color:"#fff",fontFamily:FONT,fontSize:"clamp(46px,11vw,78px)",fontWeight:700,letterSpacing:"0.01em",cursor:pool.length?"pointer":"default",boxShadow:pool.length?"0 10px 26px rgba(22,163,74,0.4)":"none"}},pool.length?"Next ▶":"Everyone has been called ✓"),
     React.createElement('button',{onClick:notReady,disabled:!canNotReady,style:{width:"100%",height:"clamp(84px,11vh,112px)",marginTop:12,borderRadius:22,border:"none",background:canNotReady?"linear-gradient(180deg,#ef4444,#b91c1c)":"#e5e7eb",color:canNotReady?"#fff":"#9ca3af",fontFamily:FONT,fontSize:"clamp(30px,7vw,44px)",fontWeight:700,cursor:canNotReady?"pointer":"default",boxShadow:canNotReady?"0 8px 20px rgba(185,28,28,0.35)":"none"}},"Not Ready ⏭"),
     waiting.length>0&&React.createElement('div',{style:{textAlign:"center",fontSize:13,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:14,padding:"9px 12px",marginTop:12}},"At the end, in order: "+waiting.join(" → ")),
