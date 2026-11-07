@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-085749 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-092330 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-085749';
+const APP_VERSION='hifz-20261107-092330';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7829,6 +7829,9 @@ function NextUpPage({records}){
   const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [st,setSt]=React.useState({seq:0,cls:"",name:"",called:{},absent:{},deferred:{},at:""});
   const [ok,setOk]=React.useState(true);
+  const [ready,setReady]=React.useState(false);   // true once the shared state has been read at least once
+  const [,setClock]=React.useState(0);            // re-renders every minute so a page left open overnight notices the new day
+  const autoRef=React.useRef({});                  // "day|class" -> the first name has already been handled
   const stRef=React.useRef(st);stRef.current=st;
   const pushing=React.useRef(0);
   const FONT="'Fredoka','Manrope','Segoe UI',system-ui,sans-serif";
@@ -7851,15 +7854,16 @@ function NextUpPage({records}){
         const v=JSON.parse(rows[0].value);
         if(v&&typeof v==="object")setSt(prev=>(prev.seq===v.seq&&prev.name===v.name&&JSON.stringify(prev.absent)===JSON.stringify(v.absent)&&JSON.stringify(prev.deferred)===JSON.stringify(v.deferred))?prev:Object.assign({seq:0,called:{},absent:{},deferred:{}},v));
       }
-      setOk(true);
+      setOk(true);setReady(true);
     }catch(e){setOk(false);}
   },[]);
   React.useEffect(()=>{
     load();
     const iv=setInterval(()=>{if(!document.hidden)load();},isStu?700:2500);
+    const clk=setInterval(()=>setClock(x=>x+1),60000);
     const vis=()=>{if(!document.hidden)load();};
     document.addEventListener("visibilitychange",vis);
-    return()=>{clearInterval(iv);document.removeEventListener("visibilitychange",vis);};
+    return()=>{clearInterval(iv);clearInterval(clk);document.removeEventListener("visibilitychange",vis);};
   },[load,isStu]);
   async function push(next){
     pushing.current++;setSt(next);
@@ -7904,6 +7908,18 @@ function NextUpPage({records}){
     const s=fresh(stRef.current),a=s.absent[cls]||[];
     push(Object.assign({},s,{day:todayStr,absent:Object.assign({},s.absent,{[cls]:a.includes(n)?a.filter(x=>x!==n):[...a,n]})}));
   }
+  // Every day, per class: the FIRST name is picked and shown automatically (once, when the class is first opened that day on an
+  // admin device), so the teacher doesn't have to press Next while the two fixed readers are reading. Next then moves on from there.
+  React.useEffect(()=>{
+    if(isStu||!ready)return;
+    const key=todayStr+"|"+cls;
+    if(autoRef.current[key])return;
+    const s=fresh(stRef.current);
+    if((s.called[cls]||[]).length>0){autoRef.current[key]=true;return;}   // someone is already up today - leave it alone
+    if(!roster[cls].length||poolOf(cls,s).length===0)return;              // roster not loaded yet / nobody to pick
+    autoRef.current[key]=true;
+    next();
+  },[ready,cls,todayStr,roster]);
   const label=c=>c==="HIFZ CLASS B"?"Hifz B":"Hifz A";
   const pill=on=>({border:"none",borderRadius:17,padding:"8px 22px",fontSize:14,fontWeight:on?700:500,cursor:"pointer",background:on?"#fff":"transparent",color:on?"#1a1f2e":"#6b7280",boxShadow:on?"0 1px 4px rgba(0,0,0,0.12)":"none"});
   const css="@keyframes nextPop{0%{opacity:0;transform:scale(.88)}60%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}@keyframes nextPulse{0%,100%{opacity:.45}50%{opacity:1}}";
