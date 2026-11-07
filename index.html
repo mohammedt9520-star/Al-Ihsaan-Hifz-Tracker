@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-081710 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-081926 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-081710';
+const APP_VERSION='hifz-20261107-081926';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -3830,11 +3830,11 @@ function App(){
   }
 
   const NAV_ITEMS=[
+    {icon:"🔢",label:"Reading Order",view:"readingOrder"},
     {icon:"\u2600\uFE0F",label:"Take Register (AM)",view:"takeRegister",session:"morning"},
     {icon:"📝",label:"Morning Record Entry",view:"sabaqEntry"},
     {icon:"\uD83C\uDF19",label:"Take Register (PM)",view:"takeRegister",session:"evening"},
     {icon:"📖",label:"Evening Record Entry",view:"dor"},
-    {icon:"🔢",label:"Reading Order",view:"readingOrder"},
     {icon:"👤",label:"Profiles",view:"profile"},
     {icon:"📋",label:"View Register (AM)",view:"viewRegister",session:"morning"},
     {icon:"\uD83C\uDF19",label:"View Register (PM)",view:"viewRegister",session:"evening"},
@@ -4040,11 +4040,11 @@ function App(){
       var _lc=getLatesForMonth(registerData,_lm).length;
       const GROUPS=[
         {label:"Daily Entry",items:[
+          {icon:"🔢",label:"Reading Order",sub:"Tap to draw your reading number",view:"readingOrder",accent:"#B8934A"},
           {icon:"\u2600\uFE0F",label:"Take Register (AM)",sub:"Morning attendance",view:"takeRegister",session:"morning",accent:"#16a34a"},
           {icon:"📝",label:"Morning Record Entry",sub:"Sabaq Para \u00b7 Sabaq",view:"sabaqEntry",accent:"#B8934A"},
           {icon:"\uD83C\uDF19",label:"Take Register (PM)",sub:"Evening attendance",view:"takeRegister",session:"evening",accent:"#0EA5E9"},
           {icon:"📖",label:"Evening Record Entry",sub:"Dor 1 \u00b7 Dor 2 \u00b7 Para Test",view:"dor",accent:"#4F46E5"},
-          {icon:"🔢",label:"Reading Order",sub:"Tap to draw your reading number",view:"readingOrder",accent:"#B8934A"},
         ]},
         {label:"Registers",items:[
           {icon:"📋",label:"View Register (AM)",sub:"Morning attendance history",view:"viewRegister",session:"morning",accent:"#0EA5E9"},
