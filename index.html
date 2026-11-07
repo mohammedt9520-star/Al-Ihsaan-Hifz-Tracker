@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-073706 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-075650 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-073706';
+const APP_VERSION='hifz-20261107-075650';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -295,7 +295,7 @@ async function sbFetchAll(q){
 }
 
 // Pages the Student login may open (everything else stays locked). Salaah Entry + AM/PM registers.
-const STUDENT_VIEWS=["salaahEntry","takeRegister","viewRegister"];
+const STUDENT_VIEWS=["salaahEntry","takeRegister","viewRegister","monthlyAbsences"];
 // The signed-in user's access token (Admin / Student). Falls back to the anon key only when nobody is signed in.
 async function sbGetToken(){var t=window.HifzAuth?await window.HifzAuth.token():null;return t||SUPABASE_KEY;}
 // Call a database function (RPC) as the signed-in user.
@@ -3837,6 +3837,7 @@ function App(){
     {icon:"👤",label:"Profiles",view:"profile"},
     {icon:"📋",label:"View Register (AM)",view:"viewRegister",session:"morning"},
     {icon:"\uD83C\uDF19",label:"View Register (PM)",view:"viewRegister",session:"evening"},
+    {icon:"📆",label:"Monthly Absences",view:"monthlyAbsences"},
     {icon:"⚠️",label:"Absences",view:"absences"},
     {icon:"⏰",label:"Lates",view:"lates"},
     {icon:"📊",label:"Monthly Report",view:"monthlyReport"},
@@ -4043,10 +4044,13 @@ function App(){
           {icon:"\uD83C\uDF19",label:"Take Register (PM)",sub:"Evening attendance",view:"takeRegister",session:"evening",accent:"#0EA5E9"},
           {icon:"📖",label:"Evening Record Entry",sub:"Dor 1 \u00b7 Dor 2 \u00b7 Para Test",view:"dor",accent:"#4F46E5"},
         ]},
-        {label:"Students & Registers",items:[
-          {icon:"👤",label:"Profiles",sub:"Individual student profiles",view:"profile",accent:"#7C3AED"},
+        {label:"Registers",items:[
           {icon:"📋",label:"View Register (AM)",sub:"Morning attendance history",view:"viewRegister",session:"morning",accent:"#0EA5E9"},
           {icon:"\uD83C\uDF19",label:"View Register (PM)",sub:"Evening attendance history",view:"viewRegister",session:"evening",accent:"#4F46E5"},
+          {icon:"📆",label:"Monthly Absences",sub:"Who was absent this month",view:"monthlyAbsences",accent:"#DC2626"},
+        ]},
+        {label:"Students",items:[
+          {icon:"👤",label:"Profiles",sub:"Individual student profiles",view:"profile",accent:"#7C3AED"},
           {icon:"⚠️",label:"Absences",sub:"Review & resolve absences",view:"absences",accent:"#DC2626"},
           {icon:"⏰",label:"Lates",sub:_lc>0?"⚠️ "+_lc+" student"+(_lc!==1?"s":"")+" this month":"Punctuality tracker",view:"lates",accent:"#EA580C"},
           {icon:"🏫",label:"Classes",sub:"Manage students & classes",view:"classes",accent:"#2563EB"},
@@ -4165,6 +4169,8 @@ function App(){
     , view==="viewRegister"&&React.createElement(ViewRegisterPage, {lockEdit:isStudent,initialSession:viewRegSession,yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
 
     /* ABSENCES */
+    , view==="monthlyAbsences"&&React.createElement(MonthlyAbsencesPage, {yearPlan:yearPlan,registerData:registerData,})
+
     , view==="absences"&&React.createElement(AbsencesPage, {yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
     , view==="monthlyReport"&&React.createElement(MonthlyReportPage, {records:records,dailySabaqEntries:dailySabaqEntries,dorRecords:dorRecords,registerData:registerData,hafidhStudents:hafidhStudents,})
 
@@ -7774,6 +7780,65 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
 }
 
 // ─── ABSENCES PAGE ────────────────────────────────────────────
+// ── MONTHLY ABSENCES: who was absent in a month (Morning / Evening), with the dates and the number of absences ──
+function MonthlyAbsencesPage({yearPlan,registerData}){
+  const [month,setMonth]=React.useState(getTodayStr().substring(0,7));
+  const [clsF,setClsF]=React.useState("ALL");
+  const monthOptions=React.useMemo(()=>{
+    const bounds=getTermBoundsFromPlan(yearPlan);
+    const opts=[];
+    const start=bounds.termStart?new Date(bounds.termStart+"T12:00:00"):new Date(new Date().getFullYear(),new Date().getMonth()-2,1);
+    const end=bounds.termEnd?new Date(bounds.termEnd+"T12:00:00"):new Date(new Date().getFullYear(),new Date().getMonth()+12,1);
+    start.setDate(1);
+    const cur=new Date(start);
+    while(cur<=end){opts.push(cur.getFullYear()+"-"+String(cur.getMonth()+1).padStart(2,"0"));cur.setMonth(cur.getMonth()+1);}
+    if(opts.indexOf(month)<0)opts.push(month);
+    return opts.sort();
+  },[yearPlan,month]);
+  const rows=React.useMemo(()=>{
+    const by={};
+    (registerData||[]).forEach(r=>{
+      if(!r||!r.date||String(r.date).substring(0,7)!==month)return;
+      if(r.status!=="A"&&r.status!=="AG")return;
+      if(clsF!=="ALL"&&r.class!==clsF)return;
+      const e=by[r.studentName]||(by[r.studentName]={name:r.studentName,cls:r.class,morning:[],evening:[]});
+      (r.session==="evening"?e.evening:e.morning).push({date:r.date,madeUp:r.status==="AG"});
+    });
+    return Object.values(by).map(e=>{
+      e.morning.sort((a,b)=>a.date.localeCompare(b.date));e.evening.sort((a,b)=>a.date.localeCompare(b.date));
+      e.total=e.morning.length+e.evening.length;return e;
+    }).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name));
+  },[registerData,month,clsF]);
+  const totalAbs=rows.reduce((n,r)=>n+r.total,0);
+  const fmt=d=>{const p=d.split("-");return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString("en-GB",{weekday:"short",day:"numeric"});};
+  const monthLabel=m=>{const p=m.split("-");return new Date(+p[0],+p[1]-1,1).toLocaleString("default",{month:"long",year:"numeric"});};
+  const pill=(on)=>({border:"none",borderRadius:17,padding:"7px 16px",fontSize:13,fontWeight:on?700:500,cursor:"pointer",background:on?"#fff":"transparent",color:on?"#1a1f2e":"#6b7280",boxShadow:on?"0 1px 4px rgba(0,0,0,0.12)":"none"});
+  const cell=(list)=>React.createElement('div',{style:{textAlign:"center",minWidth:0}},
+    React.createElement('div',{style:{fontSize:list.length?20:15,fontWeight:700,color:list.length?"#DC2626":"#c4c9c5",lineHeight:1.1}},list.length?list.length:"–"),
+    list.length>0&&React.createElement('div',{style:{fontSize:10.5,color:"#6b7280",lineHeight:1.35,marginTop:2}},
+      list.map((x,i)=>React.createElement('div',{key:x.date+i,style:{color:x.madeUp?"#2563eb":"#6b7280"}},fmt(x.date)+(x.madeUp?" ✓":"")))));
+  const grid={display:"grid",gridTemplateColumns:"minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 44px",gap:8,alignItems:"start"};
+  return React.createElement('div',{style:{padding:"16px 12px 60px",maxWidth:720,margin:"0 auto"}},
+    React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18,marginBottom:12}},"📆 Monthly Absences"),
+    React.createElement('div',{style:{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}},
+      React.createElement('select',{value:month,onChange:e=>setMonth(e.target.value),style:{flex:1,minWidth:150,border:"1px solid #E5E7EB",borderRadius:8,padding:"9px 12px",fontSize:13,color:"#374151",outline:"none",background:"#fff",fontWeight:"600"}},
+        monthOptions.map(m=>React.createElement('option',{key:m,value:m},monthLabel(m)))),
+      React.createElement('div',{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
+        [["ALL","All"],["HIFZ CLASS A","Hifz A"],["HIFZ CLASS B","Hifz B"]].map(t=>React.createElement('button',{key:t[0],onClick:()=>setClsF(t[0]),style:pill(clsF===t[0])},t[1])))),
+    React.createElement('div',{style:{fontSize:12,color:"#6b7280",marginBottom:10}},rows.length===0?"No absences in "+monthLabel(month):rows.length+" student"+(rows.length!==1?"s":"")+" · "+totalAbs+" absence"+(totalAbs!==1?"s":"")+" in "+monthLabel(month)),
+    rows.length===0?React.createElement('div',{style:{background:"#fff",border:"1px solid #E5E7EB",borderRadius:14,padding:"36px 16px",textAlign:"center",color:"#16a34a",fontWeight:600,fontSize:14}},"No absences this month ✓"):
+    React.createElement('div',{style:{background:"#fff",border:"1px solid #E5E7EB",borderRadius:14,overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"}},
+      React.createElement('div',{style:Object.assign({},grid,{padding:"9px 12px",background:"#1e2d3d",color:"#fff",fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase"})},
+        React.createElement('div',null,"Student"),React.createElement('div',{style:{textAlign:"center"}},"☀️ Morning"),React.createElement('div',{style:{textAlign:"center"}},"🌙 Evening"),React.createElement('div',{style:{textAlign:"center"}},"Total")),
+      rows.map((r,i)=>React.createElement('div',{key:r.name,style:Object.assign({},grid,{padding:"10px 12px",borderTop:i?"1px solid #F0EEE6":"none",background:i%2?"#FCFBF7":"#fff"})},
+        React.createElement('div',{style:{minWidth:0}},
+          React.createElement('div',{style:{fontSize:14,fontWeight:600,color:"#1a1f2e",lineHeight:1.25,overflowWrap:"anywhere"}},r.name),
+          React.createElement('div',{style:{fontSize:10,color:"#9CA3AF",marginTop:1}},r.cls==="HIFZ CLASS B"?"Hifz B":"Hifz A")),
+        cell(r.morning),cell(r.evening),
+        React.createElement('div',{style:{textAlign:"center",fontSize:17,fontWeight:800,color:"#1a1f2e",lineHeight:1.1}},r.total)))),
+    rows.length>0&&React.createElement('div',{style:{fontSize:10.5,color:"#9CA3AF",marginTop:10}},"Blue ✓ = absence that was made up."));
+}
+
 function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
     const [cls,setCls]=React.useState("HIFZ CLASS A");
   const [month,setMonth]=React.useState(getTodayStr().substring(0,7));
