@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-082840 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261107-083033 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-082840';
+const APP_VERSION='hifz-20261107-083033';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7784,9 +7784,15 @@ function ViewRegisterPage({yearPlan,registerData,setRegisterData,records,syncNow
 }
 
 // ─── ABSENCES PAGE ────────────────────────────────────────────
-// The first two readers of each class are fixed, so they are never picked. Put their names here (exactly as they appear in the app).
-const READING_FIXED={"HIFZ CLASS A":[],"HIFZ CLASS B":[]};
-// ── READING ORDER: admin presses Next, a random student (not one of the fixed first two) is shown BIG on every Student-login device ──
+// "Reading first" rota: the two fixed readers (morning + evening) for each weekday (1=Mon ... 6=Sat; Sunday: none).
+// They are skipped by the random pick on their day. Names must match how the student is spelled in the app
+// (case/extra spaces don't matter). If a student is renamed in the app, update the spelling here too.
+// NOTE: "Yahya Asif" (Class B, Tuesday) is not in the app's student list, so he currently excludes nobody.
+const READING_ROTA={
+  "HIFZ CLASS A":{1:["Ridwon Islam","Atif Sharif"],2:["Yahya Rapati","Musa Nadeem"],3:["Yousuf Ali Syed","Yahya Ahmed"],4:["Mohammad Vali","Amaan Mogra"],5:["Jazib Zaeem","Mohammed Danka"],6:["Abdul Rafai Qazaffi","Ibraheem Yusuf"]},
+  "HIFZ CLASS B":{1:["Zayn Malik","Umar Patel"],2:["Yahya Asif","Abdullah Ibn Nouman"],3:["Owais Wasim Hussain","Aaqib Sharif Mohammed"],4:["Abu Hurayrah","Yusuf Mohammed Patel"],5:["Zayd Malik","Muhammad Khalid Sarfraz"],6:["Zayn Malik","Haseebuddin Mohammed"]}
+};
+// ── READING ORDER: admin presses Next, a random student (never that day's two fixed readers) is shown BIG on every Student-login device ──
 // The picked name lives in one row of salaah_settings (key "nextUp"): admin may write it, the Student login may only read it.
 // Student devices poll it every 0.7s, so the name appears under a second after the admin taps Next.
 function NextUpPage({records}){
@@ -7798,12 +7804,15 @@ function NextUpPage({records}){
   const stRef=React.useRef(st);stRef.current=st;
   const pushing=React.useRef(0);
   const FONT="'Fredoka','Manrope','Segoe UI',system-ui,sans-serif";
+  const norm=x=>String(x||"").replace(/\s+/g," ").trim().toUpperCase();
+  const todayStr=slToday(),dow=new Date().getDay();   // today's date + weekday on THIS device (admin presses Next)
+  const fixedSet=c=>new Set(((READING_ROTA[c]||{})[dow]||[]).map(norm));
+  // a new day always starts with a clean pool: yesterday's called/absent lists are ignored
+  const fresh=s=>s.day===todayStr?s:Object.assign({},s,{day:todayStr,name:"",called:{},absent:{}});
   const roster=React.useMemo(()=>{
     const isReal=n=>{if(!n||n.startsWith("(")||n.startsWith("*"))return false;const l=n.toLowerCase();return !["instances","1-5","dd/mm"].some(w=>l.includes(w));};
     const m={"HIFZ CLASS A":new Set(),"HIFZ CLASS B":new Set()};
-    const norm=x=>String(x||"").replace(/\s+/g," ").trim().toUpperCase();
-    const fixed={};Object.keys(READING_FIXED).forEach(c=>{fixed[c]=new Set((READING_FIXED[c]||[]).map(norm));});
-    (records||[]).forEach(r=>{if(r&&m[r.class]&&isReal(r.name)&&!fixed[r.class].has(norm(r.name)))m[r.class].add(r.name);});
+    (records||[]).forEach(r=>{if(r&&m[r.class]&&isReal(r.name))m[r.class].add(r.name);});
     return{"HIFZ CLASS A":[...m["HIFZ CLASS A"]].sort(),"HIFZ CLASS B":[...m["HIFZ CLASS B"]].sort()};
   },[records]);
   function rnd(n){const a=new Uint32Array(1);const lim=Math.floor(4294967296/n)*n;do{crypto.getRandomValues(a);}while(a[0]>=lim);return a[0]%n;}
@@ -7830,41 +7839,43 @@ function NextUpPage({records}){
     catch(e){setOk(false);showToast("Could not reach the server – try again","error");}
     finally{pushing.current--;}
   }
-  const poolOf=(c,s)=>roster[c].filter(n=>!(s.called[c]||[]).includes(n)&&!(s.absent[c]||[]).includes(n));
+  const poolOf=(c,s0)=>{const s=fresh(s0),fx=fixedSet(c);return roster[c].filter(n=>!fx.has(norm(n))&&!(s.called[c]||[]).includes(n)&&!(s.absent[c]||[]).includes(n));};
   function next(){
-    const s=stRef.current,p=poolOf(cls,s);if(!p.length)return;
+    const s=fresh(stRef.current),p=poolOf(cls,s);if(!p.length)return;
     const name=p[rnd(p.length)];
-    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,name:name,called:Object.assign({},s.called,{[cls]:[...(s.called[cls]||[]),name]}),at:new Date().toISOString()}));
+    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,name:name,day:todayStr,called:Object.assign({},s.called,{[cls]:[...(s.called[cls]||[]),name]}),at:new Date().toISOString()}));
   }
   function undo(){
-    const s=stRef.current,list=s.called[cls]||[];if(!list.length)return;
+    const s=fresh(stRef.current),list=s.called[cls]||[];if(!list.length)return;
     const nl=list.slice(0,-1);
-    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,name:nl.length?nl[nl.length-1]:"",called:Object.assign({},s.called,{[cls]:nl}),at:new Date().toISOString()}));
+    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,name:nl.length?nl[nl.length-1]:"",called:Object.assign({},s.called,{[cls]:nl}),at:new Date().toISOString()}));
   }
   async function startOver(){
     if(!await showConfirm("Start over for "+(cls==="HIFZ CLASS B"?"Hifz B":"Hifz A")+"? Everyone goes back in the pool.","Start over"))return;
-    const s=stRef.current;
-    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,name:"",called:Object.assign({},s.called,{[cls]:[]}),absent:Object.assign({},s.absent,{[cls]:[]}),at:new Date().toISOString()}));
+    const s=fresh(stRef.current);
+    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,name:"",called:Object.assign({},s.called,{[cls]:[]}),absent:Object.assign({},s.absent,{[cls]:[]}),at:new Date().toISOString()}));
   }
   function toggleAbsent(n){
-    const s=stRef.current,a=s.absent[cls]||[];
-    push(Object.assign({},s,{absent:Object.assign({},s.absent,{[cls]:a.includes(n)?a.filter(x=>x!==n):[...a,n]})}));
+    const s=fresh(stRef.current),a=s.absent[cls]||[];
+    push(Object.assign({},s,{day:todayStr,absent:Object.assign({},s.absent,{[cls]:a.includes(n)?a.filter(x=>x!==n):[...a,n]})}));
   }
   const label=c=>c==="HIFZ CLASS B"?"Hifz B":"Hifz A";
   const pill=on=>({border:"none",borderRadius:17,padding:"8px 22px",fontSize:14,fontWeight:on?700:500,cursor:"pointer",background:on?"#fff":"transparent",color:on?"#1a1f2e":"#6b7280",boxShadow:on?"0 1px 4px rgba(0,0,0,0.12)":"none"});
   const css="@keyframes nextPop{0%{opacity:0;transform:scale(.88)}60%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}@keyframes nextPulse{0%,100%{opacity:.45}50%{opacity:1}}";
   const dot=React.createElement('span',{title:ok?"Live":"Offline",style:{display:"inline-block",width:8,height:8,borderRadius:"50%",background:ok?"#22c55e":"#ef4444",marginLeft:8,verticalAlign:"middle"}});
-  const big=(h)=>st.name?React.createElement('div',{key:st.seq,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:"clamp(54px,"+h+"vw,190px)",lineHeight:1.08,fontWeight:700,color:"#1b1200",overflowWrap:"anywhere"}},st.name)
+  const shown=st.day===todayStr?st.name:"";   // a name left over from another day is never shown
+  const big=(h)=>shown?React.createElement('div',{key:st.seq,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:"clamp(54px,"+h+"vw,190px)",lineHeight:1.08,fontWeight:700,color:"#1b1200",overflowWrap:"anywhere"}},shown)
     :(isStu?null:React.createElement('div',{style:{textAlign:"center",color:"#c5d4c9",fontFamily:FONT,fontSize:"clamp(26px,6vw,48px)",fontWeight:600}},"Press Next"));
-  const card=(height)=>React.createElement('div',{style:{minHeight:220,height:height,borderRadius:28,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid "+(st.name?"#b8932f":"#c9a553"),background:st.name?"linear-gradient(160deg,#e6cf8a,#c9a553)":"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",boxShadow:st.name?"0 14px 40px rgba(184,147,47,0.35)":"0 14px 40px rgba(7,21,14,0.35)"}},big(isStu?16:11));
+  const card=(height)=>React.createElement('div',{style:{minHeight:220,height:height,borderRadius:28,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid "+(shown?"#b8932f":"#c9a553"),background:shown?"linear-gradient(160deg,#e6cf8a,#c9a553)":"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",boxShadow:shown?"0 14px 40px rgba(184,147,47,0.35)":"0 14px 40px rgba(7,21,14,0.35)"}},big(isStu?16:11));
   if(isStu){
     // Student screen: just the name, nothing else.
     return React.createElement('div',{style:{padding:"14px 12px 24px",maxWidth:1000,margin:"0 auto"}},
       React.createElement('style',null,css),
       card("calc(100vh - 110px)"));
   }
-  const called=(st.called[cls]||[]),absent=(st.absent[cls]||[]);
-  const pool=poolOf(cls,st),total=roster[cls].length;
+  const fs=fresh(st),called=(fs.called[cls]||[]),absent=(fs.absent[cls]||[]);
+  const fx=fixedSet(cls),eligible=roster[cls].filter(n=>!fx.has(norm(n))),fixedToday=roster[cls].filter(n=>fx.has(norm(n)));
+  const pool=poolOf(cls,st),total=eligible.length;
   const shownHere=st.cls===cls;
   return React.createElement('div',{style:{padding:"14px 12px 40px",maxWidth:820,margin:"0 auto"}},
     React.createElement('style',null,css),
@@ -7879,10 +7890,11 @@ function NextUpPage({records}){
       React.createElement('span',null,
         React.createElement('button',{onClick:undo,disabled:!called.length,style:{background:"transparent",border:"none",color:called.length?"#374151":"#c4c9c5",fontSize:13,textDecoration:"underline",cursor:called.length?"pointer":"default",padding:"4px 8px"}},"Undo last"),
         React.createElement('button',{onClick:startOver,style:{background:"transparent",border:"none",color:"#374151",fontSize:13,textDecoration:"underline",cursor:"pointer",padding:"4px 8px"}},"Start over"))),
+    fixedToday.length>0&&React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginTop:10}},"Fixed today (not picked): "+fixedToday.join(" · ")),
     React.createElement('div',{style:{marginTop:16,background:"#fff",border:"1px solid #E5E7EB",borderRadius:14,padding:12}},
       React.createElement('div',{style:{fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"#6b7280",marginBottom:8}},"Students (tap to mark as not here)"),
       React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:6}},
-        roster[cls].map(n=>{const c=called.includes(n),a=absent.includes(n);
+        eligible.map(n=>{const c=called.includes(n),a=absent.includes(n);
           return React.createElement('button',{key:n,onClick:()=>{if(!c)toggleAbsent(n);},style:{border:"1px solid "+(a?"#fca5a5":c?"#9fd3b0":"#E5E7EB"),background:a?"#fef2f2":c?"#f2faf5":"#fff",color:a?"#b91c1c":c?"#166534":"#374151",textDecoration:a?"line-through":"none",borderRadius:14,padding:"5px 11px",fontSize:13,fontWeight:500,cursor:c?"default":"pointer"}},(c?"✓ ":"")+n);}))));
 }
 
