@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261124-120000 | Added Exam Reports page (1st half, 2nd half, full year) -->
+<!-- hifz-20261107-092330 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261124-120000';
+const APP_VERSION='hifz-20261107-092330';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -3846,7 +3846,6 @@ function App(){
     {icon:"📅",label:"Year Planner",view:"yearPlanner"},
     {icon:"➕",label:"Add Monthly Entry",view:"addEntry"},
     {icon:"📄",label:"Reports",view:"reports"},
-    {icon:"🎓",label:"Exam Reports",view:"examReports"},
     {icon:"🏆",label:"Most Sabaq",view:"poster"},
     {icon:"🔖",label:"Best Dor",view:"dorchamp"},
     ...(window._HIFZ_ROLE==="admin"||isStudent?[
@@ -4063,7 +4062,6 @@ function App(){
           {icon:"➕",label:"Add Monthly Entry",sub:"Collate & save monthly record",view:"addEntry",accent:"#B8934A"},
           {icon:"📊",label:"Monthly Report",sub:"Class summary · Dor heat map",view:"monthlyReport",accent:"#7C3AED"},
           {icon:"📄",label:"Reports",sub:"Email reports to parents",view:"reports",accent:"#059669"},
-          {icon:"🎓",label:"Exam Reports",sub:"1st half · 2nd half · full year",view:"examReports",accent:"#B8934A"},
         ]},
         {label:"Champions",items:[
           {icon:"🏆",label:"Most Sabaq Award",sub:"Class sabaq rankings",view:"poster",accent:"#D97706"},
@@ -4175,7 +4173,6 @@ function App(){
     /* ABSENCES */
     , view==="readingOrder"&&React.createElement(NextUpPage, {records:records,})
 
-    , view==="examReports"&&React.createElement(ExamReportsPage, {yearPlan:yearPlan,setYearPlan:setYearPlan,records:records,})
     , view==="monthlyAbsences"&&React.createElement(MonthlyAbsencesPage, {yearPlan:yearPlan,registerData:registerData,})
 
     , view==="absences"&&React.createElement(AbsencesPage, {yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
@@ -7985,109 +7982,6 @@ function NextUpPage({records}){
 }
 
 // ── MONTHLY ABSENCES: who was absent in a month (Morning / Evening), with the dates and the number of absences ──
-// ── Exam Reports: how much each student covered in the 1st half, 2nd half and full year ──
-// Page ranges are typed in by hand (13-line Quran). Juz = pages measured against each juz's own length.
-function getExamReportData(yearPlan){
-  const e=(yearPlan||[]).find(p=>p.class==="__exam_report__");
-  const d=e&&e.dates&&!Array.isArray(e.dates)?e.dates:{};
-  return{totalPages:d.totalPages||848,juzStarts:Array.isArray(d.juzStarts)?d.juzStarts:[],entries:d.entries||{}};
-}
-function setExamReportData(setYearPlan,data){
-  setYearPlan(prev=>{
-    const next=prev.filter(p=>p.class!=="__exam_report__");
-    next.push({id:"__exam_report__",class:"__exam_report__",session:"",dates:data});
-    return next;
-  });
-}
-function examJuzBounds(data){
-  const total=Number(data.totalPages)||848;
-  const st=[];let ok=true;
-  for(let i=0;i<30;i++){const v=parseInt(data.juzStarts[i],10);if(!(v>0))ok=false;st.push(v);}
-  for(let i=1;i<30&&ok;i++)if(st[i]<=st[i-1])ok=false;
-  if(!ok){const per=total/30;for(let i=0;i<30;i++)st[i]=1+i*per;}
-  return{starts:st,total:total,exact:ok};
-}
-function examPagesToJuz(from,to,b){
-  const f=parseFloat(from),t=parseFloat(to);
-  if(!(f>0)||!(t>=f))return{pages:0,juz:0};
-  let juz=0;
-  for(let j=0;j<30;j++){
-    const s=b.starts[j],e=(j<29?b.starts[j+1]:b.total+1);
-    const ov=Math.min(t+1,e)-Math.max(f,s);
-    if(ov>0)juz+=ov/(e-s);
-  }
-  return{pages:t-f+1,juz:juz};
-}
-function fmtJuz(j){return(Math.round(j*10)/10).toString();}
-
-function ExamReportsPage({yearPlan,setYearPlan,records}){
-  const [tab,setTab]=React.useState("h1");
-  const [clsF,setClsF]=React.useState("HIFZ CLASS A");
-  const [setup,setSetup]=React.useState(false);
-  const data=getExamReportData(yearPlan);
-  const b=examJuzBounds(data);
-  const names=React.useMemo(()=>[...new Set((records||[]).filter(r=>r.class===clsF&&r.name&&!r.name.startsWith("(")).map(r=>r.name))].sort(),[records,clsF]);
-  function save(patch){setExamReportData(setYearPlan,Object.assign({},data,patch));}
-  function setField(name,half,key,val){
-    const ent=Object.assign({},data.entries);
-    const cur=Object.assign({h1:{},h2:{}},ent[name]);
-    cur[half]=Object.assign({},cur[half],{[key]:val});
-    ent[name]=cur;save({entries:ent});
-  }
-  function setStart(i,val){const a=data.juzStarts.slice();while(a.length<30)a.push("");a[i]=val;save({juzStarts:a});}
-  const card={background:"#fff",border:"1px solid #E5E7EB",borderRadius:14,overflow:"hidden",boxShadow:"0 1px 6px rgba(0,0,0,0.05)"};
-  const pill=(on)=>({border:"none",borderRadius:17,padding:"7px 14px",fontSize:13,fontWeight:on?700:500,cursor:"pointer",background:on?"#fff":"transparent",color:on?"#1a1f2e":"#6b7280",boxShadow:on?"0 1px 4px rgba(0,0,0,0.12)":"none"});
-  const inp={width:"100%",boxSizing:"border-box",border:"1px solid #E5E7EB",borderRadius:8,padding:"8px 6px",fontSize:14,textAlign:"center",outline:"none"};
-  const grid={display:"grid",gridTemplateColumns:"minmax(0,1.4fr) 62px 62px minmax(0,0.8fr)",gap:8,alignItems:"center"};
-  const gridFull={display:"grid",gridTemplateColumns:"minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)",gap:8,alignItems:"center"};
-  const head=(cols)=>React.createElement('div',{style:Object.assign({},cols,{padding:"9px 12px",background:"#1e2d3d",color:"#fff",fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",textAlign:"center"})});
-  const calc=(name,half)=>{const e=(data.entries[name]||{})[half]||{};return examPagesToJuz(e.from,e.to,b);};
-  const juzCell=(r)=>React.createElement('div',{style:{textAlign:"center"}},
-    React.createElement('div',{style:{fontSize:17,fontWeight:800,color:r.pages?"#1a1f2e":"#c4c9c5",lineHeight:1.1}},r.pages?fmtJuz(r.juz):"–"),
-    r.pages>0&&React.createElement('div',{style:{fontSize:10,color:"#9CA3AF"}},r.pages+" pg"));
-  let body;
-  if(tab==="full"){
-    let tp=0,tj=0;
-    body=React.createElement('div',{style:card},
-      React.createElement('div',{style:Object.assign({},gridFull,{padding:"9px 12px",background:"#1e2d3d",color:"#fff",fontSize:11,fontWeight:700,textTransform:"uppercase",textAlign:"center"})},
-        ["Student","1st Half","2nd Half","Full Year"].map(t=>React.createElement('div',{key:t},t))),
-      names.map((n,i)=>{const a=calc(n,"h1"),c=calc(n,"h2");tp+=a.pages+c.pages;tj+=a.juz+c.juz;
-        return React.createElement('div',{key:n,style:Object.assign({},gridFull,{padding:"10px 12px",borderTop:i?"1px solid #F0EEE6":"none",background:i%2?"#FCFBF7":"#fff"})},
-          React.createElement('div',{style:{fontSize:14,fontWeight:600,color:"#1a1f2e",overflowWrap:"anywhere"}},n),
-          juzCell(a),juzCell(c),juzCell({pages:a.pages+c.pages,juz:a.juz+c.juz}));}));
-  }else{
-    body=React.createElement('div',{style:card},
-      React.createElement('div',{style:Object.assign({},grid,{padding:"9px 12px",background:"#1e2d3d",color:"#fff",fontSize:11,fontWeight:700,textTransform:"uppercase",textAlign:"center"})},
-        ["Student","From pg","To pg","Juz"].map(t=>React.createElement('div',{key:t},t))),
-      names.length===0&&React.createElement('div',{style:{padding:24,textAlign:"center",color:"#6b7280",fontSize:13}},"No students in this class."),
-      names.map((n,i)=>{const e=(data.entries[n]||{})[tab]||{};
-        return React.createElement('div',{key:n,style:Object.assign({},grid,{padding:"8px 12px",borderTop:i?"1px solid #F0EEE6":"none",background:i%2?"#FCFBF7":"#fff"})},
-          React.createElement('div',{style:{fontSize:14,fontWeight:600,color:"#1a1f2e",overflowWrap:"anywhere"}},n),
-          React.createElement('input',{type:"number",inputMode:"numeric",min:1,max:b.total,value:e.from||"",onChange:ev=>setField(n,tab,"from",ev.target.value),style:inp}),
-          React.createElement('input',{type:"number",inputMode:"numeric",min:1,max:b.total,value:e.to||"",onChange:ev=>setField(n,tab,"to",ev.target.value),style:inp}),
-          juzCell(calc(n,tab)));}));
-  }
-  return React.createElement('div',{style:{padding:"16px 12px 60px",maxWidth:720,margin:"0 auto"}},
-    React.createElement('div',{style:{color:"#1a1f2e",fontWeight:"700",fontSize:18,marginBottom:12}},"🎓 Exam Reports"),
-    React.createElement('div',{style:{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}},
-      React.createElement('div',{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
-        [["h1","1st Half"],["h2","2nd Half"],["full","Full Year"]].map(t=>React.createElement('button',{key:t[0],onClick:()=>setTab(t[0]),style:pill(tab===t[0])},t[1]))),
-      React.createElement('div',{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
-        [["HIFZ CLASS A","Hifz A"],["HIFZ CLASS B","Hifz B"]].map(t=>React.createElement('button',{key:t[0],onClick:()=>setClsF(t[0]),style:pill(clsF===t[0])},t[1])))),
-    !b.exact&&React.createElement('div',{style:{background:"#FEF3C7",border:"1px solid #F59E0B",borderRadius:10,padding:"9px 12px",fontSize:12,color:"#92400E",marginBottom:12}},
-      "Juz start pages not entered yet — juz figures are an estimate (all 30 juz treated as equal length). Enter them under Quran setup below for exact results."),
-    body,
-    React.createElement('div',{style:{fontSize:10.5,color:"#9CA3AF",marginTop:10}},"Enter the first and last page covered in that half. Juz is worked out from the juz start pages (13-line Quran)."),
-    React.createElement('button',{onClick:()=>setSetup(!setup),style:{marginTop:14,background:"transparent",border:"1px solid #E5E7EB",borderRadius:10,padding:"9px 14px",fontSize:13,fontWeight:600,color:"#374151",cursor:"pointer"}},(setup?"▾":"▸")+" Quran setup (13-line)"),
-    setup&&React.createElement('div',{style:Object.assign({},card,{marginTop:10,padding:12})},
-      React.createElement('div',{style:{display:"flex",alignItems:"center",gap:8,marginBottom:12,fontSize:13,fontWeight:600}},"Total pages",
-        React.createElement('input',{type:"number",value:data.totalPages,onChange:ev=>save({totalPages:ev.target.value}),style:Object.assign({},inp,{width:90})})),
-      React.createElement('div',{style:{fontSize:12,color:"#6b7280",marginBottom:8}},"Page each juz starts on:"),
-      React.createElement('div',{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(88px,1fr))",gap:8}},
-        [...Array(30)].map((_,i)=>React.createElement('label',{key:i,style:{fontSize:11,color:"#6b7280",display:"block"}},"Juz "+(i+1),
-          React.createElement('input',{type:"number",inputMode:"numeric",value:data.juzStarts[i]||"",onChange:ev=>setStart(i,ev.target.value),style:Object.assign({},inp,{marginTop:3})}))))));
-}
-
 function MonthlyAbsencesPage({yearPlan,registerData}){
   const [month,setMonth]=React.useState(getTodayStr().substring(0,7));
   const [clsF,setClsF]=React.useState("ALL");
