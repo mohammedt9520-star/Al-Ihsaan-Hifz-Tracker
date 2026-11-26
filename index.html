@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261126-120000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261126-140000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261126-120000';
+const APP_VERSION='hifz-20261126-140000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7827,7 +7827,7 @@ function NextUpPage({records}){
   const KEY="nextUp";
   const isStu=window._HIFZ_ROLE==="student";
   const [cls,setCls]=React.useState("HIFZ CLASS A");
-  const [st,setSt]=React.useState({seq:0,cls:"",name:"",called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},second:false,at:""});
+  const [st,setSt]=React.useState({seq:0,cls:"",name:"",called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},fxNR:{},nx:{},second:false,at:""});
   const [ok,setOk]=React.useState(true);
   const [ready,setReady]=React.useState(false);   // true once the shared state has been read at least once
   const [,setClock]=React.useState(0);            // re-renders every minute so a page left open overnight notices the new day
@@ -7839,7 +7839,7 @@ function NextUpPage({records}){
   const todayStr=slToday(),dow=new Date().getDay();   // today's date + weekday on THIS device (admin presses Next)
   const fixedSet=c=>new Set(((READING_ROTA[c]||{})[dow]||[]).map(norm));
   // a new day always starts with a clean pool: yesterday's called/absent lists are ignored
-  const fresh=s=>s.day===todayStr?s:Object.assign({},s,{day:todayStr,name:"",second:false,called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{}});
+  const fresh=s=>s.day===todayStr?s:Object.assign({},s,{day:todayStr,name:"",second:false,called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},fxNR:{},nx:{}});
   // Hafidh students (marked on their profile) are "blue" (called twice) automatically every day.
   const hafidhSet=React.useMemo(()=>new Set((records||[]).filter(r=>r&&r.isStudentProfile&&r.isHafidh).map(r=>norm(r.name))),[records]);
   const GAP=5;   // a second call comes only after at least this many other calls, so the student has time to get ready
@@ -7862,7 +7862,7 @@ function NextUpPage({records}){
       const rows=await sbFetch("salaah_settings?select=value&key=eq."+KEY,"GET");
       if(rows&&rows[0]&&rows[0].value&&!pushing.current){
         const v=JSON.parse(rows[0].value);
-        if(v&&typeof v==="object")setSt(prev=>(prev.seq===v.seq&&prev.name===v.name&&JSON.stringify([prev.absent,prev.deferred,prev.modes,prev.again,prev.done2])===JSON.stringify([v.absent,v.deferred,v.modes,v.again,v.done2]))?prev:Object.assign({seq:0,called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{}},v));
+        if(v&&typeof v==="object")setSt(prev=>(prev.seq===v.seq&&prev.name===v.name&&JSON.stringify([prev.absent,prev.deferred,prev.modes,prev.again,prev.done2,prev.fxNR,prev.nx])===JSON.stringify([v.absent,v.deferred,v.modes,v.again,v.done2,v.fxNR,v.nx]))?prev:Object.assign({seq:0,called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},fxNR:{},nx:{}},v));
       }
       setOk(true);setReady(true);
     }catch(e){setOk(false);}
@@ -7883,15 +7883,15 @@ function NextUpPage({records}){
   }
   // Still to be called: first everyone else (random), then the "Not Ready" students at the END, in the order they were pushed back.
   const mainOf=(c,s0)=>{const s=fresh(s0),fx=fixedSet(c),d=gi(s,"deferred",c);return roster[c].filter(n=>!fx.has(norm(n))&&!(s.called[c]||[]).includes(n)&&!(s.absent[c]||[]).includes(n)&&!d.includes(n));};
-  const queueOf=(c,s0)=>{const s=fresh(s0),fx=fixedSet(c);return gi(s,"deferred",c).filter(n=>roster[c].includes(n)&&!fx.has(norm(n))&&!(s.absent[c]||[]).includes(n));};
+  const queueOf=(c,s0)=>{const s=fresh(s0),fx=fixedSet(c);const nr=gi(s,"fxNR",c);return gi(s,"deferred",c).filter(n=>roster[c].includes(n)&&(!fx.has(norm(n))||nr.includes(n))&&!(s.absent[c]||[]).includes(n));};
   // Second calls still owed: blue students who were called once (or fixed readers who are blue - they read first, so they come up again),
   // not absent, not yet called the second time. Value = the call number from which the second call may happen.
   const owedOf=(c,s0)=>{
-    const s=fresh(s0),fx=fixedSet(c),ag=gi(s,"again",c),d2=gi(s,"done2",c),out=[];
+    const s=fresh(s0),fx=fixedSet(c),ag=gi(s,"again",c),d2=gi(s,"done2",c),nr=gi(s,"fxNR",c),out=[];
     roster[c].forEach(n=>{
       if(d2.includes(n)||modeOf(c,s,n)!=="b")return;
       if(ag[n]!==undefined)out.push({name:n,due:ag[n]});
-      else if(fx.has(norm(n)))out.push({name:n,due:GAP});
+      else if(fx.has(norm(n))&&!nr.includes(n))out.push({name:n,due:GAP});
     });
     return out;
   };
@@ -7922,9 +7922,18 @@ function NextUpPage({records}){
       called:Object.assign({},s.called,{[c]:called}),done2:Object.assign({},s.done2||{},{[c]:d2}),again:Object.assign({},s.again||{},{[c]:ag}),
       deferred:Object.assign({},s.deferred||{},{[c]:dfr}),hist:Object.assign({},s.hist||{},{[c]:[...hist,{n:nm,s:!!r.second}]})});
   }
-  function next(){
+  function next(manual){
     const s=fresh(stRef.current),r=pickNext(s,cls);if(!r)return;
-    push(applyCall(s,cls,r));
+    const ns=applyCall(s,cls,r);
+    if(manual===true)ns.nx=Object.assign({},s.nx||{},{[cls]:((s.nx||{})[cls]||0)+1});   // counts only the teacher's own Next taps
+    push(ns);
+  }
+  // A fixed reader (shown at the top) wasn't ready: they go to the END of the line and their card disappears.
+  function fixedNotReady(n){
+    const s=fresh(stRef.current);
+    push(Object.assign({},s,{day:todayStr,
+      fxNR:Object.assign({},s.fxNR||{},{[cls]:[...gi(s,"fxNR",cls).filter(x=>x!==n),n]}),
+      deferred:Object.assign({},s.deferred||{},{[cls]:[...gi(s,"deferred",cls).filter(x=>x!==n),n]})}));
   }
   // Not Ready: the student on screen goes to the END of the line (first call) / a few calls later (second call) and the next student is shown straight away.
   function notReady(){
@@ -7961,7 +7970,7 @@ function NextUpPage({records}){
   }
   function startOver(){   // no confirmation step: it happens straight away
     const s=fresh(stRef.current),z=o=>Object.assign({},o||{},{[cls]:[]}),zo=o=>Object.assign({},o||{},{[cls]:{}});
-    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,name:"",second:false,called:z(s.called),absent:z(s.absent),deferred:z(s.deferred),done2:z(s.done2),hist:z(s.hist),again:zo(s.again),modes:zo(s.modes),at:new Date().toISOString()}));
+    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,name:"",second:false,called:z(s.called),absent:z(s.absent),deferred:z(s.deferred),done2:z(s.done2),hist:z(s.hist),fxNR:z(s.fxNR),nx:Object.assign({},s.nx||{},{[cls]:0}),again:zo(s.again),modes:zo(s.modes),at:new Date().toISOString()}));
   }
   // Tap a student: normal (once) -> absent (crossed out) -> blue (called twice) -> normal ...  (Hafidh students start as blue each day)
   function cycleMode(n){
@@ -8028,6 +8037,9 @@ function NextUpPage({records}){
   const fs=fresh(st),called=(fs.called[cls]||[]),absent=(fs.absent[cls]||[]);
   const fx=fixedSet(cls),eligible=roster[cls].filter(n=>!fx.has(norm(n))),fixedToday=roster[cls].filter(n=>fx.has(norm(n)));
   const pool=poolOf(cls,st),total=eligible.length;
+  const nxN=((fs.nx||{})[cls])||0,nrFx=gi(fs,"fxNR",cls);
+  // today's two fixed readers, in order; each card disappears after the teacher's Next taps (1st tap hides the first, 2nd tap the second) or once pushed back
+  const topFixed=((READING_ROTA[cls]||{})[dow]||[]).map((raw,i)=>({i:i,n:roster[cls].find(x=>norm(x)===norm(raw))||raw})).filter(f=>f.i>=nxN&&!nrFx.includes(f.n));
   const waiting=queueOf(cls,st);                       // pushed to the end, in order
   const owedNow=owedOf(cls,st).map(o=>o.name),done2Now=gi(fs,"done2",cls);
   const canNotReady=!!shown&&st.cls===cls;
@@ -8038,8 +8050,14 @@ function NextUpPage({records}){
         ["HIFZ CLASS A","HIFZ CLASS B"].map(c=>React.createElement('button',{key:c,onClick:()=>setCls(c),style:pill(cls===c)},label(c))))),
     React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginBottom:10}},"Student screens update instantly"+(awake?" · screen stays on":""),dot),
     card("clamp(70px,9vh,88px)",70),
+    topFixed.length>0&&React.createElement('div',{style:{display:"flex",flexDirection:"column",gap:8,marginTop:10}},
+      topFixed.map(f=>React.createElement('div',{key:f.n,style:{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,background:"#fffbeb",border:"1.5px solid #fcd34d",borderRadius:16,padding:"8px 8px 8px 14px"}},
+        React.createElement('div',{style:{minWidth:0}},
+          React.createElement('div',{style:{fontSize:10,fontWeight:800,letterSpacing:"0.1em",color:"#92400e",textTransform:"uppercase"}},f.i===0?"Reading first":"Reading second"),
+          React.createElement('div',{style:{fontSize:18,fontWeight:600,color:"#3a2c08",overflowWrap:"anywhere"}},f.n)),
+        React.createElement('button',{onClick:()=>fixedNotReady(f.n),style:{flexShrink:0,border:"none",borderRadius:12,padding:"10px 14px",background:"linear-gradient(180deg,#ef4444,#b91c1c)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}},"Not Ready ⏭")))),
     canNotReady&&st.second&&React.createElement('div',{style:{textAlign:"center",fontSize:13,fontWeight:700,color:"#1d4ed8",marginTop:8}},"🔵 Second call"),
-    React.createElement('button',{onClick:next,disabled:pool.length===0,style:{width:"100%",height:"clamp(150px,24vh,250px)",marginTop:12,borderRadius:22,border:"none",background:pool.length?"linear-gradient(180deg,#22c55e,#15803d)":"#9ca3af",color:"#fff",fontFamily:FONT,fontSize:"clamp(46px,11vw,78px)",fontWeight:700,letterSpacing:"0.01em",cursor:pool.length?"pointer":"default",boxShadow:pool.length?"0 10px 26px rgba(22,163,74,0.4)":"none"}},pool.length?"Next ▶":"Everyone has been called ✓"),
+    React.createElement('button',{onClick:()=>next(true),disabled:pool.length===0,style:{width:"100%",height:"clamp(150px,24vh,250px)",marginTop:12,borderRadius:22,border:"none",background:pool.length?"linear-gradient(180deg,#22c55e,#15803d)":"#9ca3af",color:"#fff",fontFamily:FONT,fontSize:"clamp(46px,11vw,78px)",fontWeight:700,letterSpacing:"0.01em",cursor:pool.length?"pointer":"default",boxShadow:pool.length?"0 10px 26px rgba(22,163,74,0.4)":"none"}},pool.length?"Next ▶":"Everyone has been called ✓"),
     React.createElement('button',{onClick:notReady,disabled:!canNotReady,style:{width:"100%",height:"clamp(84px,11vh,112px)",marginTop:12,borderRadius:22,border:"none",background:canNotReady?"linear-gradient(180deg,#ef4444,#b91c1c)":"#e5e7eb",color:canNotReady?"#fff":"#9ca3af",fontFamily:FONT,fontSize:"clamp(30px,7vw,44px)",fontWeight:700,cursor:canNotReady?"pointer":"default",boxShadow:canNotReady?"0 8px 20px rgba(185,28,28,0.35)":"none"}},"Not Ready ⏭"),
     waiting.length>0&&React.createElement('div',{style:{textAlign:"center",fontSize:13,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:14,padding:"9px 12px",marginTop:12}},"At the end, in order: "+waiting.join(" → ")),
     React.createElement('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14,padding:"0 4px",fontSize:14,color:"#4b5563",fontWeight:500}},
@@ -8047,7 +8065,6 @@ function NextUpPage({records}){
       React.createElement('span',null,
         React.createElement('button',{onClick:undo,disabled:!called.length,style:{background:"transparent",border:"none",color:called.length?"#374151":"#c4c9c5",fontSize:13,textDecoration:"underline",cursor:called.length?"pointer":"default",padding:"4px 8px"}},"Undo last"),
         React.createElement('button',{onClick:startOver,style:{background:"transparent",border:"none",color:"#374151",fontSize:13,textDecoration:"underline",cursor:"pointer",padding:"4px 8px"}},"Start over"))),
-    fixedToday.length>0&&React.createElement('div',{style:{textAlign:"center",fontSize:13,color:"#6b7280",marginTop:8}},"Fixed today (not picked): "+fixedToday.join(" · ")),
     React.createElement('div',{style:{marginTop:14,background:"#fff",border:"1px solid #E5E7EB",borderRadius:22,padding:16,boxShadow:"0 1px 6px rgba(0,0,0,0.04)"}},
       React.createElement('div',{style:{fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"#6b7280",marginBottom:8}},"Students · tap: ✗ absent → 🔵 called twice → normal"),
       React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:6}},
