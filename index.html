@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261127-120000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261127-140000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261127-120000';
+const APP_VERSION='hifz-20261127-140000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1089,13 +1089,12 @@ function quranPlace(p){   // "Juz 12 · Quarter 2" for the page a student has re
   if(q>=120)return"Juz 30 · Complete";
   return"Juz "+(Math.floor(q/4)+1)+" · Quarter "+(Math.floor(q%4)+1);
 }
-// How much of the Quran lies between the start page and the end page.
-// Pages are SIDES. inclusive=true: the start page is the first side done this period, so both ends count (100 -> 130 = 31 sides).
-// inclusive=false: the start page was already finished before the period (100 -> 130 = 30 sides).
-function quranProgress(fromPage,toPage,inclusive){
+// How much of the Quran lies between the start page and the end page. Pages are sides, and both numbers are "wherever they were on
+// that page" (start = page they began on, end = page their last sabaq finished on), so it is a rough measure: sides = end - start.
+function quranProgress(fromPage,toPage){
   const f=parseInt(fromPage,10),t=parseInt(toPage,10);
-  if(!(f>0)||!(t>0)||(inclusive?t<f:t<=f))return null;
-  const a=quranPos(inclusive?f:f+1),b=quranPos(t+1);
+  if(!(f>0)||!(t>f))return null;
+  const a=quranPos(f),b=quranPos(t);
   const total=Math.round((b-a)*1000)/1000;
   const whole=Math.floor(total+1e-6);
   return{total:total,quartersWhole:whole,juz:Math.floor(whole/4),quarters:whole%4,decimalJuz:total/4,
@@ -1122,13 +1121,8 @@ function buildExamEntry(name,cls,allRecords,fromMonth,toMonth,extra){
   for(let i=recs.length-1;i>=0;i--){if(parseInt(recs[i].toPage)>0){tp=parseInt(recs[i].toPage);break;}}
   const pagesOk=fp>0&&tp>fp;
   const monthLines=recs.reduce(function(s,r){return s+num(r.totalFullSides)*13+num(r.plusLines);},0);
-  // Pages are sides: is the start page counted (31 sides for 100->130) or already done before the period (30)?
-  // "auto" picks whichever agrees better with the lines actually recorded month by month.
-  const mode=(extra&&extra.countMode)||"auto";
-  let inclusive=true;
-  if(mode==="excl")inclusive=false;
-  else if(mode==="auto"&&pagesOk&&monthLines>0){inclusive=Math.abs((tp-fp+1)-monthLines/13)<Math.abs((tp-fp)-monthLines/13);}
-  const pages=pagesOk?tp-fp+(inclusive?1:0):Math.floor(monthLines/13);
+  // Sides done = end page - start page (rough: both are wherever the student was on that page)
+  const pages=pagesOk?tp-fp:Math.floor(monthLines/13);
   const sabaqDays=sum("totalDaysOfSabaq");
   const wDays=recs.reduce(function(s,r){return s+Math.max(0,num(r.totalDaysOfSabaq)-num(r.absences)-num(r.paraDorMornings));},0);
   const last=recs[recs.length-1];
@@ -1147,7 +1141,7 @@ function buildExamEntry(name,cls,allRecords,fromMonth,toMonth,extra){
     eveningPossibleDays:String(sum("eveningPossibleDays")||""),eveningAbsences:String(sum("eveningAbsences")||""),
     behaviour:bh.length?Math.max(1,Math.min(5,Math.round(bh.reduce(function(s,x){return s+x;},0)/bh.length))):(last.behaviour||5),
     teacherComments:(extra&&extra.comments)||"",
-    _months:recs.length,_pagesFromRange:pagesOk,_inclusive:inclusive,_linePages:Math.round(monthLines/13*10)/10
+    _months:recs.length,_pagesFromRange:pagesOk,_linePages:Math.round(monthLines/13*10)/10
   });
   return e;
 }
@@ -8456,7 +8450,6 @@ function ExamReportPage({records,dorRecords,hafidhStudents,yearPlan}){
   const [fromM,setFromM]=React.useState(ayStart+"-07");
   const [toM,setToM]=React.useState(today.slice(0,7));
   const [comments,setComments]=React.useState({});
-  const [countMode,setCountMode]=React.useState("auto");   // how start/end page are counted (they are sides)
   const [picked,setPicked]=React.useState({});          // name -> false when un-ticked
   const TITLES={half:"Half-Year Exam Report",end:"End of Year Exam Report",custom:"Exam Report"};
   function preset(k){
@@ -8467,12 +8460,12 @@ function ExamReportPage({records,dorRecords,hafidhStudents,yearPlan}){
   const names=React.useMemo(()=>[...new Set((records||[]).filter(r=>!r.isStudentProfile&&r.class===cls&&r.name&&!r.name.startsWith("(")).map(r=>r.name))].sort(),[records,cls]);
   // everything below is computed on the device from data already loaded, so it updates the moment a month is changed
   const rows=React.useMemo(()=>names.map(n=>{
-    const e=buildExamEntry(n,cls,records,fromM,toM,{comments:comments[n],countMode:countMode});
+    const e=buildExamEntry(n,cls,records,fromM,toM,{comments:comments[n]});
     if(!e)return{name:n,entry:null};
     const calc=Object.assign({},e,calcEntry(e));
-    const pr=quranProgress(e.fromPage,e.toPage,e._inclusive);
+    const pr=quranProgress(e.fromPage,e.toPage);
     return{name:n,entry:e,calc:calc,pr:pr,hafidh:hafidhStudents&&hafidhStudents.has(n)};
-  }),[names,cls,records,fromM,toM,comments,countMode,hafidhStudents]);
+  }),[names,cls,records,fromM,toM,comments,hafidhStudents]);
   const OPTS=()=>({title:TITLES[kind],periodLabel:"Period"});
   function html(r){return generateReportHTML(r.entry,r.calc,dorRecords,records,undefined,yearPlan,Object.assign(OPTS(),{quran:r.hafidh?null:r.pr}));}
   function openOne(r){
@@ -8505,13 +8498,7 @@ function ExamReportPage({records,dorRecords,hafidhStudents,yearPlan}){
           React.createElement("input",{type:"month",value:fromM,onChange:e=>{setFromM(e.target.value);setKind("custom");},style:{padding:"9px 12px",borderRadius:10,border:"1px solid #E5E7EB",fontSize:15,outline:"none"}})),
         React.createElement("div",null,React.createElement("label",{style:lbl},"To month"),
           React.createElement("input",{type:"month",value:toM,onChange:e=>{setToM(e.target.value);setKind("custom");},style:{padding:"9px 12px",borderRadius:10,border:"1px solid #E5E7EB",fontSize:15,outline:"none"}}))),
-      React.createElement("div",{style:{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",marginTop:12}},
-        React.createElement("label",{style:Object.assign({},lbl,{marginBottom:0})},"Page counting"),
-        React.createElement("select",{value:countMode,onChange:ev=>setCountMode(ev.target.value),style:{padding:"7px 10px",borderRadius:9,border:"1px solid #E5E7EB",fontSize:13,background:"#fff"}},
-          React.createElement("option",{value:"auto"},"Auto (matches the recorded lines)"),
-          React.createElement("option",{value:"incl"},"Count both pages (100→130 = 31 sides)"),
-          React.createElement("option",{value:"excl"},"Start page already done (100→130 = 30 sides)"))),
-      React.createElement("div",{style:{fontSize:12,color:"#6b7280",marginTop:8}},"Half-Year = Jul–Nov, End of Year = Dec–Jun (the dates can be changed). Numbers below update instantly. Pages are sides (13 lines each).")),
+      React.createElement("div",{style:{fontSize:12,color:"#6b7280",marginTop:8}},"Half-Year = Jul–Nov, End of Year = Dec–Jun (the dates can be changed). Numbers below update instantly. Sides done = end page − start page (a rough figure, 13 lines per side).")),
     React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}},
       React.createElement("div",{style:{fontSize:13,color:"#4b5563"}},withData.length+" of "+rows.length+" students have monthly records in this period"),
       React.createElement("button",{onClick:openAll,style:{padding:"10px 18px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#0d6b5e,#1a8a7a)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}},"Open ticked reports (print / save PDF)")),
@@ -8529,7 +8516,7 @@ function ExamReportPage({records,dorRecords,hafidhStudents,yearPlan}){
           cell("Pages",(e.fromPage||"?")+" → "+(e.toPage||"?")),cell("Sides done",c.totalAvgPages?fmt(c.totalAvgPages,0):"0"),
           cell("Avg lines/day",fmt(c.K,2),"#0d6b5e"),
           cell("Juz & quarters",r.hafidh?"—":quranText(r.pr),"#7C3AED")),
-        e._pagesFromRange&&React.createElement("div",{style:{fontSize:11,color:"#6b7280",marginTop:6}},(e._inclusive?"Both pages counted":"Start page not counted")+" · monthly records add up to about "+e._linePages+" sides"),
+        e._pagesFromRange&&React.createElement("div",{style:{fontSize:11,color:"#6b7280",marginTop:6}},"Monthly records add up to about "+e._linePages+" sides (for comparison)"),
         !e._pagesFromRange&&React.createElement("div",{style:{fontSize:11,color:"#B45309",marginTop:6}},"⚠️ Page numbers missing on some months – lines were added up from the monthly totals and juz/quarters can't be worked out."),
         React.createElement("textarea",{placeholder:"Teacher's comments for this report (optional)",value:comments[r.name]||"",onChange:ev=>setComments(p=>Object.assign({},p,{[r.name]:ev.target.value})),style:{width:"100%",marginTop:8,minHeight:46,borderRadius:8,border:"1px solid #E5E7EB",padding:"8px 10px",fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}));
     }));
