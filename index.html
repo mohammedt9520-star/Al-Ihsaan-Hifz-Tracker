@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261126-140000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261126-160000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261126-140000';
+const APP_VERSION='hifz-20261126-160000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7827,7 +7827,7 @@ function NextUpPage({records}){
   const KEY="nextUp";
   const isStu=window._HIFZ_ROLE==="student";
   const [cls,setCls]=React.useState("HIFZ CLASS A");
-  const [st,setSt]=React.useState({seq:0,cls:"",name:"",called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},fxNR:{},nx:{},second:false,at:""});
+  const [st,setSt]=React.useState({seq:0,cls:"",name:"",called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},fxNR:{},nx:{},top:[],second:false,at:""});
   const [ok,setOk]=React.useState(true);
   const [ready,setReady]=React.useState(false);   // true once the shared state has been read at least once
   const [,setClock]=React.useState(0);            // re-renders every minute so a page left open overnight notices the new day
@@ -7839,7 +7839,7 @@ function NextUpPage({records}){
   const todayStr=slToday(),dow=new Date().getDay();   // today's date + weekday on THIS device (admin presses Next)
   const fixedSet=c=>new Set(((READING_ROTA[c]||{})[dow]||[]).map(norm));
   // a new day always starts with a clean pool: yesterday's called/absent lists are ignored
-  const fresh=s=>s.day===todayStr?s:Object.assign({},s,{day:todayStr,name:"",second:false,called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},fxNR:{},nx:{}});
+  const fresh=s=>s.day===todayStr?s:Object.assign({},s,{day:todayStr,name:"",second:false,called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},fxNR:{},nx:{},top:[]});
   // Hafidh students (marked on their profile) are "blue" (called twice) automatically every day.
   const hafidhSet=React.useMemo(()=>new Set((records||[]).filter(r=>r&&r.isStudentProfile&&r.isHafidh).map(r=>norm(r.name))),[records]);
   const GAP=5;   // a second call comes only after at least this many other calls, so the student has time to get ready
@@ -7862,7 +7862,7 @@ function NextUpPage({records}){
       const rows=await sbFetch("salaah_settings?select=value&key=eq."+KEY,"GET");
       if(rows&&rows[0]&&rows[0].value&&!pushing.current){
         const v=JSON.parse(rows[0].value);
-        if(v&&typeof v==="object")setSt(prev=>(prev.seq===v.seq&&prev.name===v.name&&JSON.stringify([prev.absent,prev.deferred,prev.modes,prev.again,prev.done2,prev.fxNR,prev.nx])===JSON.stringify([v.absent,v.deferred,v.modes,v.again,v.done2,v.fxNR,v.nx]))?prev:Object.assign({seq:0,called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},fxNR:{},nx:{}},v));
+        if(v&&typeof v==="object")setSt(prev=>(prev.seq===v.seq&&prev.name===v.name&&JSON.stringify([prev.absent,prev.deferred,prev.modes,prev.again,prev.done2,prev.fxNR,prev.nx,prev.top,prev.cls])===JSON.stringify([v.absent,v.deferred,v.modes,v.again,v.done2,v.fxNR,v.nx,v.top,v.cls]))?prev:Object.assign({seq:0,called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},fxNR:{},nx:{}},v));
       }
       setOk(true);setReady(true);
     }catch(e){setOk(false);}
@@ -7978,40 +7978,41 @@ function NextUpPage({records}){
     const a=(s.absent[cls]||[]).filter(x=>x!==n);
     push(Object.assign({},s,{day:todayStr,absent:Object.assign({},s.absent,{[cls]:nx==="a"?[...a,n]:a}),modes:Object.assign({},s.modes||{},{[cls]:Object.assign({},gi(s,"modes",cls),{[n]:nx})})}));
   }
-  // Every day, per class: the FIRST name is picked and shown automatically (once, when the class is first opened that day on an
-  // admin device), so the teacher doesn't have to press Next while the two fixed readers are reading. Next then moves on from there.
+  // Until the teacher presses Next for the first time, the student tablets show the day's two fixed readers (the "top" list);
+  // the first Next calls the 3rd person and those names disappear. The admin keeps the shared state's class + top list up to date.
+  const topNames=()=>{const nx=((fresh(stRef.current).nx||{})[cls])||0;if(nx>0)return[];const nr=gi(fresh(stRef.current),"fxNR",cls);
+    return ((READING_ROTA[cls]||{})[dow]||[]).map(raw=>roster[cls].find(x=>norm(x)===norm(raw))||raw).filter(n=>!nr.includes(n));};
   React.useEffect(()=>{
-    if(isStu||!ready)return;
-    const key=todayStr+"|"+cls;
-    if(autoRef.current[key])return;
-    const s=fresh(stRef.current);
-    if((s.called[cls]||[]).length>0){autoRef.current[key]=true;return;}   // someone is already up today - leave it alone
-    if(!roster[cls].length||poolOf(cls,s).length===0)return;              // roster not loaded yet / nobody to pick
-    autoRef.current[key]=true;
-    next();
-  },[ready,cls,todayStr,roster]);
+    if(isStu||!ready||!roster[cls].length)return;
+    const s=fresh(stRef.current),want=topNames();
+    if(s.cls===cls&&JSON.stringify(s.top||[])===JSON.stringify(want))return;
+    const h=gi(s,"hist",cls),last=h[h.length-1];
+    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,top:want,name:last?last.n:"",second:!!(last&&last.s),at:new Date().toISOString()}));
+  },[ready,cls,todayStr,roster,st.nx,st.fxNR,st.cls,st.day]);
   const label=c=>c==="HIFZ CLASS B"?"Hifz B":"Hifz A";
   const pill=on=>({border:"none",borderRadius:17,padding:"8px 22px",fontSize:14,fontWeight:on?700:500,cursor:"pointer",background:on?"#fff":"transparent",color:on?"#1a1f2e":"#6b7280",boxShadow:on?"0 1px 4px rgba(0,0,0,0.12)":"none"});
   const css="@keyframes nextPop{0%{opacity:0;transform:scale(.88)}60%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}@keyframes nextPulse{0%,100%{opacity:.45}50%{opacity:1}}";
   const dot=React.createElement('span',{title:ok?"Live":"Offline",style:{display:"inline-block",width:8,height:8,borderRadius:"50%",background:ok?"#22c55e":"#ef4444",marginLeft:8,verticalAlign:"middle"}});
-  const shown=st.day===todayStr?st.name:"";   // a name left over from another day is never shown
+  const topS=(isStu&&st.day===todayStr&&!(((st.nx||{})[st.cls])||0))?(st.top||[]):[];   // student: the two fixed readers until the first Next
+  const showTop=topS.length>0;
+  const shown=showTop?"":(st.day===todayStr?st.name:"");   // a name left over from another day is never shown
   const nameRef=React.useRef(null);
   const [fit,setFit]=React.useState(0);
   const maxPx=isStu?150:30,minPx=isStu?24:15;
   React.useLayoutEffect(()=>{
-    const el=nameRef.current;if(!shown||!el)return;
+    const el=nameRef.current;if((!shown&&!showTop)||!el)return;
     const calc=()=>{
       const w=el.clientWidth-32;if(w<=0)return;
       const cv=document.createElement("canvas").getContext("2d");cv.font=(isStu?700:500)+" 100px "+FONT;
       if(isStu){
         // student: largest size where the wrapped name fits the box in BOTH width and height
-        const words=shown.split(/\s+/).filter(Boolean),ww=words.map(x=>cv.measureText(x).width),sp=cv.measureText(" ").width;
+        const items=(showTop?topS:[shown]).map(t=>t.split(/\s+/).filter(Boolean).map(x=>cv.measureText(x).width)),sp=cv.measureText(" ").width;
         const h=Math.max(60,(el.parentElement?el.parentElement.clientHeight:window.innerHeight)-48);
         let best=minPx;
         for(let sz=maxPx;sz>=minPx;sz-=2){
-          const k=sz/100;let lines=1,line=0,okW=true;
-          ww.forEach(x=>{const wx=x*k;if(wx>w)okW=false;if(line===0)line=wx;else if(line+sp*k+wx<=w)line+=sp*k+wx;else{lines++;line=wx;}});
-          if(okW&&lines*sz*1.2<=h){best=sz;break;}
+          const k=sz/100;let lines=0,okW=true;
+          items.forEach(ww=>{let l=1,line=0;ww.forEach(x=>{const wx=x*k;if(wx>w)okW=false;if(line===0)line=wx;else if(line+sp*k+wx<=w)line+=sp*k+wx;else{l++;line=wx;}});lines+=l;});
+          if(okW&&lines*sz*1.2+(items.length-1)*sz*0.4<=h){best=sz;break;}
         }
         setFit(Math.max(minPx,Math.floor(best*0.92)));
         return;
@@ -8024,10 +8025,10 @@ function NextUpPage({records}){
     if(document.fonts&&document.fonts.ready)document.fonts.ready.then(calc);
     window.addEventListener("resize",calc);
     return()=>window.removeEventListener("resize",calc);
-  },[shown,st.seq,isStu]);
-  const big=(h,min)=>shown?React.createElement('div',{key:st.seq,ref:nameRef,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:fit?fit+"px":"clamp("+(min||54)+"px,"+(isStu?10:h)+"vw,"+maxPx+"px)",lineHeight:1.2,fontWeight:isStu?700:500,letterSpacing:isStu?"0":"0.01em",whiteSpace:isStu?"normal":"nowrap",color:isStu?"#1b1200":"#3a2c08",overflowWrap:"normal",wordBreak:"normal",hyphens:"none"}},shown)
+  },[shown,showTop,topS.join("|"),st.seq,isStu]);
+  const big=(h,min)=>(shown||showTop)?React.createElement('div',{key:st.seq,ref:nameRef,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:fit?fit+"px":"clamp("+(min||54)+"px,"+(isStu?10:h)+"vw,"+maxPx+"px)",lineHeight:1.2,fontWeight:isStu?700:500,letterSpacing:isStu?"0":"0.01em",whiteSpace:isStu?"normal":"nowrap",color:isStu?"#1b1200":"#3a2c08",overflowWrap:"normal",wordBreak:"normal",hyphens:"none"}},showTop?topS.map((n,i)=>React.createElement('div',{key:i,style:{marginTop:i?"0.4em":0}},n)):shown)
     :null;
-  const card=(height,minH)=>React.createElement('div',{style:{minHeight:minH||220,height:height,borderRadius:isStu?28:22,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid "+(shown?"#b8932f":"#c9a553"),background:shown?"linear-gradient(160deg,#e6cf8a,#c9a553)":"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",boxShadow:shown?"0 14px 40px rgba(184,147,47,0.35)":"0 14px 40px rgba(7,21,14,0.35)"}},big(isStu?16:7,isStu?54:30));
+  const card=(height,minH)=>React.createElement('div',{style:{minHeight:minH||220,height:height,borderRadius:isStu?28:22,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid "+((shown||showTop)?"#b8932f":"#c9a553"),background:(shown||showTop)?"linear-gradient(160deg,#e6cf8a,#c9a553)":"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",boxShadow:(shown||showTop)?"0 14px 40px rgba(184,147,47,0.35)":"0 14px 40px rgba(7,21,14,0.35)"}},big(isStu?16:7,isStu?54:30));
   if(isStu){
     // Student screen: just the name, nothing else.
     return React.createElement('div',{style:{padding:"14px 12px 24px",maxWidth:1000,margin:"0 auto"}},
