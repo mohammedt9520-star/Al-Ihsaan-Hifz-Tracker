@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261126-160000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261127-100000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261126-160000';
+const APP_VERSION='hifz-20261127-100000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -1065,6 +1065,83 @@ function esc(v){
   return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;")
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
+// ── 13-LINE QURAN (printed page = PDF page; 1 page = 1 side = 13 lines; Juz 1 starts p.2, Juz 30 ends p.848) ──
+// Page on which each Juz starts (S) and on which its quarter (R = ¼), half (H = ½) and three-quarter (T = ¾) marks fall.
+const Q13={LAST:848,
+  S:[2,29,57,85,113,141,169,197,225,253,281,309,337,365,393,421,449,477,505,533,559,587,613,641,667,697,727,757,787,819],
+  R:[10,35,63,91,120,148,176,202,231,260,287,315,343,371,399,427,455,483,511,538,566,593,620,647,674,703,734,764,794,826],
+  H:[16,42,71,99,126,155,183,208,238,267,295,322,351,378,406,435,462,490,518,545,573,599,626,653,680,713,741,770,802,833],
+  T:[22,50,78,105,134,162,190,216,245,273,301,330,357,385,413,441,469,497,525,551,581,606,633,660,688,718,748,778,811,840]};
+// Position (in quarters, 0..120) at the start of page p (page numbers are used the same way as the report's "pages = to - from").
+function quranPos(p){
+  p=parseInt(p,10);if(!(p>0))return null;
+  const x=Math.min(Q13.LAST+1,p);
+  if(x<=Q13.S[0])return 0;
+  if(x>=Q13.LAST+1)return 120;
+  let j=0;while(j<29&&Q13.S[j+1]<=x)j++;
+  const nxt=j<29?Q13.S[j+1]:Q13.LAST+1;
+  const b=[Q13.S[j],Q13.R[j],Q13.H[j],Q13.T[j],nxt];
+  let k=0;while(k<3&&b[k+1]<=x)k++;
+  return j*4+k+(x-b[k])/(b[k+1]-b[k]);
+}
+function quranPlace(p){   // "Juz 12 · Quarter 2" for the page a student has reached
+  const q=quranPos(p);if(q===null)return"—";
+  if(q>=120)return"Juz 30 · Complete";
+  return"Juz "+(Math.floor(q/4)+1)+" · Quarter "+(Math.floor(q%4)+1);
+}
+// How much of the Quran lies between fromPage (last page done before) and toPage (last page done now)
+function quranProgress(fromPage,toPage){
+  const a=quranPos(fromPage),b=quranPos(toPage);
+  if(a===null||b===null||parseInt(toPage,10)<=parseInt(fromPage,10))return null;
+  const total=Math.round((b-a)*1000)/1000;
+  const whole=Math.floor(total+1e-6);
+  return{total:total,quartersWhole:whole,juz:Math.floor(whole/4),quarters:whole%4,decimalJuz:total/4,
+    fromPlace:quranPlace(fromPage),toPlace:quranPlace(toPage)};
+}
+function quranText(pr){
+  if(!pr)return"—";
+  const parts=[];
+  if(pr.juz>0)parts.push(pr.juz+" Juz");
+  if(pr.quarters>0||pr.juz===0)parts.push(pr.quarters+" Quarter"+(pr.quarters!==1?"s":""));
+  return parts.join(" & ");
+}
+// Collate one student's monthly records between two months (YYYY-MM, inclusive) into ONE report entry.
+function buildExamEntry(name,cls,allRecords,fromMonth,toMonth,extra){
+  const recs=(allRecords||[]).filter(function(r){
+    if(r.isStudentProfile||r.name!==name||r.class!==cls||!r.dateFrom)return false;
+    const m=r.dateFrom.slice(0,7);return m>=fromMonth&&m<=toMonth;
+  }).sort(function(a,b){return a.dateFrom.localeCompare(b.dateFrom);});
+  if(!recs.length)return null;
+  const num=function(v){return parseFloat(v)||0;};
+  const sum=function(k){return recs.reduce(function(s,r){return s+num(r[k]);},0);};
+  let fp=0,tp=0;
+  for(let i=0;i<recs.length;i++){if(parseInt(recs[i].fromPage)>0){fp=parseInt(recs[i].fromPage);break;}}
+  for(let i=recs.length-1;i>=0;i--){if(parseInt(recs[i].toPage)>0){tp=parseInt(recs[i].toPage);break;}}
+  const pagesOk=fp>0&&tp>fp;
+  const monthLines=recs.reduce(function(s,r){return s+num(r.totalFullSides)*13+num(r.plusLines);},0);
+  const pages=pagesOk?tp-fp:Math.floor(monthLines/13);
+  const sabaqDays=sum("totalDaysOfSabaq");
+  const wDays=recs.reduce(function(s,r){return s+Math.max(0,num(r.totalDaysOfSabaq)-num(r.absences)-num(r.paraDorMornings));},0);
+  const last=recs[recs.length-1];
+  const bh=recs.map(function(r){return num(r.behaviour);}).filter(function(x){return x>0;});
+  const e=Object.assign({},last,{
+    id:"",name:name,class:cls,
+    fromPage:fp?String(fp):"",toPage:tp?String(tp):"",
+    totalFullSides:String(pages),plusLines:pagesOk?"0":String(Math.round((monthLines%13)*2)/2),
+    absences:String(sum("absences")),paraDorMornings:String(sum("paraDorMornings")),totalDaysOfSabaq:String(sabaqDays),
+    dateFrom:fromMonth+"-01",dateTo:toMonth+"-"+String(new Date(parseInt(toMonth.slice(0,4)),parseInt(toMonth.slice(5,7)),0).getDate()).padStart(2,"0"),
+    targetGiven:last.targetGiven||13,upcomingTarget:last.upcomingTarget||13,
+    avgSpMistakes:String(wDays>0?Math.round(recs.reduce(function(s,r){return s+num(r.avgSpMistakes)*Math.max(0,num(r.totalDaysOfSabaq)-num(r.absences)-num(r.paraDorMornings));},0)/wDays*10)/10:0),
+    spScrapeCount:String(sum("spScrapeCount")),spKacchaCount:String(sum("spKacchaCount")),
+    sp2Count:String(sum("sp2Count")),sp2ScrapeCount:String(sum("sp2ScrapeCount")),sp2KacchaCount:String(sum("sp2KacchaCount")),
+    weakSabaqInstances:String(sum("weakSabaqInstances")),sabaqLessLinesCount:String(sum("sabaqLessLinesCount")),
+    eveningPossibleDays:String(sum("eveningPossibleDays")||""),eveningAbsences:String(sum("eveningAbsences")||""),
+    behaviour:bh.length?Math.max(1,Math.min(5,Math.round(bh.reduce(function(s,x){return s+x;},0)/bh.length))):(last.behaviour||5),
+    teacherComments:(extra&&extra.comments)||"",
+    _months:recs.length,_pagesFromRange:pagesOk
+  });
+  return e;
+}
 function calcEntry(s){
   const E=parseFloat(s.totalFullSides)||0,F=parseFloat(s.plusLines)||0;
   const G=parseFloat(s.absences)||0,H=parseFloat(s.paraDorMornings)||0;
@@ -1242,7 +1319,8 @@ function svgCircleLarge(color){
   return '<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:'+c+';vertical-align:middle;margin-left:7px;flex-shrink:0;"></span>';
 }
 
-function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPlan){
+function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPlan, opts){
+  const OP=opts||{};const PER=OP.title?"This Period":"This Month";
   if(!entry||!calc)return"<html><body><p>No record data available.</p></body></html>";
   if(!Array.isArray(dorRecords))dorRecords=[];
   if(!Array.isArray(allRecords))allRecords=[];
@@ -1417,7 +1495,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPl
   // Logo: crop bottom ~38% to remove "Hifz Tracker" text, show crest only
   h+='<div style="width:72px;height:50px;overflow:hidden;flex-shrink:0;border-radius:3px;">';
   h+='<img src="'+window.LOGO_SRC+'" style="width:72px;display:block;"/></div>';
-  h+='<div><div class="rpt-title">Monthly Hifz Report</div>';
+  h+='<div><div class="rpt-title">'+esc(OP.title||'Monthly Hifz Report')+'</div>';
   h+='<div class="rpt-title-sub">Al-Ihsaan Academy</div></div>';
   h+='</div>';
 
@@ -1427,7 +1505,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPl
   h+='<div class="meta-cell"><div class="meta-lbl">Student\'s Name</div><div class="meta-val">'+esc(entry.name)+'</div></div>';
   h+='<div class="meta-cell"><div class="meta-lbl">Date of Report</div><div class="meta-val">'+dateRange+'</div></div>';
   h+='<div class="meta-cell" style="border-bottom:none;"><div class="meta-lbl">Class</div><div class="meta-val">'+esc(entry.class)+'</div></div>';
-  h+='<div class="meta-cell" style="border-bottom:none;"><div class="meta-lbl">Month</div><div class="meta-val">'+monthRange+'</div></div>';
+  h+='<div class="meta-cell" style="border-bottom:none;"><div class="meta-lbl">'+(OP.periodLabel||'Month')+'</div><div class="meta-val">'+monthRange+'</div></div>';
   h+='</div></div>';
 
   // 1. Attendance Overview
@@ -1443,7 +1521,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPl
     var s='<div class="card">';
     s+='<div class="sec-hdr '+hdrClass+'"><span class="sec-num">1</span> '+title+'</div>';
     s+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;">';
-    s+='<div class="att-cell"><div class="att-lbl">'+(sessLabel||'Morning Sessions This Month')+'</div><div class="att-val">'+possible+'</div></div>';
+    s+='<div class="att-cell"><div class="att-lbl">'+(sessLabel||('Morning Sessions '+PER))+'</div><div class="att-val">'+possible+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Absences</div><div class="att-val '+(absences>0?"val-red":"")+'">'+absences+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Total Sessions Attended</div><div class="att-val val-green">'+attended+'</div></div>';
     s+='<div class="att-cell"><div class="att-lbl">Attendance %</div><div style="display:flex;justify-content:center;padding:6px 0;">'+svgDonut(pct,col)+'</div></div>';
@@ -1453,11 +1531,11 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPl
 
   if(hasEvening){
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;">';
-    h+=attBlock("AM Session (Morning)",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue","Morning Sessions This Month");
-    h+=attBlock("PM Session (Evening)",eveningPossible,eveningAbsences,eveningAttended,eveningPct,"sec-hdr-navy","Evening Sessions This Month");
+    h+=attBlock("AM Session (Morning)",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue","Morning Sessions "+PER);
+    h+=attBlock("PM Session (Evening)",eveningPossible,eveningAbsences,eveningAttended,eveningPct,"sec-hdr-navy","Evening Sessions "+PER);
     h+='</div>';
   } else {
-    h+=attBlock("Attendance Overview",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue","Morning Sessions This Month");
+    h+=attBlock("Attendance Overview",amPossible,amAbsences,amAttended,amPct,"sec-hdr-blue","Morning Sessions "+PER);
   }
 
   if(!isHafidh){
@@ -1476,7 +1554,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPl
 
   // 3. Sabaq Completed This Month
   h+='<div class="card">';
-  h+='<div class="sec-hdr sec-hdr-green"><span class="sec-num">3</span> Sabaq Completed This Month</div>';
+  h+='<div class="sec-hdr sec-hdr-green"><span class="sec-num">3</span> Sabaq Completed '+PER+'</div>';
   h+='<table class="dtbl"><tr>';
   h+='<td><div class="lbl">Page Numbers</div><div class="val">'+esc(entry.fromPage)+' – '+esc(entry.toPage)+'</div></td>';
   h+='<td><div class="lbl">Total Lines</div><div class="val">'+fmt(calc.I,1)+'</div></td>';
@@ -1500,6 +1578,16 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPl
   h+='</td>';
   h+='</tr></table></div>';
 
+  if(OP.quran){
+    const qp=OP.quran;
+    h+='<div class="card">';
+    h+='<div class="sec-hdr sec-hdr-teal"><span class="sec-num">\u2726</span> Quran Progress (Juz &amp; Quarters)</div>';
+    h+='<table class="dtbl"><tr>';
+    h+='<td><div class="lbl">Started At</div><div class="val" style="font-size:15px;">Page '+esc(entry.fromPage)+'</div><div style="font-size:11px;color:#6b7280;margin-top:3px;">'+qp.fromPlace+'</div></td>';
+    h+='<td><div class="lbl">Reached</div><div class="val" style="font-size:15px;">Page '+esc(entry.toPage)+'</div><div style="font-size:11px;color:#6b7280;margin-top:3px;">'+qp.toPlace+'</div></td>';
+    h+='<td colspan="2"><div class="lbl">Completed In This Period</div><div class="val" style="font-size:20px;color:#5b2e8a;">'+quranText(qp)+'</div><div style="font-size:11px;color:#6b7280;margin-top:3px;">\u2248 '+fmt(qp.decimalJuz,2)+' Juz</div></td>';
+    h+='</tr></table></div>';
+  }
   // 4. Target for Next Month
   h+='<div class="card">';
   h+='<div class="sec-hdr sec-hdr-purple"><span class="sec-num">4</span> Target for Next Month</div>';
@@ -1511,7 +1599,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPl
   } // end !isHafidh sabaq sections
   if(isHafidh){
     h+='<div class="card">';
-    h+='<div class="sec-hdr sec-hdr-crimson"><span class="sec-num">2</span> Dor Record This Month</div>';
+    h+='<div class="sec-hdr sec-hdr-crimson"><span class="sec-num">2</span> Dor Record '+PER+'</div>';
     if(juzList.length>0){
       h+='<div>'+hmHTML+'</div>';
       h+='<div style="display:flex;justify-content:space-evenly;align-items:center;padding:10px 12px;border-top:1.5px solid #ede9e0;">';
@@ -1551,7 +1639,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPl
   h+='<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;padding-bottom:12px;border-bottom:1.5px solid #ede9e0;">';
   h+='<div style="width:54px;height:38px;overflow:hidden;flex-shrink:0;border-radius:3px;">';
   h+='<img src="'+window.LOGO_SRC+'" style="width:54px;display:block;"/></div>';
-  h+='<div style="flex:1;"><div style="font-size:14px;font-weight:900;color:#1e2d5a;letter-spacing:1px;text-transform:uppercase;line-height:1.1;">Monthly Hifz Report</div>';
+  h+='<div style="flex:1;"><div style="font-size:14px;font-weight:900;color:#1e2d5a;letter-spacing:1px;text-transform:uppercase;line-height:1.1;">'+esc(OP.title||'Monthly Hifz Report')+'</div>';
   h+='<div style="font-size:10px;color:#9099ae;letter-spacing:1.2px;text-transform:uppercase;margin-top:3px;">Al-Ihsaan Academy</div></div>';
   h+='<div style="text-align:right;"><div style="font-size:11px;font-weight:700;color:#1e2d5a;">'+esc(entry.name)+'</div>';
   h+='<div style="font-size:9px;color:#a0a8b8;letter-spacing:0.5px;margin-top:2px;">'+dateRange+'</div></div>';
@@ -1561,7 +1649,7 @@ function generateReportHTML(entry, calc, dorRecords, allRecords, pageNum, yearPl
   // 5. Dor (Revision) Record — non-Hafidh only (Hafidh see it on page 1)
   if(!isHafidh){
   h+='<div class="card">';
-  h+='<div class="sec-hdr sec-hdr-crimson"><span class="sec-num">5</span> Dor (Revision) Record This Month</div>';
+  h+='<div class="sec-hdr sec-hdr-crimson"><span class="sec-num">5</span> Dor (Revision) Record '+PER+'</div>';
   if(juzList.length>0){
     h+='<div>'+hmHTML+'</div>';
     h+='<div style="display:flex;justify-content:space-evenly;align-items:center;padding:10px 12px;border-top:1.5px solid #ede9e0;">';
@@ -3842,6 +3930,7 @@ function App(){
     {icon:"⚠️",label:"Absences",view:"absences"},
     {icon:"⏰",label:"Lates",view:"lates"},
     {icon:"📊",label:"Monthly Report",view:"monthlyReport"},
+    {icon:"🎓",label:"Exam Report",view:"examReport"},
     {icon:"🏫",label:"Classes",view:"classes"},
     {icon:"📅",label:"Year Planner",view:"yearPlanner"},
     {icon:"➕",label:"Add Monthly Entry",view:"addEntry"},
@@ -4061,6 +4150,7 @@ function App(){
         {label:"Records & Reports",items:[
           {icon:"➕",label:"Add Monthly Entry",sub:"Collate & save monthly record",view:"addEntry",accent:"#B8934A"},
           {icon:"📊",label:"Monthly Report",sub:"Class summary · Dor heat map",view:"monthlyReport",accent:"#7C3AED"},
+          {icon:"🎓",label:"Exam Report",sub:"Half-year / end-of-year · Juz & quarters",view:"examReport",accent:"#0d6b5e"},
           {icon:"📄",label:"Reports",sub:"Email reports to parents",view:"reports",accent:"#059669"},
         ]},
         {label:"Champions",items:[
@@ -4176,6 +4266,7 @@ function App(){
     , view==="monthlyAbsences"&&React.createElement(MonthlyAbsencesPage, {yearPlan:yearPlan,registerData:registerData,})
 
     , view==="absences"&&React.createElement(AbsencesPage, {yearPlan:yearPlan,registerData:registerData,setRegisterData:setRegisterData,records:records,syncNow:syncNow,})
+    , view==="examReport"&&React.createElement(ExamReportPage, {records:records,dorRecords:dorRecords,hafidhStudents:hafidhStudents,yearPlan:yearPlan,})
     , view==="monthlyReport"&&React.createElement(MonthlyReportPage, {records:records,dailySabaqEntries:dailySabaqEntries,dorRecords:dorRecords,registerData:registerData,hafidhStudents:hafidhStudents,})
 
     /* LEFT STUDENTS */
@@ -8345,6 +8436,88 @@ function AbsencesPage({yearPlan,registerData,setRegisterData,records,syncNow}){
 // ─────────────────────────────────────────────────────────────────────────────
 // MONTHLY REPORT PAGE
 // ─────────────────────────────────────────────────────────────────────────────
+// ── EXAM REPORT: half-year / end-of-year report collated from the monthly records between two months ──
+function ExamReportPage({records,dorRecords,hafidhStudents,yearPlan}){
+  const today=getTodayStr();
+  const yNow=parseInt(today.slice(0,4)),mNow=parseInt(today.slice(5,7));
+  const ayStart=mNow>=7?yNow:yNow-1;                    // academic year runs July -> June
+  const pad=n=>String(n).padStart(2,"0");
+  const [cls,setCls]=React.useState("HIFZ CLASS A");
+  const [kind,setKind]=React.useState("half");          // half | end | custom
+  const [fromM,setFromM]=React.useState(ayStart+"-07");
+  const [toM,setToM]=React.useState(today.slice(0,7));
+  const [comments,setComments]=React.useState({});
+  const [picked,setPicked]=React.useState({});          // name -> false when un-ticked
+  const TITLES={half:"Half-Year Exam Report",end:"End of Year Exam Report",custom:"Exam Report"};
+  function preset(k){
+    setKind(k);
+    if(k==="half"){setFromM(ayStart+"-07");setToM(ayStart+"-11");}
+    else if(k==="end"){setFromM(ayStart+"-12");setToM((ayStart+1)+"-06");}
+  }
+  const names=React.useMemo(()=>[...new Set((records||[]).filter(r=>!r.isStudentProfile&&r.class===cls&&r.name&&!r.name.startsWith("(")).map(r=>r.name))].sort(),[records,cls]);
+  // everything below is computed on the device from data already loaded, so it updates the moment a month is changed
+  const rows=React.useMemo(()=>names.map(n=>{
+    const e=buildExamEntry(n,cls,records,fromM,toM,{comments:comments[n]});
+    if(!e)return{name:n,entry:null};
+    const calc=Object.assign({},e,calcEntry(e));
+    const pr=quranProgress(e.fromPage,e.toPage);
+    return{name:n,entry:e,calc:calc,pr:pr,hafidh:hafidhStudents&&hafidhStudents.has(n)};
+  }),[names,cls,records,fromM,toM,comments,hafidhStudents]);
+  const OPTS=()=>({title:TITLES[kind],periodLabel:"Period"});
+  function html(r){return generateReportHTML(r.entry,r.calc,dorRecords,records,undefined,yearPlan,Object.assign(OPTS(),{quran:r.hafidh?null:r.pr}));}
+  function openOne(r){
+    const w=window.open(URL.createObjectURL(new Blob([html(r)],{type:"text/html"})),"_blank");
+    if(!w)showToast("Allow pop-ups to open the report","warning");
+  }
+  function openAll(){
+    const sel=rows.filter(r=>r.entry&&picked[r.name]!==false);
+    if(!sel.length){showToast("No students with data in this period","warning");return;}
+    let h="<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>"+TITLES[kind]+"</title><style>@media print{.sr{page-break-after:always;}}body{margin:0;}</style></head><body>";
+    sel.forEach(r=>{[1,2].forEach(pg=>{h+='<div class="sr">'+generateReportHTML(r.entry,r.calc,dorRecords,records,pg,yearPlan,Object.assign(OPTS(),{quran:r.hafidh?null:r.pr}))+"</div>";});});
+    h+="</body></html>";
+    const w=window.open(URL.createObjectURL(new Blob([h],{type:"text/html"})),"_blank");
+    if(!w)showToast("Allow pop-ups to open the reports","warning");
+  }
+  const pill=on=>({border:"none",borderRadius:17,padding:"8px 16px",fontSize:13,fontWeight:on?700:500,cursor:"pointer",background:on?"#fff":"transparent",color:on?"#1a1f2e":"#6b7280",boxShadow:on?"0 1px 4px rgba(0,0,0,0.12)":"none"});
+  const lbl={fontSize:11,fontWeight:700,color:MUTED,letterSpacing:"0.6px",textTransform:"uppercase",display:"block",marginBottom:6};
+  const withData=rows.filter(r=>r.entry);
+  return React.createElement("div",{style:{padding:"18px 14px 60px",maxWidth:900,margin:"0 auto"}},
+    React.createElement(PageTitle,{title:"Exam Report",sub:"Half-year & end-of-year, collated from the monthly records"}),
+    React.createElement("div",{style:{background:"#fff",borderRadius:16,border:"1px solid #E5E7EB",padding:"16px 18px",marginBottom:16,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}},
+      React.createElement("div",{style:{display:"flex",gap:14,flexWrap:"wrap",alignItems:"flex-end"}},
+        React.createElement("div",null,React.createElement("label",{style:lbl},"Class"),
+          React.createElement("div",{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
+            ["HIFZ CLASS A","HIFZ CLASS B"].map(c=>React.createElement("button",{key:c,onClick:()=>setCls(c),style:pill(cls===c)},c.replace("HIFZ CLASS ","Class "))))),
+        React.createElement("div",null,React.createElement("label",{style:lbl},"Report"),
+          React.createElement("div",{style:{display:"inline-flex",background:"#ece7d6",borderRadius:20,padding:3,gap:2}},
+            [["half","Half-Year"],["end","End of Year"],["custom","Custom"]].map(t=>React.createElement("button",{key:t[0],onClick:()=>preset(t[0]),style:pill(kind===t[0])},t[1])))),
+        React.createElement("div",null,React.createElement("label",{style:lbl},"From month"),
+          React.createElement("input",{type:"month",value:fromM,onChange:e=>{setFromM(e.target.value);setKind("custom");},style:{padding:"9px 12px",borderRadius:10,border:"1px solid #E5E7EB",fontSize:15,outline:"none"}})),
+        React.createElement("div",null,React.createElement("label",{style:lbl},"To month"),
+          React.createElement("input",{type:"month",value:toM,onChange:e=>{setToM(e.target.value);setKind("custom");},style:{padding:"9px 12px",borderRadius:10,border:"1px solid #E5E7EB",fontSize:15,outline:"none"}}))),
+      React.createElement("div",{style:{fontSize:12,color:"#6b7280",marginTop:10}},"Half-Year = Jul–Nov, End of Year = Dec–Jun (the dates can be changed). Numbers below update instantly.")),
+    React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}},
+      React.createElement("div",{style:{fontSize:13,color:"#4b5563"}},withData.length+" of "+rows.length+" students have monthly records in this period"),
+      React.createElement("button",{onClick:openAll,style:{padding:"10px 18px",borderRadius:10,border:"none",background:"linear-gradient(135deg,#0d6b5e,#1a8a7a)",color:"#fff",fontWeight:700,fontSize:13,cursor:"pointer"}},"Open ticked reports (print / save PDF)")),
+    rows.map(r=>{
+      if(!r.entry)return React.createElement("div",{key:r.name,style:{background:"#fff",border:"1px dashed #E5E7EB",borderRadius:14,padding:"10px 14px",marginBottom:8,color:"#9CA3AF",fontSize:13}},r.name+" — no monthly records in this period");
+      const c=r.calc,e=r.entry;
+      const cell=(l,v,col)=>React.createElement("div",{style:{minWidth:70}},React.createElement("div",{style:{fontSize:9.5,fontWeight:700,color:"#9CA3AF",textTransform:"uppercase",letterSpacing:"0.4px"}},l),React.createElement("div",{style:{fontSize:15,fontWeight:700,color:col||"#1a1f2e"}},v));
+      return React.createElement("div",{key:r.name,style:{background:"#fff",border:"1px solid #E5E7EB",borderRadius:14,padding:"12px 14px",marginBottom:10,boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:8}},
+          React.createElement("input",{type:"checkbox",checked:picked[r.name]!==false,onChange:ev=>setPicked(p=>Object.assign({},p,{[r.name]:ev.target.checked}))}),
+          React.createElement("div",{style:{fontWeight:700,fontSize:15,flex:1}},r.name+(r.hafidh?"  🎓":""),React.createElement("span",{style:{fontWeight:500,fontSize:11,color:"#9CA3AF",marginLeft:8}},e._months+" month"+(e._months!==1?"s":""))),
+          React.createElement("button",{onClick:()=>openOne(r),style:{padding:"7px 14px",borderRadius:9,border:"1px solid #E5E7EB",background:"#fff",fontWeight:600,fontSize:12,cursor:"pointer"}},"View report")),
+        React.createElement("div",{style:{display:"flex",gap:16,flexWrap:"wrap"}},
+          cell("Subject days",c.N),cell("Absences",c.G,c.G>0?"#DC2626":null),cell("Para Dor days",c.H),cell("Days of Sabaq",c.J),
+          cell("Pages",(e.fromPage||"?")+" → "+(e.toPage||"?")),cell("Pages done",c.totalAvgPages?fmt(c.totalAvgPages,0):"0"),
+          cell("Avg lines/day",fmt(c.K,2),"#0d6b5e"),
+          cell("Juz & quarters",r.hafidh?"—":quranText(r.pr),"#7C3AED")),
+        !e._pagesFromRange&&React.createElement("div",{style:{fontSize:11,color:"#B45309",marginTop:6}},"⚠️ Page numbers missing on some months – lines were added up from the monthly totals and juz/quarters can't be worked out."),
+        React.createElement("textarea",{placeholder:"Teacher's comments for this report (optional)",value:comments[r.name]||"",onChange:ev=>setComments(p=>Object.assign({},p,{[r.name]:ev.target.value})),style:{width:"100%",marginTop:8,minHeight:46,borderRadius:8,border:"1px solid #E5E7EB",padding:"8px 10px",fontSize:12,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}}));
+    }));
+}
+
 function MonthlyReportPage({records,dailySabaqEntries,dorRecords,registerData,hafidhStudents}){
   var today=getTodayStr();
   var curMonth=today.substring(0,7);
