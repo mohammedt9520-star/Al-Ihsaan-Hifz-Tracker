@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<!-- hifz-20261107-092330 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
+<!-- hifz-20261126-120000 | Added Salaah Tracker (entry, tracker, best salaah award, print) -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -211,7 +211,7 @@ var _dp=null;window.addEventListener("beforeinstallprompt",function(e){e.prevent
 const defaultDorEntry={id:"",studentName:"",date:"",dor1Juz:"",dor1Quarter:"",dor1Mistakes:"",dor1Repeated:false,dor2Juz:"",dor2Quarter:"",dor2Mistakes:"",dor2Repeated:false,paraTest:false,paraTestJuz:"",paraTestTotalMistakes:"",paraTestResult:"Passed",paraDor:false};
 
 
-const APP_VERSION='hifz-20261107-092330';
+const APP_VERSION='hifz-20261126-120000';
 const SUPABASE_URL="https://yyfkoenhpotzcuwxpnsy.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZmtvZW5ocG90emN1d3hwbnN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDM4NzgsImV4cCI6MjA5NTg3OTg3OH0.UDVDhOZgvtMcN89F1hz0725nmVJ7bCLW-BjUxhKZs4g";
 // ── SUPABASE LAYER ─────────────────────────────────────────────
@@ -7827,7 +7827,7 @@ function NextUpPage({records}){
   const KEY="nextUp";
   const isStu=window._HIFZ_ROLE==="student";
   const [cls,setCls]=React.useState("HIFZ CLASS A");
-  const [st,setSt]=React.useState({seq:0,cls:"",name:"",called:{},absent:{},deferred:{},at:""});
+  const [st,setSt]=React.useState({seq:0,cls:"",name:"",called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{},second:false,at:""});
   const [ok,setOk]=React.useState(true);
   const [ready,setReady]=React.useState(false);   // true once the shared state has been read at least once
   const [,setClock]=React.useState(0);            // re-renders every minute so a page left open overnight notices the new day
@@ -7839,7 +7839,17 @@ function NextUpPage({records}){
   const todayStr=slToday(),dow=new Date().getDay();   // today's date + weekday on THIS device (admin presses Next)
   const fixedSet=c=>new Set(((READING_ROTA[c]||{})[dow]||[]).map(norm));
   // a new day always starts with a clean pool: yesterday's called/absent lists are ignored
-  const fresh=s=>s.day===todayStr?s:Object.assign({},s,{day:todayStr,name:"",called:{},absent:{},deferred:{}});
+  const fresh=s=>s.day===todayStr?s:Object.assign({},s,{day:todayStr,name:"",second:false,called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{}});
+  // Hafidh students (marked on their profile) are "blue" (called twice) automatically every day.
+  const hafidhSet=React.useMemo(()=>new Set((records||[]).filter(r=>r&&r.isStudentProfile&&r.isHafidh).map(r=>norm(r.name))),[records]);
+  const GAP=5;   // a second call comes only after at least this many other calls, so the student has time to get ready
+  const gi=(s,k,c)=>((s[k]||{})[c])||(k==="again"||k==="modes"?{}:[]);   // read a per-class bucket safely
+  // effective mode of a student: "n" normal (once), "a" absent, "b" blue (called twice)
+  const modeOf=(c,s,n)=>{
+    if((s.absent&&s.absent[c]||[]).includes(n))return "a";
+    const m=gi(s,"modes",c)[n];if(m==="b"||m==="n")return m;
+    return hafidhSet.has(norm(n))?"b":"n";
+  };
   const roster=React.useMemo(()=>{
     const isReal=n=>{if(!n||n.startsWith("(")||n.startsWith("*"))return false;const l=n.toLowerCase();return !["instances","1-5","dd/mm"].some(w=>l.includes(w));};
     const m={"HIFZ CLASS A":new Set(),"HIFZ CLASS B":new Set()};
@@ -7852,7 +7862,7 @@ function NextUpPage({records}){
       const rows=await sbFetch("salaah_settings?select=value&key=eq."+KEY,"GET");
       if(rows&&rows[0]&&rows[0].value&&!pushing.current){
         const v=JSON.parse(rows[0].value);
-        if(v&&typeof v==="object")setSt(prev=>(prev.seq===v.seq&&prev.name===v.name&&JSON.stringify(prev.absent)===JSON.stringify(v.absent)&&JSON.stringify(prev.deferred)===JSON.stringify(v.deferred))?prev:Object.assign({seq:0,called:{},absent:{},deferred:{}},v));
+        if(v&&typeof v==="object")setSt(prev=>(prev.seq===v.seq&&prev.name===v.name&&JSON.stringify([prev.absent,prev.deferred,prev.modes,prev.again,prev.done2])===JSON.stringify([v.absent,v.deferred,v.modes,v.again,v.done2]))?prev:Object.assign({seq:0,called:{},absent:{},deferred:{},modes:{},again:{},done2:{},hist:{}},v));
       }
       setOk(true);setReady(true);
     }catch(e){setOk(false);}
@@ -7872,41 +7882,92 @@ function NextUpPage({records}){
     finally{pushing.current--;}
   }
   // Still to be called: first everyone else (random), then the "Not Ready" students at the END, in the order they were pushed back.
-  const mainOf=(c,s0)=>{const s=fresh(s0),fx=fixedSet(c),d=(s.deferred||{})[c]||[];return roster[c].filter(n=>!fx.has(norm(n))&&!(s.called[c]||[]).includes(n)&&!(s.absent[c]||[]).includes(n)&&!d.includes(n));};
-  const queueOf=(c,s0)=>{const s=fresh(s0),fx=fixedSet(c);return (((s.deferred||{})[c])||[]).filter(n=>roster[c].includes(n)&&!fx.has(norm(n))&&!(s.absent[c]||[]).includes(n));};
-  const poolOf=(c,s)=>[...mainOf(c,s),...queueOf(c,s)];
+  const mainOf=(c,s0)=>{const s=fresh(s0),fx=fixedSet(c),d=gi(s,"deferred",c);return roster[c].filter(n=>!fx.has(norm(n))&&!(s.called[c]||[]).includes(n)&&!(s.absent[c]||[]).includes(n)&&!d.includes(n));};
+  const queueOf=(c,s0)=>{const s=fresh(s0),fx=fixedSet(c);return gi(s,"deferred",c).filter(n=>roster[c].includes(n)&&!fx.has(norm(n))&&!(s.absent[c]||[]).includes(n));};
+  // Second calls still owed: blue students who were called once (or fixed readers who are blue - they read first, so they come up again),
+  // not absent, not yet called the second time. Value = the call number from which the second call may happen.
+  const owedOf=(c,s0)=>{
+    const s=fresh(s0),fx=fixedSet(c),ag=gi(s,"again",c),d2=gi(s,"done2",c),out=[];
+    roster[c].forEach(n=>{
+      if(d2.includes(n)||modeOf(c,s,n)!=="b")return;
+      if(ag[n]!==undefined)out.push({name:n,due:ag[n]});
+      else if(fx.has(norm(n)))out.push({name:n,due:GAP});
+    });
+    return out;
+  };
+  const poolOf=(c,s)=>[...mainOf(c,s),...queueOf(c,s),...owedOf(c,s).map(o=>o.name)];
+  const callCount=(c,s)=>gi(s,"hist",c).length;
   function pickNext(s,c){
+    const n=callCount(c,s),owed=owedOf(c,s).sort((x,y)=>x.due-y.due),due=owed.filter(o=>o.due<=n);
+    if(due.length)return{name:due[0].name,second:true,deferred:gi(s,"deferred",c)};
     const m=mainOf(c,s);
-    if(m.length)return{name:m[rnd(m.length)],deferred:s.deferred||{}};
+    if(m.length){
+      const tw=m.filter(x=>modeOf(c,s,x)==="b");   // blue students get their FIRST call near the beginning
+      const src=tw.length?tw:m;
+      return{name:src[rnd(src.length)],second:false};
+    }
     const q=queueOf(c,s);
-    if(q.length)return{name:q[0],deferred:Object.assign({},s.deferred||{},{[c]:((s.deferred||{})[c]||[]).filter(x=>x!==q[0])})};
+    if(q.length)return{name:q[0],second:false,dq:q[0]};
+    if(owed.length)return{name:owed[0].name,second:true};   // nobody else left: finish the second calls
     return null;
+  }
+  // build the new state for a call of r.name (r from pickNext)
+  function applyCall(s,c,r){
+    const hist=gi(s,"hist",c),n=hist.length,nm=r.name;
+    let called=s.called[c]||[],d2=gi(s,"done2",c),ag=Object.assign({},gi(s,"again",c)),dfr=gi(s,"deferred",c);
+    if(r.dq)dfr=dfr.filter(x=>x!==r.dq);
+    if(r.second){d2=[...d2.filter(x=>x!==nm),nm];delete ag[nm];}
+    else{called=[...called,nm];if(modeOf(c,s,nm)==="b")ag[nm]=n+1+GAP;}
+    return Object.assign({},s,{seq:(s.seq||0)+1,cls:c,name:nm,second:!!r.second,day:todayStr,at:new Date().toISOString(),
+      called:Object.assign({},s.called,{[c]:called}),done2:Object.assign({},s.done2||{},{[c]:d2}),again:Object.assign({},s.again||{},{[c]:ag}),
+      deferred:Object.assign({},s.deferred||{},{[c]:dfr}),hist:Object.assign({},s.hist||{},{[c]:[...hist,{n:nm,s:!!r.second}]})});
   }
   function next(){
     const s=fresh(stRef.current),r=pickNext(s,cls);if(!r)return;
-    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,name:r.name,day:todayStr,deferred:r.deferred,called:Object.assign({},s.called,{[cls]:[...(s.called[cls]||[]),r.name]}),at:new Date().toISOString()}));
+    push(applyCall(s,cls,r));
   }
-  // Not Ready: the student on screen goes to the END of the line and the next student is shown straight away.
+  // Not Ready: the student on screen goes to the END of the line (first call) / a few calls later (second call) and the next student is shown straight away.
   function notReady(){
     const s=fresh(stRef.current),cur=s.name;if(!cur||s.cls!==cls)return;
-    const s2=Object.assign({},s,{
-      called:Object.assign({},s.called,{[cls]:(s.called[cls]||[]).filter(n=>n!==cur)}),
-      deferred:Object.assign({},s.deferred||{},{[cls]:[...(((s.deferred||{})[cls])||[]).filter(n=>n!==cur),cur]})});
+    const hist=gi(s,"hist",cls),last=hist[hist.length-1],ag=Object.assign({},gi(s,"again",cls));
+    let s2;
+    if(s.second){
+      const nh=hist.slice(0,-1);ag[cur]=nh.length+3;
+      s2=Object.assign({},s,{done2:Object.assign({},s.done2||{},{[cls]:gi(s,"done2",cls).filter(n=>n!==cur)}),again:Object.assign({},s.again||{},{[cls]:ag}),hist:Object.assign({},s.hist||{},{[cls]:nh})});
+    }else{
+      delete ag[cur];
+      s2=Object.assign({},s,{
+        called:Object.assign({},s.called,{[cls]:(s.called[cls]||[]).filter(n=>n!==cur)}),again:Object.assign({},s.again||{},{[cls]:ag}),
+        hist:Object.assign({},s.hist||{},{[cls]:last&&last.n===cur?hist.slice(0,-1):hist}),
+        deferred:Object.assign({},s.deferred||{},{[cls]:[...gi(s,"deferred",cls).filter(n=>n!==cur),cur]})});
+    }
     const r=pickNext(s2,cls);if(!r)return;
-    push(Object.assign({},s2,{seq:(s.seq||0)+1,cls:cls,name:r.name,day:todayStr,deferred:r.deferred,called:Object.assign({},s2.called,{[cls]:[...(s2.called[cls]||[]),r.name]}),at:new Date().toISOString()}));
+    push(applyCall(s2,cls,r));
   }
   function undo(){
-    const s=fresh(stRef.current),list=s.called[cls]||[];if(!list.length)return;
-    const nl=list.slice(0,-1);
-    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,name:nl.length?nl[nl.length-1]:"",called:Object.assign({},s.called,{[cls]:nl}),at:new Date().toISOString()}));
+    const s=fresh(stRef.current),list=s.called[cls]||[],hist=gi(s,"hist",cls);
+    if(!hist.length&&!list.length)return;
+    if(!hist.length){   // state saved by an older version: simple undo
+      const nl=list.slice(0,-1);
+      push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,second:false,name:nl.length?nl[nl.length-1]:"",called:Object.assign({},s.called,{[cls]:nl}),at:new Date().toISOString()}));
+      return;
+    }
+    const e=hist[hist.length-1],nh=hist.slice(0,-1),ag=Object.assign({},gi(s,"again",cls));
+    let called=list,d2=gi(s,"done2",cls);
+    if(e.s){d2=d2.filter(x=>x!==e.n);ag[e.n]=0;}else{called=list.filter(x=>x!==e.n);delete ag[e.n];}
+    const prev=nh[nh.length-1];
+    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,name:prev?prev.n:"",second:!!(prev&&prev.s),at:new Date().toISOString(),
+      called:Object.assign({},s.called,{[cls]:called}),done2:Object.assign({},s.done2||{},{[cls]:d2}),again:Object.assign({},s.again||{},{[cls]:ag}),hist:Object.assign({},s.hist||{},{[cls]:nh})}));
   }
   function startOver(){   // no confirmation step: it happens straight away
-    const s=fresh(stRef.current);
-    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,name:"",called:Object.assign({},s.called,{[cls]:[]}),absent:Object.assign({},s.absent,{[cls]:[]}),deferred:Object.assign({},s.deferred||{},{[cls]:[]}),at:new Date().toISOString()}));
+    const s=fresh(stRef.current),z=o=>Object.assign({},o||{},{[cls]:[]}),zo=o=>Object.assign({},o||{},{[cls]:{}});
+    push(Object.assign({},s,{seq:(s.seq||0)+1,cls:cls,day:todayStr,name:"",second:false,called:z(s.called),absent:z(s.absent),deferred:z(s.deferred),done2:z(s.done2),hist:z(s.hist),again:zo(s.again),modes:zo(s.modes),at:new Date().toISOString()}));
   }
-  function toggleAbsent(n){
-    const s=fresh(stRef.current),a=s.absent[cls]||[];
-    push(Object.assign({},s,{day:todayStr,absent:Object.assign({},s.absent,{[cls]:a.includes(n)?a.filter(x=>x!==n):[...a,n]})}));
+  // Tap a student: normal (once) -> absent (crossed out) -> blue (called twice) -> normal ...  (Hafidh students start as blue each day)
+  function cycleMode(n){
+    const s=fresh(stRef.current),cur=modeOf(cls,s,n),nx=cur==="n"?"a":cur==="a"?"b":"n";
+    const a=(s.absent[cls]||[]).filter(x=>x!==n);
+    push(Object.assign({},s,{day:todayStr,absent:Object.assign({},s.absent,{[cls]:nx==="a"?[...a,n]:a}),modes:Object.assign({},s.modes||{},{[cls]:Object.assign({},gi(s,"modes",cls),{[n]:nx})})}));
   }
   // Every day, per class: the FIRST name is picked and shown automatically (once, when the class is first opened that day on an
   // admin device), so the teacher doesn't have to press Next while the two fixed readers are reading. Next then moves on from there.
@@ -7927,15 +7988,26 @@ function NextUpPage({records}){
   const shown=st.day===todayStr?st.name:"";   // a name left over from another day is never shown
   const nameRef=React.useRef(null);
   const [fit,setFit]=React.useState(0);
-  const maxPx=isStu?190:30,minPx=isStu?30:15;
+  const maxPx=isStu?150:30,minPx=isStu?24:15;
   React.useLayoutEffect(()=>{
     const el=nameRef.current;if(!shown||!el)return;
     const calc=()=>{
       const w=el.clientWidth-32;if(w<=0)return;
       const cv=document.createElement("canvas").getContext("2d");cv.font=(isStu?700:500)+" 100px "+FONT;
-      let wide=0;
-      if(isStu)shown.split(/\s+/).forEach(x=>{wide=Math.max(wide,cv.measureText(x).width);});   // student: longest word must fit
-      else wide=cv.measureText(shown).width;                                                   // admin: whole name on ONE line
+      if(isStu){
+        // student: largest size where the wrapped name fits the box in BOTH width and height
+        const words=shown.split(/\s+/).filter(Boolean),ww=words.map(x=>cv.measureText(x).width),sp=cv.measureText(" ").width;
+        const h=Math.max(60,(el.parentElement?el.parentElement.clientHeight:window.innerHeight)-48);
+        let best=minPx;
+        for(let sz=maxPx;sz>=minPx;sz-=2){
+          const k=sz/100;let lines=1,line=0,okW=true;
+          ww.forEach(x=>{const wx=x*k;if(wx>w)okW=false;if(line===0)line=wx;else if(line+sp*k+wx<=w)line+=sp*k+wx;else{lines++;line=wx;}});
+          if(okW&&lines*sz*1.2<=h){best=sz;break;}
+        }
+        setFit(Math.max(minPx,Math.floor(best*0.92)));
+        return;
+      }
+      const wide=cv.measureText(shown).width;                                                  // admin: whole name on ONE line
       if(!wide)return;
       setFit(Math.max(minPx,Math.min(maxPx,Math.floor(w/wide*100*0.97))));
     };
@@ -7944,7 +8016,7 @@ function NextUpPage({records}){
     window.addEventListener("resize",calc);
     return()=>window.removeEventListener("resize",calc);
   },[shown,st.seq,isStu]);
-  const big=(h,min)=>shown?React.createElement('div',{key:st.seq,ref:nameRef,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:fit?fit+"px":"clamp("+(min||54)+"px,"+h+"vw,"+maxPx+"px)",lineHeight:1.15,fontWeight:isStu?700:500,letterSpacing:isStu?"0":"0.01em",whiteSpace:isStu?"normal":"nowrap",color:isStu?"#1b1200":"#3a2c08",overflowWrap:"normal",wordBreak:"normal",hyphens:"none"}},shown)
+  const big=(h,min)=>shown?React.createElement('div',{key:st.seq,ref:nameRef,style:{animation:"nextPop .45s ease-out",textAlign:"center",padding:"0 14px",width:"100%",boxSizing:"border-box",fontFamily:FONT,fontSize:fit?fit+"px":"clamp("+(min||54)+"px,"+(isStu?10:h)+"vw,"+maxPx+"px)",lineHeight:1.2,fontWeight:isStu?700:500,letterSpacing:isStu?"0":"0.01em",whiteSpace:isStu?"normal":"nowrap",color:isStu?"#1b1200":"#3a2c08",overflowWrap:"normal",wordBreak:"normal",hyphens:"none"}},shown)
     :null;
   const card=(height,minH)=>React.createElement('div',{style:{minHeight:minH||220,height:height,borderRadius:isStu?28:22,display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",border:"3px solid "+(shown?"#b8932f":"#c9a553"),background:shown?"linear-gradient(160deg,#e6cf8a,#c9a553)":"radial-gradient(120% 90% at 50% 0%,#14402b 0%,#07150e 70%)",boxShadow:shown?"0 14px 40px rgba(184,147,47,0.35)":"0 14px 40px rgba(7,21,14,0.35)"}},big(isStu?16:7,isStu?54:30));
   if(isStu){
@@ -7957,6 +8029,7 @@ function NextUpPage({records}){
   const fx=fixedSet(cls),eligible=roster[cls].filter(n=>!fx.has(norm(n))),fixedToday=roster[cls].filter(n=>fx.has(norm(n)));
   const pool=poolOf(cls,st),total=eligible.length;
   const waiting=queueOf(cls,st);                       // pushed to the end, in order
+  const owedNow=owedOf(cls,st).map(o=>o.name),done2Now=gi(fs,"done2",cls);
   const canNotReady=!!shown&&st.cls===cls;
   return React.createElement('div',{style:{padding:"14px 14px 40px",maxWidth:760,margin:"0 auto"}},
     React.createElement('style',null,css),
@@ -7965,6 +8038,7 @@ function NextUpPage({records}){
         ["HIFZ CLASS A","HIFZ CLASS B"].map(c=>React.createElement('button',{key:c,onClick:()=>setCls(c),style:pill(cls===c)},label(c))))),
     React.createElement('div',{style:{textAlign:"center",fontSize:12,color:"#6b7280",marginBottom:10}},"Student screens update instantly"+(awake?" · screen stays on":""),dot),
     card("clamp(70px,9vh,88px)",70),
+    canNotReady&&st.second&&React.createElement('div',{style:{textAlign:"center",fontSize:13,fontWeight:700,color:"#1d4ed8",marginTop:8}},"🔵 Second call"),
     React.createElement('button',{onClick:next,disabled:pool.length===0,style:{width:"100%",height:"clamp(150px,24vh,250px)",marginTop:12,borderRadius:22,border:"none",background:pool.length?"linear-gradient(180deg,#22c55e,#15803d)":"#9ca3af",color:"#fff",fontFamily:FONT,fontSize:"clamp(46px,11vw,78px)",fontWeight:700,letterSpacing:"0.01em",cursor:pool.length?"pointer":"default",boxShadow:pool.length?"0 10px 26px rgba(22,163,74,0.4)":"none"}},pool.length?"Next ▶":"Everyone has been called ✓"),
     React.createElement('button',{onClick:notReady,disabled:!canNotReady,style:{width:"100%",height:"clamp(84px,11vh,112px)",marginTop:12,borderRadius:22,border:"none",background:canNotReady?"linear-gradient(180deg,#ef4444,#b91c1c)":"#e5e7eb",color:canNotReady?"#fff":"#9ca3af",fontFamily:FONT,fontSize:"clamp(30px,7vw,44px)",fontWeight:700,cursor:canNotReady?"pointer":"default",boxShadow:canNotReady?"0 8px 20px rgba(185,28,28,0.35)":"none"}},"Not Ready ⏭"),
     waiting.length>0&&React.createElement('div',{style:{textAlign:"center",fontSize:13,color:"#92400e",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:14,padding:"9px 12px",marginTop:12}},"At the end, in order: "+waiting.join(" → ")),
@@ -7975,10 +8049,10 @@ function NextUpPage({records}){
         React.createElement('button',{onClick:startOver,style:{background:"transparent",border:"none",color:"#374151",fontSize:13,textDecoration:"underline",cursor:"pointer",padding:"4px 8px"}},"Start over"))),
     fixedToday.length>0&&React.createElement('div',{style:{textAlign:"center",fontSize:13,color:"#6b7280",marginTop:8}},"Fixed today (not picked): "+fixedToday.join(" · ")),
     React.createElement('div',{style:{marginTop:14,background:"#fff",border:"1px solid #E5E7EB",borderRadius:22,padding:16,boxShadow:"0 1px 6px rgba(0,0,0,0.04)"}},
-      React.createElement('div',{style:{fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"#6b7280",marginBottom:8}},"Students (tap to mark as not here)"),
+      React.createElement('div',{style:{fontSize:11,fontWeight:800,letterSpacing:"0.12em",textTransform:"uppercase",color:"#6b7280",marginBottom:8}},"Students · tap: ✗ absent → 🔵 called twice → normal"),
       React.createElement('div',{style:{display:"flex",flexWrap:"wrap",gap:6}},
-        eligible.map(n=>{const c=called.includes(n),a=absent.includes(n),w=waiting.includes(n);
-          return React.createElement('button',{key:n,onClick:()=>{if(!c)toggleAbsent(n);},style:{border:"1px solid "+(a?"#fca5a5":c?"#9fd3b0":w?"#fcd34d":"#E5E7EB"),background:a?"#fef2f2":c?"#f2faf5":w?"#fffbeb":"#fff",color:a?"#b91c1c":c?"#166534":w?"#92400e":"#374151",textDecoration:a?"line-through":"none",borderRadius:14,padding:"5px 11px",fontSize:13,fontWeight:500,cursor:c?"default":"pointer"}},(c?"✓ ":"")+n);}))));
+        eligible.map(n=>{const c=called.includes(n),a=absent.includes(n),w=waiting.includes(n),b=modeOf(cls,fs,n)==="b",d2=done2Now.includes(n);
+          return React.createElement('button',{key:n,onClick:()=>{if(!c)cycleMode(n);},style:{border:"1px solid "+(a?"#fca5a5":c?"#9fd3b0":b?"#93c5fd":w?"#fcd34d":"#E5E7EB"),background:a?"#fef2f2":c?"#f2faf5":b?"#eff6ff":w?"#fffbeb":"#fff",color:a?"#b91c1c":c?"#166534":b?"#1d4ed8":w?"#92400e":"#374151",textDecoration:a?"line-through":"none",borderRadius:14,padding:"5px 11px",fontSize:13,fontWeight:b?700:500,cursor:c?"default":"pointer"}},(c?(d2?"✓✓ ":"✓ "):"")+n+(b&&!d2?" ×2":""));}))));
 }
 
 // ── MONTHLY ABSENCES: who was absent in a month (Morning / Evening), with the dates and the number of absences ──
